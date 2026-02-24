@@ -1,0 +1,5 @@
+{
+  "name": "study forge",
+  "description": "A lightweight gamified study tool for students featuring task planning, focus timers, flashcards, and quizzes.",
+  "requestFramePermissions": []
+}
