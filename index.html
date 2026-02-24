@@ -1,13 +1,149 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Google AI Studio App</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Forge | Knowledge Refined</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; }
+        .forge-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; }
+        .btn-easy { border: 2px solid #22c55e; color: #22c55e; }
+        .btn-medium { border: 2px solid #eab308; color: #eab308; }
+        .btn-hard { border: 2px solid #ef4444; color: #ef4444; }
+        .priority-top { border-left: 8px solid #991b1b; } /* Dark Crimson */
+        .priority-high { border-left: 8px solid #f97316; } /* Orange Red */
+        .priority-medium { border-left: 8px solid #facc15; } /* Yellow */
+        .priority-low { border-left: 8px solid #4ade80; } /* Green */
+        #focus-overlay { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.95); z-index: 100; flex-direction: column; align-items: center; justify-content: center; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
 
+    <header class="flex items-center justify-between mb-12 max-w-6xl mx-auto">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-2xl shadow-lg shadow-blue-500/50">S</div>
+            <h1 class="text-3xl font-800 tracking-tighter uppercase italic text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-600">Study Forge</h1>
+        </div>
+        <nav class="hidden md:flex gap-6 text-sm font-semibold uppercase tracking-widest text-slate-400">
+            <a href="#" class="hover:text-blue-400 transition">Forge</a>
+            <a href="#" class="hover:text-blue-400 transition">Planner</a>
+            <a href="#" class="hover:text-blue-400 transition">History</a>
+        </nav>
+    </header>
+
+    <main class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <section class="lg:col-span-2 space-y-6">
+            <div class="forge-card p-8">
+                <h2 class="text-xl font-bold mb-4">Forge New Materials</h2>
+                <div class="border-2 border-dashed border-slate-700 rounded-xl p-12 text-center hover:border-blue-500 transition cursor-pointer mb-6">
+                    <p class="text-slate-400">Drop your PDF here or click to upload</p>
+                </div>
+
+                <div class="space-y-8">
+                    <div>
+                        <label class="block text-sm font-bold uppercase text-slate-500 mb-4">Quantity: <span id="qty-label" class="text-blue-400">25</span> items</label>
+                        <input type="range" id="qty-slider" min="5" max="50" value="25" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <button class="p-4 rounded-xl bg-blue-600 font-bold hover:bg-blue-500 transition shadow-lg shadow-blue-600/20">Forge Quiz</button>
+                        <button class="p-4 rounded-xl bg-slate-800 font-bold hover:bg-slate-700 transition">Forge Flashcards</button>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold uppercase text-slate-500 mb-4">Quiz Difficulty</label>
+                        <div class="flex gap-4">
+                            <button class="flex-1 py-2 rounded-lg btn-easy font-bold hover:bg-green-500/10 transition">Easy</button>
+                            <button class="flex-1 py-2 rounded-lg btn-medium font-bold hover:bg-yellow-500/10 transition">Medium</button>
+                            <button class="flex-1 py-2 rounded-lg btn-hard font-bold hover:bg-red-500/10 transition">Hard</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <aside class="space-y-6">
+            <div class="forge-card p-6 text-center">
+                <h3 class="text-sm font-bold uppercase text-slate-500 mb-4 tracking-widest">Focus Forge</h3>
+                <div class="text-5xl font-mono font-bold mb-6" id="timer-display">25:00</div>
+                <button id="start-focus" class="w-full py-3 rounded-xl bg-indigo-600 font-bold hover:bg-indigo-500 transition">Enter Focus Mode</button>
+            </div>
+
+            <div class="forge-card p-6">
+                <h3 class="text-sm font-bold uppercase text-slate-500 mb-4 tracking-widest">Task Ledger</h3>
+                <div class="space-y-3" id="task-list">
+                    <div class="bg-slate-800/50 p-4 rounded-lg priority-top">
+                        <p class="font-bold text-sm">Submit Thesis Draft</p>
+                        <p class="text-xs text-slate-500">Due: Feb 28, 11:59 PM</p>
+                    </div>
+                    <div class="bg-slate-800/50 p-4 rounded-lg priority-high">
+                        <p class="font-bold text-sm">Forge Biology Quiz</p>
+                        <p class="text-xs text-slate-500">Length: 45 Mins</p>
+                    </div>
+                </div>
+                <button class="w-full mt-4 py-2 border border-slate-700 rounded-lg text-xs font-bold uppercase text-slate-400 hover:bg-slate-800 transition">+ Add Task</button>
+            </div>
+        </aside>
+    </main>
+
+    <div id="focus-overlay">
+        <h2 class="text-2xl font-bold text-indigo-400 mb-2">Focus Forge Active</h2>
+        <div class="text-9xl font-mono font-bold mb-12" id="overlay-timer">25:00</div>
+        <button id="break-forge" class="px-8 py-3 rounded-full border border-red-500 text-red-500 font-bold hover:bg-red-500 hover:text-white transition">Break Forge</button>
+    </div>
+
+    <script>
+        // Quantity Slider Logic
+        const slider = document.getElementById('qty-slider');
+        const qtyLabel = document.getElementById('qty-label');
+        slider.oninput = function() { qtyLabel.innerText = this.value; }
+
+        // Focus Timer Logic
+        const startBtn = document.getElementById('start-focus');
+        const breakBtn = document.getElementById('break-forge');
+        const overlay = document.getElementById('focus-overlay');
+        const timerDisplay = document.getElementById('timer-display');
+        const overlayTimer = document.getElementById('overlay-timer');
+
+        let timeLeft = 25 * 60;
+        let timerId = null;
+
+        function updateTimerUI() {
+            const mins = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+            const secs = (timeLeft % 60).toString().padStart(2, '0');
+            timerDisplay.innerText = `${mins}:${secs}`;
+            overlayTimer.innerText = `${mins}:${secs}`;
+        }
+
+        startBtn.onclick = () => {
+            overlay.style.display = 'flex';
+            document.documentElement.requestFullscreen();
+            timerId = setInterval(() => {
+                if (timeLeft > 0) {
+                    timeLeft--;
+                    updateTimerUI();
+                } else {
+                    clearInterval(timerId);
+                }
+            }, 1000);
+        };
+
+        breakBtn.onclick = () => {
+            clearInterval(timerId);
+            overlay.style.display = 'none';
+            if (document.fullscreenElement) document.exitFullscreen();
+        };
+
+        // Handle Escape to pause but save state
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement) {
+                clearInterval(timerId);
+                overlay.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
