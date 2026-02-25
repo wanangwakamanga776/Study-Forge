@@ -147,11 +147,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onNavigate, onGener
                 <div key={task.id} className="flex items-center gap-5 group">
                   <div className={cn(
                     "w-3 h-3 rounded-full shadow-lg",
+                    task.priority === 'Urgent' ? "bg-red-700 shadow-red-700/20" :
                     task.priority === 'High' ? "bg-red-500 shadow-red-500/20" :
                     task.priority === 'Medium' ? "bg-amber-500 shadow-amber-500/20" : "bg-blue-500 shadow-blue-500/20"
                   )} />
                   <span className="text-stone-300 font-bold group-hover:text-white transition-colors">{task.title}</span>
-                  <span className="ml-auto text-[10px] font-bold text-stone-600 uppercase tracking-widest">{task.dueDate}</span>
+                  <span className="ml-auto text-[10px] font-bold text-stone-600 uppercase tracking-widest">
+                    {new Date(task.deadline).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                  </span>
                 </div>
               ))}
               {todayTasks.length > 3 && (
