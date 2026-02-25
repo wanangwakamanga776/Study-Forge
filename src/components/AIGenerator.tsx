@@ -6,6 +6,7 @@ import { cn } from '../lib/utils';
 import { Deck, Quiz, UserStats } from '../types';
 import { extractTextFromPDF } from '../lib/extraction';
 import { generateStudyMaterial } from '../services/aiService';
+import { soundService } from '../services/soundService';
 
 interface AIGeneratorProps {
   stats: UserStats;
@@ -79,6 +80,7 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ stats, onGenerated, on
     setIsGenerating(true);
     setError(null);
     setLoadingMessage('Smelting PDF content...');
+    soundService.playSmelt();
 
     try {
       const extractedText = await extractTextFromPDF(selectedFile);
@@ -94,6 +96,7 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ stats, onGenerated, on
       }
 
       setIsSuccess(true);
+      soundService.playSuccess();
       setTimeout(() => {
         setIsSuccess(false);
         setIsOpen(false);
@@ -118,7 +121,10 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ stats, onGenerated, on
   return (
     <>
       <button
-        onClick={() => setIsOpen(true)}
+        onClick={() => {
+          setIsOpen(true);
+          soundService.playClick();
+        }}
         className="flex items-center gap-3 px-8 py-4 bg-white text-forge-dark rounded-2xl hover:scale-105 transition-all shadow-[0_0_30px_rgba(255,255,255,0.1)] font-display font-extrabold uppercase italic tracking-tighter"
       >
         <Sparkles size={20} className="text-forge-accent" />
@@ -221,7 +227,10 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ stats, onGenerated, on
 
                         <div className="grid grid-cols-2 gap-4">
                           <button
-                            onClick={() => setMode('quiz')}
+                            onClick={() => {
+                              setMode('quiz');
+                              soundService.playClick();
+                            }}
                             className={cn(
                               "flex flex-col items-center gap-3 p-6 rounded-3xl border-2 transition-all",
                               mode === 'quiz' ? "border-forge-accent bg-forge-accent/10 forge-glow" : "border-white/5 bg-white/5 hover:border-white/10"
@@ -231,7 +240,10 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ stats, onGenerated, on
                             <span className={cn("font-bold uppercase tracking-tighter", mode === 'quiz' ? "text-white" : "text-stone-500")}>Quiz Mode</span>
                           </button>
                           <button
-                            onClick={() => setMode('flashcards')}
+                            onClick={() => {
+                              setMode('flashcards');
+                              soundService.playClick();
+                            }}
                             className={cn(
                               "flex flex-col items-center gap-3 p-6 rounded-3xl border-2 transition-all",
                               mode === 'flashcards' ? "border-forge-accent bg-forge-accent/10 forge-glow" : "border-white/5 bg-white/5 hover:border-white/10"
@@ -269,7 +281,10 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ stats, onGenerated, on
                               {(['easy', 'medium', 'hard'] as Difficulty[]).map((d) => (
                                 <button
                                   key={d}
-                                  onClick={() => setDifficulty(d)}
+                                  onClick={() => {
+                                    setDifficulty(d);
+                                    soundService.playClick();
+                                  }}
                                   className={cn(
                                     "py-3 rounded-xl border-2 font-bold uppercase text-[10px] tracking-widest transition-all",
                                     difficulty === d ? {

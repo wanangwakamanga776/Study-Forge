@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Quiz, QuizQuestion } from '../types';
 import { XP_PER_QUIZ_QUESTION } from '../constants';
 import { cn } from '../lib/utils';
+import { soundService } from '../services/soundService';
 
 interface QuizModeProps {
   quizzes: Quiz[];
@@ -56,10 +57,14 @@ export const QuizMode: React.FC<QuizModeProps> = ({ quizzes, onUpdate, onComplet
     setIsAnswered(true);
     if (index === activeQuiz!.questions[currentQuestionIndex].correctAnswer) {
       setScore(prev => prev + 1);
+      soundService.playSuccess();
+    } else {
+      soundService.playError();
     }
   };
 
   const nextQuestion = () => {
+    soundService.playClick();
     if (currentQuestionIndex < activeQuiz!.questions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
       setSelectedOption(null);
@@ -71,6 +76,7 @@ export const QuizMode: React.FC<QuizModeProps> = ({ quizzes, onUpdate, onComplet
   };
 
   const resetQuiz = () => {
+    soundService.playClick();
     setActiveQuizId(null);
     setCurrentQuestionIndex(0);
     setScore(0);
@@ -178,7 +184,10 @@ export const QuizMode: React.FC<QuizModeProps> = ({ quizzes, onUpdate, onComplet
       <div className="flex items-center justify-between mb-10">
         <h2 className="text-3xl font-extrabold font-display uppercase italic tracking-tighter text-white">Knowledge Smelters</h2>
         <button
-          onClick={() => setIsCreating(true)}
+          onClick={() => {
+            setIsCreating(true);
+            soundService.playClick();
+          }}
           className="flex items-center gap-2 px-6 py-3 forge-gradient text-forge-dark rounded-xl hover:scale-105 transition-all font-display font-extrabold uppercase italic tracking-tighter forge-glow"
         >
           <Plus size={20} />

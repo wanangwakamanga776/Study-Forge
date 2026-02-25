@@ -16,6 +16,9 @@ export const INITIAL_STATE: AppState = {
       lastResetDate: null,
     },
   },
+  settings: {
+    soundEnabled: true,
+  },
 };
 
 export const FREE_LIMITS = {

@@ -48,9 +48,14 @@ export interface UserStats {
   };
 }
 
+export interface AppSettings {
+  soundEnabled: boolean;
+}
+
 export interface AppState {
   tasks: Task[];
   decks: Deck[];
   quizzes: Quiz[];
   stats: UserStats;
+  settings: AppSettings;
 }

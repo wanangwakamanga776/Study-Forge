@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Play, Pause, RotateCcw, Trophy, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { XP_PER_TIMER, MOTIVATIONAL_MESSAGES } from '../constants';
+import { soundService } from '../services/soundService';
 
 interface FocusTimerProps {
   onComplete: (xp: number) => void;
@@ -34,6 +35,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({ onComplete }) => {
     if (isActive && timeLeft > 0) {
       interval = setInterval(() => {
         setTimeLeft(prev => prev - 1);
+        soundService.playTick();
       }, 1000);
     } else if (timeLeft === 0) {
       handleTimerEnd();
@@ -43,6 +45,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({ onComplete }) => {
 
   const handleTimerEnd = () => {
     setIsActive(false);
+    soundService.playTimerEnd();
     if (mode === 'focus') {
       onComplete(XP_PER_TIMER);
       setMessage(MOTIVATIONAL_MESSAGES[Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length)]);
@@ -56,11 +59,15 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({ onComplete }) => {
     }
   };
 
-  const toggleTimer = () => setIsActive(!isActive);
+  const toggleTimer = () => {
+    setIsActive(!isActive);
+    soundService.playClick();
+  };
   
   const resetTimer = () => {
     setIsActive(false);
     setTimeLeft(mode === 'focus' ? customTime * 60 : 5 * 60);
+    soundService.playClick();
   };
 
   const formatTime = (seconds: number) => {

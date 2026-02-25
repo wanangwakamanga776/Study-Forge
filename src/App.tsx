@@ -5,8 +5,10 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Layout, Timer, ListTodo, Layers, BrainCircuit, Menu, X, Star, Sparkles } from 'lucide-react';
+import { Layout, Timer, ListTodo, Layers, BrainCircuit, Menu, X, Star, Sparkles, Volume2, VolumeX } from 'lucide-react';
 import { useAppState } from './hooks/useAppState';
+import { soundService } from './services/soundService';
+import { useEffect } from 'react';
 import { Dashboard } from './components/Dashboard';
 import { TaskPlanner } from './components/TaskPlanner';
 import { FocusTimer } from './components/FocusTimer';
@@ -24,6 +26,23 @@ export default function App() {
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
+
+  useEffect(() => {
+    soundService.setEnabled(state.settings.soundEnabled);
+  }, [state.settings.soundEnabled]);
+
+  const toggleSound = () => {
+    setState(prev => ({
+      ...prev,
+      settings: {
+        ...prev.settings,
+        soundEnabled: !prev.settings.soundEnabled
+      }
+    }));
+    if (!state.settings.soundEnabled) {
+      soundService.playClick();
+    }
+  };
 
   if (!state || !state.stats) {
     return (
@@ -140,6 +159,7 @@ export default function App() {
                 onClick={() => {
                   setCurrentView(item.id as View);
                   setIsMobileMenuOpen(false);
+                  soundService.playClick();
                 }}
                 className={cn(
                   "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold uppercase tracking-widest transition-all",
@@ -174,6 +194,13 @@ export default function App() {
                 </p>
                 <p className="text-sm font-bold text-white">{state.stats.xp} XP</p>
               </div>
+              <button 
+                onClick={toggleSound}
+                className="ml-auto p-2 text-stone-500 hover:text-white transition-colors"
+                title={state.settings.soundEnabled ? "Mute Sounds" : "Unmute Sounds"}
+              >
+                {state.settings.soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+              </button>
             </div>
           </div>
         </div>

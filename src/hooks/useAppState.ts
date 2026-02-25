@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AppState } from '../types';
 import { INITIAL_STATE } from '../constants';
+import { soundService } from '../services/soundService';
 
 export function useAppState() {
   const [state, setState] = useState<AppState>(() => {
@@ -19,6 +20,10 @@ export function useAppState() {
               ...INITIAL_STATE.stats.aiUsage,
               ...(parsed.stats?.aiUsage || {}),
             }
+          },
+          settings: {
+            ...INITIAL_STATE.settings,
+            ...(parsed.settings || {}),
           }
         };
       } catch (e) {
@@ -55,6 +60,10 @@ export function useAppState() {
     setState(prev => {
       const newXp = prev.stats.xp + xpGain;
       const newLevel = Math.floor(newXp / 100) + 1;
+      
+      if (newLevel > prev.stats.level) {
+        soundService.playLevelUp();
+      }
       
       const today = new Date().toISOString().split('T')[0];
       let newStreak = prev.stats.streak;

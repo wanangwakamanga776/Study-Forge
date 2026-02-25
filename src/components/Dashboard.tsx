@@ -4,6 +4,8 @@ import { motion } from 'motion/react';
 import { AppState } from '../types';
 import { cn } from '../lib/utils';
 
+import { soundService } from '../services/soundService';
+
 interface DashboardProps {
   state: AppState;
   onNavigate: (view: string) => void;
@@ -134,7 +136,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onNavigate, onGener
         <div className="p-8 border-b border-white/5 flex items-center justify-between">
           <h3 className="font-extrabold font-display uppercase italic tracking-tighter text-white text-xl">Today's Blueprints</h3>
           <button 
-            onClick={() => onNavigate('planner')}
+            onClick={() => {
+              onNavigate('planner');
+              soundService.playClick();
+            }}
             className="text-xs font-bold uppercase tracking-widest text-stone-500 hover:text-forge-accent transition-colors"
           >
             Open Planner
@@ -182,7 +187,10 @@ const QuickActionButton: React.FC<{ icon: React.ReactNode, label: string, color:
   <motion.button
     whileHover={{ scale: 1.02 }}
     whileTap={{ scale: 0.98 }}
-    onClick={onClick}
+    onClick={() => {
+      onClick();
+      soundService.playClick();
+    }}
     className={cn(
       "flex flex-col items-center justify-center p-8 rounded-3xl text-white shadow-lg transition-shadow hover:shadow-xl",
       color

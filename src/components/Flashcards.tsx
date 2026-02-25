@@ -3,6 +3,7 @@ import { Plus, Trash2, ChevronLeft, ChevronRight, Layers, RotateCw } from 'lucid
 import { motion, AnimatePresence } from 'motion/react';
 import { Deck, Flashcard } from '../types';
 import { cn } from '../lib/utils';
+import { soundService } from '../services/soundService';
 
 interface FlashcardsProps {
   decks: Deck[];
@@ -75,7 +76,10 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
           <div className="flex flex-col items-center gap-8">
             <div 
               className="relative w-full h-80 perspective-1000 cursor-pointer"
-              onClick={() => setIsFlipped(!isFlipped)}
+              onClick={() => {
+                setIsFlipped(!isFlipped);
+                soundService.playClick();
+              }}
             >
               <motion.div
                 animate={{ rotateY: isFlipped ? 180 : 0 }}
@@ -107,6 +111,7 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
                 onClick={() => {
                   setCurrentCardIndex(prev => prev - 1);
                   setIsFlipped(false);
+                  soundService.playClick();
                 }}
                 className="p-4 rounded-full bg-stone-100 text-stone-600 hover:bg-stone-200 disabled:opacity-30 transition-all"
               >
@@ -117,6 +122,7 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
                 onClick={() => {
                   setCurrentCardIndex(prev => prev + 1);
                   setIsFlipped(false);
+                  soundService.playClick();
                 }}
                 className="p-4 rounded-full bg-stone-100 text-stone-600 hover:bg-stone-200 disabled:opacity-30 transition-all"
               >

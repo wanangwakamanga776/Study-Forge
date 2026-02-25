@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Task, Priority } from '../types';
 import { XP_PER_TASK } from '../constants';
 import { cn } from '../lib/utils';
+import { soundService } from '../services/soundService';
 
 interface TaskPlannerProps {
   tasks: Task[];
@@ -21,6 +22,7 @@ export const TaskPlanner: React.FC<TaskPlannerProps> = ({ tasks, onUpdate, onCom
   const addTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskTitle.trim()) return;
+    soundService.playClick();
 
     const deadline = deadlineDate && deadlineTime 
       ? new Date(`${deadlineDate}T${deadlineTime}`).toISOString()
@@ -46,7 +48,12 @@ export const TaskPlanner: React.FC<TaskPlannerProps> = ({ tasks, onUpdate, onCom
   const toggleTask = (id: string) => {
     const updatedTasks = tasks.map(task => {
       if (task.id === id) {
-        if (!task.completed) onComplete(XP_PER_TASK);
+        if (!task.completed) {
+          onComplete(XP_PER_TASK);
+          soundService.playSuccess();
+        } else {
+          soundService.playClick();
+        }
         return { ...task, completed: !task.completed };
       }
       return task;
@@ -56,6 +63,7 @@ export const TaskPlanner: React.FC<TaskPlannerProps> = ({ tasks, onUpdate, onCom
 
   const deleteTask = (id: string) => {
     onUpdate(tasks.filter(t => t.id !== id));
+    soundService.playClick();
   };
 
   const sortedTasks = [...tasks].sort((a, b) => {
