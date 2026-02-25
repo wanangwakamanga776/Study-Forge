@@ -130,7 +130,7 @@ export default function App() {
               <div className="w-10 h-10 bg-forge-accent rounded-xl flex items-center justify-center text-forge-dark forge-glow">
                 <BrainCircuit size={24} />
               </div>
-              <h1 className="text-2xl font-extrabold tracking-tighter font-display text-white uppercase italic">Study Forge</h1>
+              <h1 className="text-2xl font-extrabold tracking-tighter font-display text-white uppercase italic">Focus Forge</h1>
             </div>
 
           <nav className="flex-1 space-y-2">
@@ -186,7 +186,7 @@ export default function App() {
           <div className="flex items-center justify-between p-4">
             <div className="flex items-center gap-2">
               <BrainCircuit size={20} className="text-forge-accent" />
-              <span className="font-extrabold tracking-tighter font-display uppercase italic">Study Forge</span>
+              <span className="font-extrabold tracking-tighter font-display uppercase italic">Focus Forge</span>
             </div>
             <button 
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}

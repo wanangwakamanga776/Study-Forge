@@ -1,20 +1,36 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Focus Forge Deployment Guide
 
-# Run and deploy your AI Studio app
+This project is optimized for deployment on various static hosting platforms.
 
-This contains everything you need to run your app locally.
+## Environment Variables
 
-View your app in AI Studio: https://ai.studio/apps/b6c16a20-60d6-4e12-80c7-8cafc7d0ec3f
+Regardless of the platform, you **must** set the following environment variable:
 
-## Run Locally
+- `GEMINI_API_KEY`: Your Google Gemini API Key.
 
-**Prerequisites:**  Node.js
+## Deployment Platforms
 
+### 1. Netlify (Recommended)
+- **Build Command**: `npm run build`
+- **Publish Directory**: `dist`
+- The project includes `netlify.toml` and `_redirects` for automatic configuration.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+### 2. Cloudflare Pages
+- **Build Command**: `npm run build`
+- **Build Output Directory**: `dist`
+- The project includes `_redirects` in the `public` folder which Cloudflare will use for SPA routing.
+
+### 3. Vercel
+- **Build Command**: `npm run build`
+- **Output Directory**: `dist`
+- The project includes `vercel.json` for routing.
+
+### 4. GitHub Pages
+- If deploying to a sub-path (e.g., `username.github.io/repo-name/`), you must update the `base` property in `vite.config.ts`.
+- For SPA routing on GitHub Pages, you may need to use a `404.html` fallback or switch to `HashRouter`.
+
+## Local Development
+1. Clone the repository.
+2. Run `npm install`.
+3. Create a `.env` file and add `GEMINI_API_KEY=your_key_here`.
+4. Run `npm run dev`.

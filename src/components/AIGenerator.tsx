@@ -148,7 +148,7 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ stats, onGenerated, on
                       <Sparkles size={28} />
                     </div>
                     <div>
-                      <h2 className="text-3xl font-extrabold font-display uppercase italic tracking-tighter text-white">Study Forge</h2>
+                      <h2 className="text-3xl font-extrabold font-display uppercase italic tracking-tighter text-white">Focus Forge</h2>
                       <p className="text-stone-500 text-xs uppercase tracking-widest font-bold">AI Material Smelter</p>
                     </div>
                   </div>

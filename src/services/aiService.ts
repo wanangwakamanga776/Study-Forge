@@ -1,7 +1,9 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Deck, Quiz, Flashcard, QuizQuestion } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+const ai = new GoogleGenAI({ 
+  apiKey: (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : '') || '' 
+});
 
 export interface GeneratedStudyMaterial {
   multiple_choice: {
@@ -30,7 +32,7 @@ export async function generateStudyMaterial(
   
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: `You are the "Master Smith" of Study Forge. Your task is to smelt the following text into high-quality ${mode}.
+    contents: `You are the "Master Smith" of Focus Forge. Your task is to smelt the following text into high-quality ${mode}.
 
 Requirements:
 1. Mode: ${mode === 'quiz' ? 'Multiple Choice Quiz' : 'Flashcards'}
