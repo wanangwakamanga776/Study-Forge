@@ -1,23 +1,29 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Upload, FileText, Sparkles, Loader2, CheckCircle2, AlertCircle, X, BrainCircuit, Layers } from 'lucide-react';
+import { Upload, FileText, Sparkles, Loader2, CheckCircle2, AlertCircle, X, BrainCircuit, Layers, Video } from 'lucide-react';
 import { FREE_LIMITS } from '../constants';
 import { cn } from '../lib/utils';
-import { Deck, Quiz, UserStats } from '../types';
-import { extractTextFromPDF } from '../lib/extraction';
-import { generateStudyMaterial } from '../services/aiService';
+import { Deck, Quiz, UserStats, ForgeCastBlueprint } from '../types';
+import { extractTextFromFile } from '../lib/extraction';
+import { generateStudyMaterial, generateForgeCast } from '../services/aiService';
 import { soundService } from '../services/soundService';
 
 interface AIGeneratorProps {
   stats: UserStats;
-  onGenerated: (type: 'flashcards' | 'quiz', data: any) => void;
+  onGenerated: (type: 'flashcards' | 'quiz' | 'forgeCast', data: any) => void;
   onOpenPremium: () => void;
+  onNavigate?: (view: string) => void;
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 type Difficulty = 'easy' | 'medium' | 'hard';
 
-export const AIGenerator: React.FC<AIGeneratorProps> = ({ stats, onGenerated, onOpenPremium }) => {
-  const [isOpen, setIsOpen] = useState(false);
+export const AIGenerator: React.FC<AIGeneratorProps> = ({ stats, onGenerated, onOpenPremium, onNavigate, isOpen: controlledIsOpen, onOpenChange }) => {
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
+  const isOpen = controlledIsOpen ?? internalIsOpen;
+  const setIsOpen = onOpenChange ?? setInternalIsOpen;
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,24 +34,37 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ stats, onGenerated, on
   // Forge Controls
   const [quantity, setQuantity] = useState(15);
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
-  const [mode, setMode] = useState<'quiz' | 'flashcards'>('quiz');
+  const [mode, setMode] = useState<'quiz' | 'flashcards' | 'both' | 'forgeCast'>('both');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isLimitReached = () => {
     if (!stats || !stats.aiUsage) return false;
     if (stats.plan === 'Premium') return false;
+    if (mode === 'both') {
+      return stats.aiUsage.flashcards >= FREE_LIMITS.flashcards || stats.aiUsage.quizzes >= FREE_LIMITS.quizzes;
+    }
+    if (mode === 'forgeCast') {
+      return stats.aiUsage.forgeCasts >= FREE_LIMITS.forgeCasts;
+    }
     return mode === 'flashcards' 
       ? stats.aiUsage.flashcards >= FREE_LIMITS.flashcards
       : stats.aiUsage.quizzes >= FREE_LIMITS.quizzes;
   };
 
   const handleFileSelect = (file: File) => {
-    if (file.type === 'application/pdf') {
+    const allowedExtensions = [
+      '.pdf', '.docx', '.doc', '.rtf', '.odt', '.pages', '.txt',
+      '.pptx', '.ppt', '.ppsx', '.odp', '.key', '.potx'
+    ];
+    const fileName = file.name.toLowerCase();
+    const isValid = allowedExtensions.some(ext => fileName.endsWith(ext));
+
+    if (isValid) {
       setSelectedFile(file);
       setError(null);
     } else {
-      setError('Please upload a PDF file.');
+      setError('Please upload a valid document or slide file.');
     }
   };
 
@@ -79,20 +98,27 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ stats, onGenerated, on
 
     setIsGenerating(true);
     setError(null);
-    setLoadingMessage('Smelting PDF content...');
+    setLoadingMessage('Smelting content...');
     soundService.playSmelt();
 
     try {
-      const extractedText = await extractTextFromPDF(selectedFile);
-      setLoadingMessage(`Forging ${quantity} ${mode}...`);
-
+      const extractedText = await extractTextFromFile(selectedFile);
       const title = selectedFile.name.split('.')[0];
-      const { deck, quiz } = await generateStudyMaterial(extractedText, title, quantity, difficulty, mode);
-      
-      if (mode === 'flashcards') {
-        onGenerated('flashcards', deck);
+
+      if (mode === 'forgeCast') {
+        setLoadingMessage('Architecting ForgeCast...');
+        const blueprint = await generateForgeCast(extractedText, title);
+        onGenerated('forgeCast', blueprint);
       } else {
-        onGenerated('quiz', quiz);
+        setLoadingMessage(`Forging ${quantity} items...`);
+        const { deck, quiz } = await generateStudyMaterial(extractedText, title, quantity, difficulty, mode);
+        
+        if (mode === 'flashcards' || mode === 'both') {
+          onGenerated('flashcards', deck);
+        }
+        if (mode === 'quiz' || mode === 'both') {
+          onGenerated('quiz', quiz);
+        }
       }
 
       setIsSuccess(true);
@@ -113,9 +139,13 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ stats, onGenerated, on
   };
 
   const remaining = stats?.aiUsage ? (
-    mode === 'flashcards' 
-      ? FREE_LIMITS.flashcards - stats.aiUsage.flashcards
-      : FREE_LIMITS.quizzes - stats.aiUsage.quizzes
+    mode === 'both'
+      ? Math.min(FREE_LIMITS.flashcards - stats.aiUsage.flashcards, FREE_LIMITS.quizzes - stats.aiUsage.quizzes)
+      : mode === 'flashcards' 
+        ? FREE_LIMITS.flashcards - stats.aiUsage.flashcards
+        : mode === 'forgeCast'
+          ? FREE_LIMITS.forgeCasts - stats.aiUsage.forgeCasts
+          : FREE_LIMITS.quizzes - stats.aiUsage.quizzes
   ) : 0;
 
   return (
@@ -175,7 +205,19 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ stats, onGenerated, on
                       <CheckCircle2 size={48} />
                     </motion.div>
                     <h3 className="text-2xl font-extrabold font-display uppercase italic text-white mb-3">Forging Complete</h3>
-                    <p className="text-stone-400">Your materials have been added to the library.</p>
+                    <p className="text-stone-400 mb-8">Your materials have been added to the library.</p>
+                    
+                    {(mode === 'flashcards' || mode === 'both') && (
+                      <button
+                        onClick={() => {
+                          setIsOpen(false);
+                          if (onNavigate) onNavigate('match');
+                        }}
+                        className="px-8 py-3 bg-forge-accent text-forge-dark rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform"
+                      >
+                        Play Match Game
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-10">
@@ -195,14 +237,14 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ stats, onGenerated, on
                           ref={fileInputRef} 
                           onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])} 
                           className="hidden" 
-                          accept=".pdf"
+                          accept=".pdf,.docx,.doc,.rtf,.odt,.pages,.txt,.pptx,.ppt,.ppsx,.odp,.key,.potx"
                         />
                         <div className="flex flex-col items-center">
                           <div className="p-5 bg-white/5 text-stone-400 rounded-3xl mb-6 group-hover:text-forge-accent transition-colors">
                             <Upload size={40} />
                           </div>
-                          <p className="text-xl font-bold text-white mb-2">Drop PDF into the Forge</p>
-                          <p className="text-stone-500 text-sm">Or click to browse your blueprints</p>
+                          <p className="text-xl font-bold text-white mb-2">Drop Document or Slides into the Forge</p>
+                          <p className="text-stone-500 text-sm">PDF, Word, PowerPoint, and more</p>
                         </div>
                       </div>
                     ) : (
@@ -214,7 +256,7 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ stats, onGenerated, on
                             </div>
                             <div>
                               <p className="font-bold text-white truncate max-w-[200px]">{selectedFile.name}</p>
-                              <p className="text-xs text-stone-500">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB • PDF Blueprint</p>
+                              <p className="text-xs text-stone-500">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB • Blueprint</p>
                             </div>
                           </div>
                           <button 
@@ -225,19 +267,19 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ stats, onGenerated, on
                           </button>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-4 gap-4">
                           <button
                             onClick={() => {
                               setMode('quiz');
                               soundService.playClick();
                             }}
                             className={cn(
-                              "flex flex-col items-center gap-3 p-6 rounded-3xl border-2 transition-all",
+                              "flex flex-col items-center gap-3 p-4 rounded-3xl border-2 transition-all",
                               mode === 'quiz' ? "border-forge-accent bg-forge-accent/10 forge-glow" : "border-white/5 bg-white/5 hover:border-white/10"
                             )}
                           >
-                            <BrainCircuit size={24} className={mode === 'quiz' ? "text-forge-accent" : "text-stone-500"} />
-                            <span className={cn("font-bold uppercase tracking-tighter", mode === 'quiz' ? "text-white" : "text-stone-500")}>Quiz Mode</span>
+                            <BrainCircuit size={20} className={mode === 'quiz' ? "text-forge-accent" : "text-stone-500"} />
+                            <span className={cn("font-bold uppercase tracking-tighter text-[8px]", mode === 'quiz' ? "text-white" : "text-stone-500")}>Quiz</span>
                           </button>
                           <button
                             onClick={() => {
@@ -245,12 +287,41 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ stats, onGenerated, on
                               soundService.playClick();
                             }}
                             className={cn(
-                              "flex flex-col items-center gap-3 p-6 rounded-3xl border-2 transition-all",
+                              "flex flex-col items-center gap-3 p-4 rounded-3xl border-2 transition-all",
                               mode === 'flashcards' ? "border-forge-accent bg-forge-accent/10 forge-glow" : "border-white/5 bg-white/5 hover:border-white/10"
                             )}
                           >
-                            <Layers size={24} className={mode === 'flashcards' ? "text-forge-accent" : "text-stone-500"} />
-                            <span className={cn("font-bold uppercase tracking-tighter", mode === 'flashcards' ? "text-white" : "text-stone-500")}>Flashcards</span>
+                            <Layers size={20} className={mode === 'flashcards' ? "text-forge-accent" : "text-stone-500"} />
+                            <span className={cn("font-bold uppercase tracking-tighter text-[8px]", mode === 'flashcards' ? "text-white" : "text-stone-500")}>Cards</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setMode('both');
+                              soundService.playClick();
+                            }}
+                            className={cn(
+                              "flex flex-col items-center gap-3 p-4 rounded-3xl border-2 transition-all",
+                              mode === 'both' ? "border-forge-accent bg-forge-accent/10 forge-glow" : "border-white/5 bg-white/5 hover:border-white/10"
+                            )}
+                          >
+                            <div className="flex gap-1">
+                              <BrainCircuit size={14} className={mode === 'both' ? "text-forge-accent" : "text-stone-500"} />
+                              <Layers size={14} className={mode === 'both' ? "text-forge-accent" : "text-stone-500"} />
+                            </div>
+                            <span className={cn("font-bold uppercase tracking-tighter text-[8px]", mode === 'both' ? "text-white" : "text-stone-500")}>Both</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setMode('forgeCast');
+                              soundService.playClick();
+                            }}
+                            className={cn(
+                              "flex flex-col items-center gap-3 p-4 rounded-3xl border-2 transition-all",
+                              mode === 'forgeCast' ? "border-forge-accent bg-forge-accent/10 forge-glow" : "border-white/5 bg-white/5 hover:border-white/10"
+                            )}
+                          >
+                            <Video size={20} className={mode === 'forgeCast' ? "text-forge-accent" : "text-stone-500"} />
+                            <span className={cn("font-bold uppercase tracking-tighter text-[8px]", mode === 'forgeCast' ? "text-white" : "text-stone-500")}>ForgeCast</span>
                           </button>
                         </div>
 
@@ -274,7 +345,7 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ stats, onGenerated, on
                           />
                         </div>
 
-                        {mode === 'quiz' && (
+                        {(mode === 'quiz' || mode === 'both') && (
                           <div className="space-y-4">
                             <label className="text-xs font-bold uppercase tracking-widest text-stone-500">Difficulty Level</label>
                             <div className="grid grid-cols-3 gap-3">

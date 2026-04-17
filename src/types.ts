@@ -35,6 +35,35 @@ export interface Quiz {
   questions: QuizQuestion[];
 }
 
+export interface ForgeCastChapter {
+  chapter_id: number;
+  title: string;
+  narration_text: string;
+  visual_ai_prompt: string;
+  image_url?: string | null;
+  screen_overlays: {
+    text: string[];
+    latex_formula?: string;
+  };
+  transition: 'fade' | 'zoom' | 'slide';
+}
+
+export interface ForgeCastBlueprint {
+  id: string;
+  metadata: {
+    title: string;
+    estimated_duration: number;
+    theme_color: string;
+  };
+  chapters: ForgeCastChapter[];
+  assessment: {
+    check_question: string;
+    options: string[];
+    correct_index: number;
+  };
+  createdAt: number;
+}
+
 export interface UserStats {
   xp: number;
   level: number;
@@ -44,18 +73,16 @@ export interface UserStats {
   aiUsage: {
     quizzes: number;
     flashcards: number;
+    forgeCasts: number;
     lastResetDate: string | null;
   };
-}
-
-export interface AppSettings {
-  soundEnabled: boolean;
 }
 
 export interface AppState {
   tasks: Task[];
   decks: Deck[];
   quizzes: Quiz[];
+  forgeCasts: ForgeCastBlueprint[];
   stats: UserStats;
-  settings: AppSettings;
+  matchRecords?: Record<string, number>; // deckId -> best time in seconds
 }

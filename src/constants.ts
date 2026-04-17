@@ -4,6 +4,7 @@ export const INITIAL_STATE: AppState = {
   tasks: [],
   decks: [],
   quizzes: [],
+  forgeCasts: [],
   stats: {
     xp: 0,
     level: 1,
@@ -13,17 +14,17 @@ export const INITIAL_STATE: AppState = {
     aiUsage: {
       quizzes: 0,
       flashcards: 0,
+      forgeCasts: 0,
       lastResetDate: null,
     },
   },
-  settings: {
-    soundEnabled: true,
-  },
+  matchRecords: {},
 };
 
 export const FREE_LIMITS = {
   quizzes: 3,
   flashcards: 5,
+  forgeCasts: 2,
 };
 
 export const PREMIUM_PRICES = {

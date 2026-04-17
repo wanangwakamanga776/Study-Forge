@@ -19,15 +19,26 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({ onComplete }) => {
 
   // Persistence logic
   useEffect(() => {
-    const savedTime = localStorage.getItem('forge_timer_left');
-    const savedMode = localStorage.getItem('forge_timer_mode');
-    if (savedTime) setTimeLeft(parseInt(savedTime));
-    if (savedMode) setMode(savedMode as 'focus' | 'break');
+    try {
+      const savedTime = localStorage.getItem('forge_timer_left');
+      const savedMode = localStorage.getItem('forge_timer_mode');
+      if (savedTime) {
+        const parsed = parseInt(savedTime);
+        if (!isNaN(parsed)) setTimeLeft(parsed);
+      }
+      if (savedMode) setMode(savedMode as 'focus' | 'break');
+    } catch (e) {
+      console.error('Failed to load timer state:', e);
+    }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('forge_timer_left', timeLeft.toString());
-    localStorage.setItem('forge_timer_mode', mode);
+    try {
+      localStorage.setItem('forge_timer_left', timeLeft.toString());
+      localStorage.setItem('forge_timer_mode', mode);
+    } catch (e) {
+      console.error('Failed to save timer state:', e);
+    }
   }, [timeLeft, mode]);
 
   useEffect(() => {
