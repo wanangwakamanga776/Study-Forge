@@ -1,9 +1,29 @@
 import { GoogleGenAI, Type, ThinkingLevel } from "@google/genai";
 import { Deck, Quiz, Flashcard, QuizQuestion, ForgeCastBlueprint, ForgeCastChapter } from "../types";
 
-const ai = new GoogleGenAI({ 
-  apiKey: import.meta.env.VITE_GEMINI_API_KEY || '' 
-});
+const getApiKey = () => import.meta.env.VITE_GEMINI_API_KEY;
+
+/**
+ * Indicates if the AI service has been configured with an API key.
+ */
+export const isAIConfigured = !!getApiKey();
+
+let aiInstance: GoogleGenAI | null = null;
+
+/**
+ * Lazy-initializes and returns the GoogleGenAI instance.
+ * Throws a specific error if the API key is missing.
+ */
+function getAI(): GoogleGenAI {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    throw new Error("AI_SETUP_REQUIRED: VITE_GEMINI_API_KEY is missing. Please configure it in your environment.");
+  }
+  if (!aiInstance) {
+    aiInstance = new GoogleGenAI({ apiKey });
+  }
+  return aiInstance;
+}
 
 /**
  * Cleans text from AI responses, removing markdown code blocks and other artifacts.
@@ -22,6 +42,7 @@ function cleanText(text: string): string {
  */
 export async function generateImage(prompt: string): Promise<string | null> {
   try {
+    const ai = getAI();
     console.log(`AI Request Sent - Generating image for: ${prompt.substring(0, 50)}...`);
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-image",
@@ -56,6 +77,7 @@ export async function generateForgeCast(
   text: string,
   topic: string
 ): Promise<ForgeCastBlueprint> {
+  const ai = getAI();
   console.log(`AI Request Sent - Forging ForgeCast for ${topic}...`);
 
   const response = await ai.models.generateContent({
@@ -154,6 +176,7 @@ export async function generateForgeCastFromChat(
   input: string,
   fileContent?: string
 ): Promise<any> {
+  const ai = getAI();
   console.log(`AI Request Sent - Forging ForgeCast from chat...`);
 
   const response = await ai.models.generateContent({
@@ -237,6 +260,7 @@ export async function generateStudyMaterial(
   difficulty: string = 'medium',
   mode: 'quiz' | 'flashcards' | 'both' = 'quiz'
 ): Promise<{ deck: Deck; quiz: Quiz }> {
+  const ai = getAI();
   console.log(`AI Request Sent - Forging ${quantity} ${mode} at ${difficulty} difficulty...`);
   
   const isBoth = mode === 'both';

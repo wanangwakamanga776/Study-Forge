@@ -5,7 +5,7 @@ import { FREE_LIMITS } from '../constants';
 import { cn } from '../lib/utils';
 import { Deck, Quiz, UserStats, ForgeCastBlueprint } from '../types';
 import { extractTextFromFile } from '../lib/extraction';
-import { generateStudyMaterial, generateForgeCast } from '../services/aiService';
+import { generateStudyMaterial, generateForgeCast, isAIConfigured } from '../services/aiService';
 import { soundService } from '../services/soundService';
 
 interface AIGeneratorProps {
@@ -195,7 +195,23 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ stats, onGenerated, on
                   )}
                 </div>
 
-                {isSuccess ? (
+                {!isAIConfigured ? (
+                  <div className="py-16 text-center">
+                    <div className="w-24 h-24 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-8 border border-red-500/20">
+                      <AlertCircle size={48} />
+                    </div>
+                    <h3 className="text-2xl font-extrabold font-display uppercase italic text-white mb-3">Setup Required</h3>
+                    <p className="text-stone-400 mb-8 max-w-sm mx-auto">
+                      The Forge is cold. Please configure your <code className="text-forge-accent bg-forge-accent/10 px-2 py-1 rounded">VITE_GEMINI_API_KEY</code> in the environment secrets to start smelting.
+                    </p>
+                    <button
+                      onClick={() => setIsOpen(false)}
+                      className="px-8 py-3 bg-white/5 text-white rounded-xl font-black uppercase tracking-widest hover:bg-white/10 transition-all border border-white/10"
+                    >
+                      Close Forge
+                    </button>
+                  </div>
+                ) : isSuccess ? (
                   <div className="py-16 text-center">
                     <motion.div
                       initial={{ scale: 0 }}

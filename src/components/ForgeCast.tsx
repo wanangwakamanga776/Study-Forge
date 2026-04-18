@@ -9,7 +9,7 @@ import { InlineMath, BlockMath } from 'react-katex';
 import { ForgeCastBlueprint, ForgeCastChapter } from '../types';
 import { soundService } from '../services/soundService';
 import { cn } from '../lib/utils';
-import { generateForgeCastFromChat } from '../services/aiService';
+import { generateForgeCastFromChat, isAIConfigured } from '../services/aiService';
 
 interface ForgeCastProps {
   blueprint?: ForgeCastBlueprint;
@@ -143,7 +143,17 @@ export const ForgeCast: React.FC<ForgeCastProps> = ({
   };
 
   const handleSend = async () => {
-    if (!input.trim() && !uploadedFile) return;
+    if ((!input.trim() && !uploadedFile) || isForging) return;
+
+    if (!isAIConfigured) {
+      setMessages(prev => [...prev, 
+        { id: Date.now().toString(), role: 'user', content: input },
+        { id: (Date.now() + 1).toString(), role: 'agent', content: "Error: The Forge is cold. Please configure your VITE_GEMINI_API_KEY in the environment secrets to start smelting." }
+      ]);
+      setInput('');
+      setUploadedFile(null);
+      return;
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
