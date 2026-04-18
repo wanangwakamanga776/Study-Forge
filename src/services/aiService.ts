@@ -15,10 +15,13 @@ let aiInstance: GoogleGenAI | null = null;
  * Throws a specific error if the API key is missing.
  */
 function getAI(): GoogleGenAI {
-  const apiKey = getApiKey();
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+  
   if (!apiKey) {
-    throw new Error("AI_SETUP_REQUIRED: VITE_GEMINI_API_KEY is missing. Please configure it in your environment.");
+    console.error("Missing API Key: VITE_GEMINI_API_KEY is not defined in the environment. AI features will not work.");
+    throw new Error("AI_SETUP_REQUIRED: Missing API Key.");
   }
+
   if (!aiInstance) {
     aiInstance = new GoogleGenAI({ apiKey });
   }
