@@ -2,7 +2,7 @@ import { GoogleGenAI, Type, ThinkingLevel } from "@google/genai";
 import { Deck, Quiz, Flashcard, QuizQuestion, ForgeCastBlueprint, ForgeCastChapter } from "../types";
 
 const ai = new GoogleGenAI({ 
-  apiKey: (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : '') || '' 
+  apiKey: import.meta.env.VITE_GEMINI_API_KEY || '' 
 });
 
 /**
