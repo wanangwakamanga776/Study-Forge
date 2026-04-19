@@ -31,13 +31,13 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
         transition={{ duration: 0.8, ease: "easeOut" }}
         className="text-center mb-12 relative"
       >
-        <div className="w-24 h-24 bg-forge-accent/10 rounded-3xl flex items-center justify-center mx-auto mb-6 forge-glow border border-forge-accent/20">
-          <Flame size={48} className="text-forge-accent animate-pulse" />
+        <div className="w-32 h-32 bg-forge-accent/20 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 forge-glow border-2 border-forge-accent/40 shadow-[0_0_50px_rgba(251,146,60,0.2)]">
+          <Flame size={64} className="text-forge-accent" />
         </div>
-        <h1 className="text-6xl font-display font-black uppercase italic tracking-tighter text-white drop-shadow-[0_0_15px_rgba(251,146,60,0.3)]">
+        <h1 className="text-8xl font-display font-black uppercase italic tracking-tighter text-white drop-shadow-[0_0_30px_rgba(251,146,60,0.5)]">
           Study Forge
         </h1>
-        <p className="text-stone-500 font-bold uppercase tracking-[0.3em] text-[10px] mt-2">
+        <p className="text-forge-accent/60 font-black uppercase tracking-[0.4em] text-[10px] mt-4">
           Smelt Knowledge • Forge Character
         </p>
       </motion.div>
