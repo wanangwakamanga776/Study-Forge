@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Hammer, Flame, Shield, User } from 'lucide-react';
+import { Hammer, Flame, Shield, User, Loader2 } from 'lucide-react';
 import { signInWithGoogle } from '../services/authService';
 import { soundService } from '../services/soundService';
 
@@ -9,12 +9,20 @@ interface LoginPageProps {
 }
 
 export function LoginPage({ onGuestAccess }: LoginPageProps) {
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+
   const handleGoogleSignIn = async () => {
+    if (isAuthenticating) return;
+    
     soundService.playClick();
+    setIsAuthenticating(true);
+    
     try {
       await signInWithGoogle();
+      // Success is handled by useAuth in App.tsx
     } catch (error) {
       console.error("Sign in failed", error);
+      setIsAuthenticating(false);
     }
   };
 
@@ -56,10 +64,20 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
         <div className="space-y-6 relative z-10">
           <button
             onClick={handleGoogleSignIn}
-            className="w-full flex items-center justify-center gap-3 py-4 bg-white text-forge-dark rounded-xl font-display font-black uppercase italic tracking-tighter hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_4px_20px_rgba(255,255,255,0.1)]"
+            disabled={isAuthenticating}
+            className="w-full flex items-center justify-center gap-3 py-4 bg-white text-forge-dark rounded-xl font-display font-black uppercase italic tracking-tighter hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_4px_20px_rgba(255,255,255,0.1)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5" />
-            Continue with Google
+            {isAuthenticating ? (
+              <>
+                <Loader2 className="animate-spin" size={20} />
+                Lighting the Forge...
+              </>
+            ) : (
+              <>
+                <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5" />
+                Continue with Google
+              </>
+            )}
           </button>
 
           <div className="flex items-center gap-4 py-2">
