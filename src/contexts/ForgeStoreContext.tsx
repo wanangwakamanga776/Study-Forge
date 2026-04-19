@@ -52,6 +52,29 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
             ...prev,
             stats: { ...prev.stats, ...cloudStats }
           }));
+        } else {
+          // Initialize New User
+          const initialStats: UserStats = {
+            xp: 0,
+            level: 1,
+            streak: 1,
+            embers: 0,
+            lastActiveDate: new Date().toISOString().split('T')[0],
+            currentTheme: 'Default Ember',
+            unlockedThemes: ['Default Ember'],
+            aiUsage: {
+              quizzes: 0,
+              flashcards: 0,
+              forgeCasts: 0,
+              lastResetDate: new Date().toISOString()
+            },
+            plan: 'Free'
+          };
+          saveUserStats(user.uid, initialStats);
+          setState(prev => ({
+            ...prev,
+            stats: initialStats
+          }));
         }
         isInitialLoad.current = false;
       });

@@ -6,7 +6,6 @@ import {
   User, 
   Bell, 
   Volume2, 
-  Shield, 
   LogOut, 
   Save, 
   Loader2,
@@ -17,6 +16,7 @@ import { useAuth, logout } from '../services/authService';
 import { uploadAvatar, updateDisplayName } from '../services/profileService';
 import { soundService } from '../services/soundService';
 import { useForgeStore } from '../contexts/ForgeStoreContext';
+import { cn } from '../lib/utils';
 
 interface AccountSettingsProps {
   isOpen: boolean;
@@ -31,6 +31,8 @@ export function AccountSettings({ isOpen, onClose }: AccountSettingsProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [soundsEnabled, setSoundsEnabled] = useState(soundService.isEnabled());
+  const [activeTab, setActiveTab] = useState<'profile' | 'preferences'>('profile');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -46,7 +48,7 @@ export function AccountSettings({ isOpen, onClose }: AccountSettingsProps) {
     setIsUploading(true);
     try {
       await uploadAvatar(file);
-      soundService.playLevelUp(); // Use levelup sound for success
+      soundService.playLevelUp();
     } catch (error) {
       console.error(error);
       alert("Failed to smelt avatar.");
@@ -69,6 +71,13 @@ export function AccountSettings({ isOpen, onClose }: AccountSettingsProps) {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const toggleSounds = () => {
+    const next = !soundsEnabled;
+    setSoundsEnabled(next);
+    soundService.setEnabled(next);
+    if (next) soundService.playClick();
   };
 
   if (!isOpen) return null;
@@ -103,17 +112,33 @@ export function AccountSettings({ isOpen, onClose }: AccountSettingsProps) {
         </div>
 
         <div className="flex flex-col md:flex-row h-[500px]">
-          {/* Sidebar Tabs (Conceptual for now, can be expanded) */}
+          {/* Sidebar Tabs */}
           <div className="w-full md:w-64 border-r border-white/5 p-6 space-y-2">
-            <div className="flex items-center gap-3 px-4 py-3 bg-forge-accent/10 text-forge-accent rounded-xl border border-forge-accent/20">
+            <button 
+              onClick={() => setActiveTab('profile')}
+              className={cn(
+                "w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all",
+                activeTab === 'profile' 
+                  ? "bg-forge-accent/10 text-forge-accent border-forge-accent/20" 
+                  : "text-stone-600 border-transparent hover:text-white"
+              )}
+            >
               <User size={18} />
               <span className="text-[10px] font-black uppercase tracking-widest">Profile</span>
-            </div>
-            <div className="flex items-center gap-3 px-4 py-3 text-stone-600 hover:text-white transition-colors cursor-not-allowed">
+            </button>
+            <button 
+              onClick={() => setActiveTab('preferences')}
+              className={cn(
+                "w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all",
+                activeTab === 'preferences' 
+                  ? "bg-forge-accent/10 text-forge-accent border-forge-accent/20" 
+                  : "text-stone-600 border-transparent hover:text-white"
+              )}
+            >
               <Volume2 size={18} />
-              <span className="text-[10px] font-black uppercase tracking-widest opacity-50">Preferences</span>
-            </div>
-            <div className="flex items-center gap-3 px-4 py-3 text-stone-600 hover:text-white transition-colors cursor-not-allowed">
+              <span className="text-[10px] font-black uppercase tracking-widest">Preferences</span>
+            </button>
+            <div className="flex items-center gap-3 px-4 py-3 text-stone-600 cursor-not-allowed">
               <Bell size={18} />
               <span className="text-[10px] font-black uppercase tracking-widest opacity-50">Notifications</span>
             </div>
@@ -122,86 +147,134 @@ export function AccountSettings({ isOpen, onClose }: AccountSettingsProps) {
           {/* Content Area */}
           <div className="flex-1 overflow-y-auto p-10 space-y-12 metallic-scrollbar">
             
-            {/* Avatar Section */}
-            <section className="space-y-6">
-              <h3 className="text-xs font-black uppercase tracking-[0.2em] text-stone-500">Master Avatar</h3>
-              <div className="flex items-center gap-8">
-                <div className="relative group">
-                  <div className="w-32 h-32 rounded-3xl overflow-hidden border-2 border-forge-accent/30 forge-glow relative">
-                    {user?.photoURL ? (
-                      <img 
-                        src={user.photoURL} 
-                        alt="Profile" 
-                        className="w-full h-full object-cover"
-                        referrerPolicy="no-referrer"
+            {activeTab === 'profile' ? (
+              <>
+                {/* Avatar Section */}
+                <section className="space-y-6">
+                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-stone-500">Master Avatar</h3>
+                  <div className="flex items-center gap-8">
+                    <div className="relative group">
+                      <div className="w-32 h-32 rounded-3xl overflow-hidden border-2 border-forge-accent/30 forge-glow relative">
+                        {user?.photoURL ? (
+                          <img 
+                            src={user.photoURL} 
+                            alt="Profile" 
+                            className="w-full h-full object-cover"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-white/5 flex items-center justify-center">
+                            <User size={48} className="text-stone-700" />
+                          </div>
+                        )}
+                        {isUploading && (
+                          <div className="absolute inset-0 bg-forge-dark/60 flex items-center justify-center backdrop-blur-sm">
+                            <Loader2 className="animate-spin text-forge-accent" />
+                          </div>
+                        )}
+                      </div>
+                      <button 
+                        onClick={handleAvatarClick}
+                        className="absolute -bottom-1 -right-1 p-2.5 bg-white text-forge-dark rounded-xl shadow-xl hover:scale-110 active:scale-95 transition-all group-hover:rotate-6"
+                        disabled={isUploading}
+                      >
+                        <Camera size={16} />
+                      </button>
+                      <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        className="hidden" 
+                        accept="image/*" 
+                        onChange={handleFileChange} 
                       />
-                    ) : (
-                      <div className="w-full h-full bg-white/5 flex items-center justify-center">
-                        <User size={48} className="text-stone-700" />
-                      </div>
-                    )}
-                    {isUploading && (
-                      <div className="absolute inset-0 bg-forge-dark/60 flex items-center justify-center backdrop-blur-sm">
-                        <Loader2 className="animate-spin text-forge-accent" />
-                      </div>
-                    )}
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-sm font-bold text-white">Custom Smelting</p>
+                      <p className="text-[10px] text-stone-500 uppercase tracking-widest leading-relaxed">
+                        Upload a portrait for your<br/>Master Smith to recognize you.<br/>Max size: 2MB (PNG/JPG)
+                      </p>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Display Name Section */}
+                <section className="space-y-4">
+                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-stone-500">Forger Name</h3>
+                  <div className="flex gap-4">
+                    <div className="flex-1 relative">
+                      <input
+                        type="text"
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                        placeholder="Enter forge name..."
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-white font-bold focus:outline-none focus:border-forge-accent/50 transition-colors"
+                      />
+                      {saveSuccess && (
+                        <motion.div 
+                          initial={{ opacity: 0, x: 10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2 text-green-500 text-[10px] font-black uppercase"
+                        >
+                          <Check size={14} />
+                          Forged
+                        </motion.div>
+                      )}
+                    </div>
+                    <button
+                      onClick={handleSaveChanges}
+                      disabled={isSaving || !newName.trim() || newName === user?.displayName}
+                      className="px-8 py-4 bg-forge-accent text-forge-dark rounded-xl font-display font-black uppercase italic tracking-tighter hover:scale-105 active:scale-95 transition-all disabled:opacity-30 disabled:grayscale disabled:scale-100"
+                    >
+                      {isSaving ? <Loader2 className="animate-spin" /> : <Save size={20} />}
+                    </button>
+                  </div>
+                </section>
+              </>
+            ) : (
+              <section className="space-y-8">
+                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-stone-500">Forge Prefereces</h3>
+                
+                <div className="flex items-center justify-between p-6 bg-white/5 rounded-2xl border border-white/5 group hover:border-white/10 transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-white/5 rounded-xl text-stone-400 group-hover:text-forge-accent transition-colors">
+                      <Volume2 size={20} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-white uppercase tracking-tighter">Forge Sound Effects</p>
+                      <p className="text-[10px] text-stone-500 font-bold uppercase tracking-widest">Ambient clinks, sucess sparks, and level ups</p>
+                    </div>
                   </div>
                   <button 
-                    onClick={handleAvatarClick}
-                    className="absolute -bottom-2 -right-2 p-3 bg-white text-forge-dark rounded-xl shadow-xl hover:scale-110 active:scale-95 transition-all group-hover:rotate-6"
-                    disabled={isUploading}
+                    onClick={toggleSounds}
+                    className={cn(
+                      "w-12 h-6 rounded-full transition-all relative",
+                      soundsEnabled ? "bg-forge-accent" : "bg-white/10"
+                    )}
                   >
-                    <Camera size={18} />
-                  </button>
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    className="hidden" 
-                    accept="image/*" 
-                    onChange={handleFileChange} 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <p className="text-sm font-bold text-white">Custom Smelting</p>
-                  <p className="text-[10px] text-stone-500 uppercase tracking-widest leading-relaxed">
-                    Upload a portrait for your<br/>Master Smith to recognize you.<br/>Max size: 2MB (PNG/JPG)
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            {/* Display Name Section */}
-            <section className="space-y-4">
-              <h3 className="text-xs font-black uppercase tracking-[0.2em] text-stone-500">Apprentice Title</h3>
-              <div className="flex gap-4">
-                <div className="flex-1 relative">
-                  <input
-                    type="text"
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                    placeholder="Enter new name..."
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-white font-bold focus:outline-none focus:border-forge-accent/50 transition-colors"
-                  />
-                  {saveSuccess && (
                     <motion.div 
-                      initial={{ opacity: 0, x: 10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2 text-green-500 text-[10px] font-black uppercase"
-                    >
-                      <Check size={14} />
-                      Forged
-                    </motion.div>
-                  )}
+                      layout
+                      className="absolute top-1 left-1 w-4 h-4 rounded-full bg-forge-dark"
+                      animate={{ x: soundsEnabled ? 24 : 0 }}
+                    />
+                  </button>
                 </div>
-                <button
-                  onClick={handleSaveChanges}
-                  disabled={isSaving || !newName.trim() || newName === user?.displayName}
-                  className="px-8 py-4 bg-forge-accent text-forge-dark rounded-xl font-display font-black uppercase italic tracking-tighter hover:scale-105 active:scale-95 transition-all disabled:opacity-30 disabled:grayscale disabled:scale-100"
-                >
-                  {isSaving ? <Loader2 className="animate-spin" /> : <Save size={20} />}
-                </button>
-              </div>
-            </section>
+
+                <div className="flex items-center justify-between p-6 bg-white/5 rounded-2xl border border-white/5 opacity-50">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-white/5 rounded-xl text-stone-400">
+                      <Bell size={20} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-white uppercase tracking-tighter">Study Reminders</p>
+                      <p className="text-[10px] text-stone-500 font-bold uppercase tracking-widest">Keep your heat high with streak notifications</p>
+                    </div>
+                  </div>
+                  <div className="w-12 h-6 rounded-full bg-white/10 relative cursor-not-allowed">
+                    <div className="absolute top-1 left-1 w-4 h-4 rounded-full bg-forge-dark" />
+                  </div>
+                </div>
+              </section>
+            )}
 
             {/* Account Management */}
             <section className="pt-8 border-t border-white/5">

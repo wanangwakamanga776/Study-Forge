@@ -30,6 +30,10 @@ class SoundService {
     this.enabled = enabled;
   }
 
+  isEnabled(): boolean {
+    return this.enabled;
+  }
+
   private playTone(freq: number, type: OscillatorType, duration: number, volume: number = 0.1) {
     if (!this.enabled) return;
     

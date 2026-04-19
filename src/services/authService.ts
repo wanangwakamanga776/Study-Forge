@@ -13,6 +13,9 @@ export const signInWithGoogle = async () => {
     const result = await signInWithPopup(auth, googleProvider);
     return result.user;
   } catch (error: any) {
+    if (error.code === 'auth/unauthorized-domain') {
+      throw new Error("The Forge doesn't recognize this domain yet. Please use the main link.");
+    }
     console.error("Google Sign In Error Detailed:", {
       code: error.code,
       message: error.message,

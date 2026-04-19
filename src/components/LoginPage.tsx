@@ -10,18 +10,21 @@ interface LoginPageProps {
 
 export function LoginPage({ onGuestAccess }: LoginPageProps) {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleGoogleSignIn = async () => {
     if (isAuthenticating) return;
     
     soundService.playClick();
     setIsAuthenticating(true);
+    setErrorMsg(null);
     
     try {
       await signInWithGoogle();
       // Success is handled by useAuth in App.tsx
-    } catch (error) {
+    } catch (error: any) {
       console.error("Sign in failed", error);
+      setErrorMsg(error.message || "The Forge failed to light.");
       setIsAuthenticating(false);
     }
   };
@@ -62,6 +65,15 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
         </div>
 
         <div className="space-y-6 relative z-10">
+          {errorMsg && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-[10px] font-black uppercase text-red-500 tracking-widest text-center"
+            >
+              {errorMsg}
+            </motion.div>
+          )}
           <button
             onClick={handleGoogleSignIn}
             disabled={isAuthenticating}

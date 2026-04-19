@@ -71,9 +71,7 @@ export function ProfileHeader({ onOpenSettings }: ProfileHeaderProps) {
 
         <ChevronDown 
           size={16} 
-          className={Object.assign({}, { 
-            className: `text-stone-600 transition-transform ${isMenuOpen ? 'rotate-180' : ''}` 
-          }).className} 
+          className={`text-stone-600 transition-transform duration-300 ${isMenuOpen ? 'rotate-180' : ''}`} 
         />
       </motion.button>
 
