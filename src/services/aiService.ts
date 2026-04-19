@@ -1,12 +1,11 @@
 import { GoogleGenAI, Type, ThinkingLevel } from "@google/genai";
 import { Deck, Quiz, Flashcard, QuizQuestion, ForgeCastBlueprint, ForgeCastChapter } from "../types";
 
-const getApiKey = () => import.meta.env.VITE_GEMINI_API_KEY;
-
 /**
  * Indicates if the AI service has been configured with an API key.
+ * In AI Studio Build, process.env.GEMINI_API_KEY is usually provided automatically.
  */
-export const isAIConfigured = !!getApiKey();
+export const isAIConfigured = !!process.env.GEMINI_API_KEY;
 
 let aiInstance: GoogleGenAI | null = null;
 
@@ -15,10 +14,10 @@ let aiInstance: GoogleGenAI | null = null;
  * Throws a specific error if the API key is missing.
  */
 function getAI(): GoogleGenAI {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+  const apiKey = process.env.GEMINI_API_KEY;
   
   if (!apiKey) {
-    console.error("Missing API Key: VITE_GEMINI_API_KEY is not defined in the environment. AI features will not work.");
+    console.error("Missing API Key: process.env.GEMINI_API_KEY is not defined.");
     throw new Error("AI_SETUP_REQUIRED: Missing API Key.");
   }
 
@@ -29,15 +28,12 @@ function getAI(): GoogleGenAI {
 }
 
 /**
- * Cleans text from AI responses, removing markdown code blocks and other artifacts.
+ * Cleans text from AI responses.
  */
 function cleanText(text: string): string {
   if (!text) return "";
-  // Remove markdown code blocks
   let cleaned = text.replace(/```[a-z]*\n?/gi, "").replace(/```/g, "");
-  // Remove leading/trailing whitespace
-  cleaned = cleaned.trim();
-  return cleaned;
+  return cleaned.trim();
 }
 
 /**
@@ -49,9 +45,7 @@ export async function generateImage(prompt: string): Promise<string | null> {
     console.log(`AI Request Sent - Generating image for: ${prompt.substring(0, 50)}...`);
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-image",
-      contents: {
-        parts: [{ text: prompt }]
-      },
+      contents: prompt,
       config: {
         imageConfig: {
           aspectRatio: "16:9",
@@ -68,12 +62,9 @@ export async function generateImage(prompt: string): Promise<string | null> {
     return null;
   } catch (error) {
     console.error("Failed to generate image:", error);
-    return null;
+    // Fallback to placeholder if native image generation fails/is restricted
+    return `https://picsum.photos/seed/${encodeURIComponent(prompt.substring(0, 10))}/800/400`;
   }
-}
-
-export interface GeneratedStudyMaterial {
-  // ... existing interface ...
 }
 
 export async function generateForgeCast(
@@ -83,20 +74,22 @@ export async function generateForgeCast(
   const ai = getAI();
   console.log(`AI Request Sent - Forging ForgeCast for ${topic}...`);
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: `You are the "ForgeCast" Cinematic Engine. Your goal is to transform the following educational text into a high-production, step-by-step AI video blueprint.
+  const prompt = `You are the "ForgeCast" Cinematic Engine. Transform the following text into a structured 5-scene video blueprint.
     
     Operational Protocol:
     - Pedagogy: Break the topic into 5 "Scenes" that build logically.
-    - Visual Aesthetic: Use high-fidelity, cinematic, and professional descriptors (e.g., "Macro 3D," "Volumetric lighting," "Minimalist motion graphics").
-    - Narration: Concise, rhythmic, and professional. Use [pause] for timing.
-    - Overlays: Use $LaTeX$ for all mathematical and scientific notation.
+    - Visual Aesthetic: Use high-fidelity, cinematic, and professional descriptors.
+    - Narration: Concise, rhythmic, and professional.
+    - Overlays: Use $LaTeX$ for all mathematical notation.
 
     Text:
-    ${text}`,
+    ${text}`;
+
+  const response = await ai.models.generateContent({
+    model: "gemini-3-flash-preview",
+    contents: prompt,
     config: {
-      thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
+      systemInstruction: "You are the ForgeCast Cinematic Engine specialized in JSON output.",
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
@@ -127,7 +120,7 @@ export async function generateForgeCast(
                   },
                   required: ["text"]
                 },
-                transition: { type: Type.STRING, enum: ["fade", "zoom", "slide"] }
+                transition: { type: Type.STRING }
               },
               required: ["chapter_id", "title", "narration_text", "visual_ai_prompt", "screen_overlays", "transition"]
             },
@@ -150,11 +143,11 @@ export async function generateForgeCast(
   });
 
   try {
-    const data = JSON.parse(cleanText(response.text || '{}'));
+    const data = JSON.parse(response.text || '{}');
     
     // Generate images for each chapter in parallel
     const chaptersWithImages = await Promise.all(
-      data.chapters.map(async (chapter: any) => {
+      (data.chapters || []).map(async (chapter: any) => {
         const imageUrl = await generateImage(chapter.visual_ai_prompt);
         return {
           ...chapter,
@@ -184,17 +177,9 @@ export async function generateForgeCastFromChat(
 
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: `You are the "ForgeCast" Cinematic Agent. Your goal is to transform the following user input into a structured 5-scene video blueprint.
-    
-    Operational Parameters:
-    - Context Handling: If file content is provided, prioritize its specific data.
-    - Visual Style: "The Forge" Aesthetic (Industrial, cinematic lighting, glowing embers, high-contrast, metallic textures).
-    - Constraint: Limit narration to 150 words total across all scenes.
-
-    User Input: ${input}
-    ${fileContent ? `File Content: ${fileContent}` : ''}`,
+    contents: `User Input: ${input}\n${fileContent ? `File Content: ${fileContent}` : ''}`,
     config: {
-      thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
+      systemInstruction: "You are the ForgeCast Cinematic Agent. Transform input into a structured 5-scene JSON blueprint. Use industrial metaphors.",
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
@@ -233,11 +218,11 @@ export async function generateForgeCastFromChat(
   });
 
   try {
-    const data = JSON.parse(cleanText(response.text || '{}'));
+    const data = JSON.parse(response.text || '{}');
     
     // Generate images for each scene in parallel
     const scenesWithImages = await Promise.all(
-      data.scenes.map(async (scene: any) => {
+      (data.scenes || []).map(async (scene: any) => {
         const imageUrl = await generateImage(scene.visual_prompt);
         return {
           ...scene,
@@ -256,6 +241,53 @@ export async function generateForgeCastFromChat(
   }
 }
 
+export async function chatWithMasterSmith(
+  message: string,
+  history: { role: 'user' | 'model'; parts: { text: string }[] }[],
+  fileContent?: string
+): Promise<string> {
+  try {
+    const ai = getAI();
+    
+    const systemPrompt = `You are the "Master Smith" of Study Forge. 
+    Personality: Encouraging, expert, industrial, and highly professional. You speak like a weathered master of the craft who sees learning as "smelting knowledge" and "forging the mind."
+    Core Values: Detail-oriented explanations, exam-focused advice.
+    Style: Industrial metaphors (heat, metal, hammers, anvils, smelting).
+    
+    ${fileContent ? `Context from User's Blueprint: ${fileContent}` : ''}
+    
+    Keep responses concise. Use markdown.`;
+
+    // Map history to the required format
+    const contents = history.map(m => ({
+      role: m.role,
+      parts: m.parts
+    }));
+
+    // Add the current message
+    contents.push({
+      role: 'user',
+      parts: [{ text: message }]
+    });
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: contents,
+      config: {
+        systemInstruction: systemPrompt
+      }
+    });
+
+    return response.text || "The Forge is silent. Perhaps try another query, apprentice.";
+  } catch (error) {
+    console.error("Master Smith Chat Error:", error);
+    if (error instanceof Error && error.message.includes("AI_SETUP_REQUIRED")) {
+      throw error;
+    }
+    throw new Error("The Forge is cooling. I cannot answer right now, apprentice. Check your connection.");
+  }
+}
+
 export async function generateStudyMaterial(
   text: string, 
   title: string, 
@@ -270,54 +302,13 @@ export async function generateStudyMaterial(
   
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: `You are the "Master Smith" of Focus Forge. Your task is to smelt the following text into high-quality study materials.
-${isBoth ? `You must generate BOTH a Multiple Choice Quiz and Flashcards.` : `Mode: ${mode === 'quiz' ? 'Multiple Choice Quiz' : 'Flashcards'}`}
-
-Requirements:
-1. Quantity: Exactly ${quantity} items ${isBoth ? 'for EACH category (Quiz and Flashcards)' : ''}.
-2. Difficulty: ${difficulty.toUpperCase()}. Adjust the complexity of questions and depth of knowledge required accordingly.
-3. Focus: Identify key concepts, definitions, and important facts. Focus only on examinable material.
-4. Quality: Questions must be clear, precise, and exam-style. Avoid vague or obvious questions.
-
-Return response strictly in this JSON format:
-{
-  ${isBoth ? `
-  "quiz_items": [
-    {
-      "question": "...",
-      "options": ["...", "...", "...", "..."],
-      "answer": 0
-    }
-  ],
-  "flashcard_items": [
-    {
-      "front": "...",
-      "back": "..."
-    }
-  ]
-  ` : `
-  "items": [
-    ${mode === 'quiz' ? `
-    {
-      "question": "...",
-      "options": ["...", "...", "...", "..."],
-      "answer": 0
-    }` : `
-    {
-      "front": "...",
-      "back": "..."
-    }`}
-  ]
-  `}
-}
-
-Text:
-${text}`,
+    contents: `Text: ${text}`,
     config: {
+      systemInstruction: `You are the "Master Smith" of Focus Forge. Smelt the text into ${quantity} ${mode} items at ${difficulty} difficulty.`,
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
-        properties: isBoth ? {
+        properties: {
           quiz_items: {
             type: Type.ARRAY,
             items: {
@@ -328,9 +319,7 @@ ${text}`,
                 answer: { type: Type.INTEGER }
               },
               required: ["question", "options", "answer"]
-            },
-            minItems: quantity,
-            maxItems: quantity
+            }
           },
           flashcard_items: {
             type: Type.ARRAY,
@@ -341,49 +330,21 @@ ${text}`,
                 back: { type: Type.STRING }
               },
               required: ["front", "back"]
-            },
-            minItems: quantity,
-            maxItems: quantity
-          }
-        } : {
-          items: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: mode === 'quiz' ? {
-                question: { type: Type.STRING },
-                options: { 
-                  type: Type.ARRAY, 
-                  items: { type: Type.STRING },
-                  minItems: 4,
-                  maxItems: 4
-                },
-                answer: { type: Type.INTEGER }
-              } : {
-                front: { type: Type.STRING },
-                back: { type: Type.STRING }
-              },
-              required: mode === 'quiz' ? ["question", "options", "answer"] : ["front", "back"]
-            },
-            minItems: quantity,
-            maxItems: quantity
+            }
           }
         },
-        required: isBoth ? ["quiz_items", "flashcard_items"] : ["items"]
+        required: isBoth ? ["quiz_items", "flashcard_items"] : (mode === 'quiz' ? ["quiz_items"] : ["flashcard_items"])
       }
     }
   });
 
-  console.log("AI Response Received");
-  
   try {
     const data = JSON.parse(response.text || '{}');
-    console.log("JSON Parse Success", data);
 
     const deck: Deck = {
       id: crypto.randomUUID(),
       title: `Blueprint: ${title}`,
-      cards: (isBoth ? data.flashcard_items : (mode === 'flashcards' ? data.items : [])).map((f: any) => ({
+      cards: (data.flashcard_items || []).map((f: any) => ({
         id: crypto.randomUUID(),
         term: f.front,
         definition: f.back
@@ -393,7 +354,7 @@ ${text}`,
     const quiz: Quiz = {
       id: crypto.randomUUID(),
       title: `Smelter: ${title}`,
-      questions: (isBoth ? data.quiz_items : (mode === 'quiz' ? data.items : [])).map((q: any) => ({
+      questions: (data.quiz_items || []).map((q: any) => ({
         id: crypto.randomUUID(),
         question: q.question,
         options: q.options,
@@ -408,13 +369,12 @@ ${text}`,
   }
 }
 
-// Keep legacy functions for compatibility if needed, but update them to use the new logic or mark as deprecated
 export async function generateFlashcardsFromText(text: string, title: string): Promise<Deck> {
-  const { deck } = await generateStudyMaterial(text, title);
+  const { deck } = await generateStudyMaterial(text, title, 10, 'medium', 'flashcards');
   return deck;
 }
 
 export async function generateQuizFromText(text: string, title: string): Promise<Quiz> {
-  const { quiz } = await generateStudyMaterial(text, title);
+  const { quiz } = await generateStudyMaterial(text, title, 10, 'medium', 'quiz');
   return quiz;
 }

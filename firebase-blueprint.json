@@ -1,0 +1,26 @@
+{
+  "entities": {
+    "UserStats": {
+      "title": "User Statistics",
+      "description": "Gamification and state data for a specific user.",
+      "type": "object",
+      "properties": {
+        "xp": { "type": "number", "description": "Total experience points earned." },
+        "level": { "type": "number", "description": "Current rank/level." },
+        "streak": { "type": "number", "description": "Consecutive days active." },
+        "embers": { "type": "number", "description": "Currency spent in the shop." },
+        "lastActiveDate": { "type": "string", "description": "ISO date of last xp gain." },
+        "currentTheme": { "type": "string", "description": "The active visual theme name." },
+        "unlockedThemes": { "type": "array", "items": { "type": "string" }, "description": "List of theme names the user has bought." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp of last update." }
+      },
+      "required": ["xp", "level", "streak", "embers"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserStats",
+      "description": "Stores individual user gamification stats."
+    }
+  }
+}

@@ -7,7 +7,7 @@
   --font-display: "Space Grotesk", sans-serif;
   --color-forge-dark: #0F0F12;
   --color-forge-card: rgba(255, 255, 255, 0.03);
-  --color-forge-accent: #FB923C;
+  --color-forge-accent: var(--forge-accent, #FB923C);
   --color-forge-gold: #FACC15;
 }
 
@@ -44,6 +44,23 @@
 
   .forge-glow {
     @apply shadow-[0_0_20px_rgba(251,146,60,0.3)];
+  }
+
+  .metallic-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .metallic-scrollbar::-webkit-scrollbar-track {
+    @apply bg-forge-dark border-l border-white/5;
+  }
+
+  .metallic-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-gradient-to-b from-stone-600 to-stone-800 rounded-full border-2 border-forge-dark shadow-inner;
+  }
+
+  @keyframes slide {
+    from { background-position: 0 0; }
+    to { background-position: 40px 0; }
   }
 
   /* Custom Range Slider */

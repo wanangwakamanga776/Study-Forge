@@ -1,0 +1,51 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Primitives
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // Validation Blueprint for UserStats
+    function isValidUserStats(data) {
+      let requiredFields = ['xp', 'level', 'embers', 'streak'];
+      let optionalFields = ['lastActiveDate', 'currentTheme', 'unlockedThemes', 'updatedAt'];
+      
+      return data.keys().hasAll(requiredFields)
+        && data.xp is number && data.xp >= 0
+        && data.level is number && data.level >= 1
+        && data.embers is number && data.embers >= 0
+        && data.streak is number && data.streak >= 0
+        && (!data.keys().hasAny(['updatedAt']) || data.updatedAt == request.time)
+        && (!data.keys().hasAny(['unlockedThemes']) || (data.unlockedThemes is list && data.unlockedThemes.size() <= 20))
+        && (!data.keys().hasAny(['currentTheme']) || (data.currentTheme is string && data.currentTheme.size() <= 50))
+        && (!data.keys().hasAny(['lastActiveDate']) || (data.lastActiveDate is string && data.lastActiveDate.size() <= 20));
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      
+      allow create: if isOwner(userId) 
+        && isValidId(userId)
+        && isValidUserStats(incoming())
+        && incoming().keys().size() <= 10; // Prevent shadow fields
+
+      allow update: if isOwner(userId)
+        && isValidId(userId)
+        && isValidUserStats(incoming())
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+           'xp', 'level', 'embers', 'streak', 'lastActiveDate', 'currentTheme', 'unlockedThemes', 'updatedAt'
+        ]);
+
+      allow delete: if false; // Progress should not be easily deleted
+    }
+  }
+}

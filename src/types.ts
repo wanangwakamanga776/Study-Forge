@@ -68,8 +68,11 @@ export interface UserStats {
   xp: number;
   level: number;
   streak: number;
+  embers: number;
   lastActiveDate: string | null;
   plan: 'Free' | 'Premium';
+  currentTheme: string;
+  unlockedThemes: string[];
   aiUsage: {
     quizzes: number;
     flashcards: number;

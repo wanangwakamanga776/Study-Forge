@@ -64,40 +64,8 @@ export function useAppState() {
   }, [state.stats?.aiUsage?.lastResetDate]);
 
   const updateStats = useCallback((xpGain: number) => {
-    setState(prev => {
-      const newXp = prev.stats.xp + xpGain;
-      const newLevel = Math.floor(newXp / 100) + 1;
-      
-      if (newLevel > prev.stats.level) {
-        soundService.playLevelUp();
-      }
-      
-      const today = new Date().toISOString().split('T')[0];
-      let newStreak = prev.stats.streak;
-      
-      if (prev.stats.lastActiveDate !== today) {
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = yesterday.toISOString().split('T')[0];
-        
-        if (prev.stats.lastActiveDate === yesterdayStr) {
-          newStreak += 1;
-        } else {
-          newStreak = 1;
-        }
-      }
-
-      return {
-        ...prev,
-        stats: {
-          ...prev.stats,
-          xp: newXp,
-          level: newLevel,
-          streak: newStreak,
-          lastActiveDate: today,
-        }
-      };
-    });
+    // Legacy support, now managed by ForgeStore
+    console.warn("updateStats is deprecated. Use awardXP from ForgeStore instead.");
   }, []);
 
   const deleteForgeCast = useCallback((id: string) => {

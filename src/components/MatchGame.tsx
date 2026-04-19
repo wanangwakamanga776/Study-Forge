@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Timer, Trophy, RotateCcw, ArrowLeft, Zap, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Timer, Trophy, RotateCcw, ArrowLeft, Zap, CheckCircle2, AlertCircle, Flame, Star } from 'lucide-react';
 import { Deck, Flashcard } from '../types';
 import { cn } from '../lib/utils';
+import { useForgeEngine } from '../hooks/useForgeEngine';
+import { useRewards } from './RewardToast';
 
 interface MatchTile {
   id: string;
@@ -20,6 +22,8 @@ interface MatchGameProps {
 
 export function MatchGame({ decks, onComplete, bestRecords }: MatchGameProps) {
   const [selectedDeck, setSelectedDeck] = useState<Deck | null>(null);
+  const { awardStudySession } = useForgeEngine();
+  const { triggerReward } = useRewards();
   const [tiles, setTiles] = useState<MatchTile[]>([]);
   const [selectedTiles, setSelectedTiles] = useState<string[]>([]);
   const [isGameActive, setIsGameActive] = useState(false);
@@ -29,7 +33,7 @@ export function MatchGame({ decks, onComplete, bestRecords }: MatchGameProps) {
   const [wrongMatchIds, setWrongMatchIds] = useState<string[]>([]);
   const [matchesCount, setMatchesCount] = useState(0);
 
-  // Fisher-Yates Shuffle
+  // ... (shuffle function remains the same)
   const shuffle = <T,>(array: T[]): T[] => {
     const newArray = [...array];
     for (let i = newArray.length - 1; i > 0; i--) {
@@ -135,12 +139,12 @@ export function MatchGame({ decks, onComplete, bestRecords }: MatchGameProps) {
     setIsGameOver(true);
     const finalTime = Math.floor((Date.now() - (startTime || 0)) / 1000);
     
-    // Calculate XP: Base 20 + Speed Bonus
-    // Speed bonus: max(0, 60 - time)
-    const speedBonus = Math.max(0, 60 - finalTime);
-    const totalXP = 20 + speedBonus;
+    // Calculate speed score: 100 is "fastest reasonable time", 0 is "slow"
+    const speedScore = Math.max(0, Math.min(100, (100 - finalTime) * 1.5));
+    const { xpGain, embersGain } = awardStudySession(speedScore, 80, 8);
+    triggerReward(xpGain, embersGain, "Velocity Match Mastered!");
     
-    onComplete(totalXP, finalTime, selectedDeck!.id);
+    onComplete(xpGain, finalTime, selectedDeck!.id);
   };
 
   if (!selectedDeck) {
@@ -151,10 +155,10 @@ export function MatchGame({ decks, onComplete, bestRecords }: MatchGameProps) {
             <button
               key={deck.id}
               onClick={() => initGame(deck)}
-              className="group relative p-8 bg-white/5 border border-white/10 rounded-3xl text-left hover:bg-white/10 transition-all hover:scale-[1.02] hover:shadow-2xl hover:shadow-forge-accent/10"
+              className="group relative p-8 bg-white/5 border border-white/10 rounded-3xl text-left hover:bg-white/10 transition-all hover:scale-[1.02] hover:shadow-2xl hover:shadow-forge-accent/10 shadow-lg"
             >
               <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-forge-accent/20 rounded-2xl text-forge-accent group-hover:scale-110 transition-transform">
+                <div className="p-3 bg-forge-accent/20 rounded-2xl text-forge-accent group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(251,146,60,0.1)]">
                   <Zap size={24} />
                 </div>
                 {bestRecords[deck.id] && (
@@ -187,11 +191,11 @@ export function MatchGame({ decks, onComplete, bestRecords }: MatchGameProps) {
         </button>
 
         <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-2xl border border-white/5">
+          <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-2xl border border-white/5 shadow-inner">
             <Timer size={18} className="text-forge-accent" />
             <span className="text-xl font-black text-white tabular-nums">{currentTime}s</span>
           </div>
-          <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-white/5 rounded-2xl border border-white/5">
+          <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-white/5 rounded-2xl border border-white/5 shadow-inner">
             <CheckCircle2 size={18} className="text-emerald-500" />
             <span className="text-sm font-black text-white uppercase tracking-widest">{remainingMatches} Left</span>
           </div>
@@ -203,36 +207,44 @@ export function MatchGame({ decks, onComplete, bestRecords }: MatchGameProps) {
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="text-center py-20 bg-white/5 rounded-[40px] border border-white/10 backdrop-blur-xl"
+            className="text-center py-20 bg-white/5 rounded-[40px] border border-white/10 backdrop-blur-xl relative overflow-hidden"
           >
-            <div className="w-24 h-24 bg-forge-accent rounded-full flex items-center justify-center mx-auto mb-8 forge-glow">
-              <Trophy size={48} className="text-forge-dark" />
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-forge-accent to-yellow-400" />
+            <div className="w-24 h-24 bg-forge-accent/10 rounded-3xl flex items-center justify-center mx-auto mb-8 forge-glow rotate-6">
+              <Trophy size={48} className="text-forge-accent" />
             </div>
-            <h2 className="text-5xl font-black text-white uppercase italic tracking-tighter mb-4">Match Mastered!</h2>
-            <div className="flex justify-center gap-8 mb-12">
-              <div className="text-center">
-                <p className="text-stone-500 font-black uppercase tracking-widest text-xs mb-1">Final Time</p>
-                <p className="text-4xl font-black text-white">{currentTime}s</p>
+            <h2 className="text-5xl font-black text-white uppercase italic tracking-tighter mb-4">Mastered Speed</h2>
+            
+            <div className="grid grid-cols-2 max-w-sm mx-auto gap-4 mb-12">
+              <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                <p className="text-[10px] font-black text-stone-600 uppercase tracking-widest mb-1">XP Gained</p>
+                <div className="flex items-center justify-center gap-1">
+                    <Star size={14} className="text-forge-accent fill-current" />
+                    <p className="text-2xl font-black text-white">+{Math.round(80 * (1 + Math.max(0, 100 - currentTime) / 100))}</p>
+                </div>
               </div>
-              <div className="text-center">
-                <p className="text-stone-500 font-black uppercase tracking-widest text-xs mb-1">XP Gained</p>
-                <p className="text-4xl font-black text-forge-accent">+{20 + Math.max(0, 60 - currentTime)}</p>
+              <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                <p className="text-[10px] font-black text-stone-600 uppercase tracking-widest mb-1">Time Spent</p>
+                <div className="flex items-center justify-center gap-1">
+                    <Timer size={14} className="text-forge-accent" />
+                    <p className="text-2xl font-black text-white">{currentTime}s</p>
+                </div>
               </div>
             </div>
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <button
                 onClick={() => initGame(selectedDeck)}
-                className="flex items-center gap-2 px-8 py-4 bg-forge-accent text-forge-dark rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-lg shadow-forge-accent/20"
+                className="flex items-center gap-2 px-8 py-4 bg-white text-forge-dark rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-transform"
               >
                 <RotateCcw size={20} />
                 Try Again
               </button>
               <button
                 onClick={() => setSelectedDeck(null)}
-                className="px-8 py-4 bg-white/10 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-white/20 transition-colors"
+                className="px-8 py-4 bg-white/10 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-white/20 transition-colors border border-white/5"
               >
-                Choose Another Deck
+                Return to Decks
               </button>
             </div>
           </motion.div>

@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, ChevronLeft, BrainCircuit, CheckCircle2, XCircle } from 'lucide-react';
+import { Plus, Trash2, ChevronLeft, BrainCircuit, CheckCircle2, XCircle, Trophy, Flame, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Quiz, QuizQuestion } from '../types';
 import { XP_PER_QUIZ_QUESTION } from '../constants';
 import { cn } from '../lib/utils';
 import { soundService } from '../services/soundService';
+import { useForgeEngine } from '../hooks/useForgeEngine';
+import { useRewards } from './RewardToast';
 
 interface QuizModeProps {
   quizzes: Quiz[];
@@ -14,6 +16,8 @@ interface QuizModeProps {
 
 export const QuizMode: React.FC<QuizModeProps> = ({ quizzes, onUpdate, onComplete }) => {
   const [activeQuizId, setActiveQuizId] = useState<string | null>(null);
+  const { awardStudySession } = useForgeEngine();
+  const { triggerReward } = useRewards();
   const [isCreating, setIsCreating] = useState(false);
   const [newQuizTitle, setNewQuizTitle] = useState('');
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -71,7 +75,10 @@ export const QuizMode: React.FC<QuizModeProps> = ({ quizzes, onUpdate, onComplet
       setIsAnswered(false);
     } else {
       setShowResults(true);
-      onComplete(score * XP_PER_QUIZ_QUESTION);
+      const finalScore = Math.round((score / activeQuiz!.questions.length) * 100);
+      const { xpGain, embersGain } = awardStudySession(finalScore, 100, 10);
+      triggerReward(xpGain, embersGain, "Smelter Session Complete!");
+      onComplete(xpGain);
     }
   };
 
@@ -87,24 +94,44 @@ export const QuizMode: React.FC<QuizModeProps> = ({ quizzes, onUpdate, onComplet
 
   if (activeQuiz) {
     if (showResults) {
+      const percentage = Math.round((score / activeQuiz.questions.length) * 100);
       return (
-        <div className="max-w-md mx-auto text-center p-12 bg-white rounded-3xl border border-black/5 shadow-sm">
-          <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle2 size={40} />
+        <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="max-w-md mx-auto text-center p-12 glass-card rounded-[2.5rem] border border-forge-accent/20 shadow-2xl relative overflow-hidden"
+        >
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-forge-accent to-yellow-400" />
+          <div className="w-20 h-20 bg-forge-accent/10 text-forge-accent rounded-3xl flex items-center justify-center mx-auto mb-6 rotate-3">
+            <Trophy size={40} />
           </div>
-          <h2 className="text-2xl font-semibold text-stone-800 mb-2">Quiz Complete!</h2>
-          <p className="text-stone-500 mb-8">You scored {score} out of {activeQuiz.questions.length}</p>
-          <div className="p-4 bg-stone-50 rounded-2xl mb-8">
-            <p className="text-sm font-medium text-stone-600">XP Earned</p>
-            <p className="text-2xl font-bold text-emerald-600">+{score * XP_PER_QUIZ_QUESTION}</p>
+          <h2 className="text-3xl font-display font-black text-white uppercase italic tracking-tighter mb-2">Smelter Yield</h2>
+          <p className="text-stone-500 font-bold uppercase tracking-widest text-[10px] mb-8">Purity Grade: {percentage}%</p>
+          
+          <div className="grid grid-cols-2 gap-4 mb-8">
+            <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                <p className="text-[10px] font-black text-stone-600 uppercase tracking-widest mb-1">XP Earned</p>
+                <div className="flex items-center justify-center gap-1">
+                    <Star size={14} className="text-forge-accent fill-current" />
+                    <p className="text-2xl font-black text-white">+{Math.round(100 * (1 + percentage / 100))}</p>
+                </div>
+            </div>
+            <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                <p className="text-[10px] font-black text-stone-600 uppercase tracking-widest mb-1">Embers Found</p>
+                <div className="flex items-center justify-center gap-1">
+                    <Flame size={14} className="text-orange-500 fill-current" />
+                    <p className="text-2xl font-black text-white">+{Math.round(10 * (1 + percentage / 100))}</p>
+                </div>
+            </div>
           </div>
+
           <button
             onClick={resetQuiz}
-            className="w-full py-3 bg-stone-900 text-white rounded-xl hover:bg-stone-800 transition-colors font-medium"
+            className="w-full py-4 forge-gradient text-forge-dark rounded-xl font-display font-black uppercase italic tracking-tighter hover:scale-105 transition-transform"
           >
-            Back to Quizzes
+            Return to Anvil
           </button>
-        </div>
+        </motion.div>
       );
     }
 

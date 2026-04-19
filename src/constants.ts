@@ -9,8 +9,11 @@ export const INITIAL_STATE: AppState = {
     xp: 0,
     level: 1,
     streak: 0,
+    embers: 0,
     lastActiveDate: null,
     plan: 'Free',
+    currentTheme: 'Default Ember',
+    unlockedThemes: ['Default Ember'],
     aiUsage: {
       quizzes: 0,
       flashcards: 0,
