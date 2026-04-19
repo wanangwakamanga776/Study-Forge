@@ -6,11 +6,17 @@ import {
   ChevronDown, 
   Flame, 
   ShieldCheck, 
-  UserCircle 
+  UserCircle,
+  Camera,
+  Loader2,
+  CloudCheck,
+  CloudOff,
+  RefreshCw
 } from 'lucide-react';
 import { useAuth, logout } from '../services/authService';
 import { useForgeStore } from '../contexts/ForgeStoreContext';
 import { soundService } from '../services/soundService';
+import { uploadAvatar } from '../services/profileService';
 
 interface ProfileHeaderProps {
   onOpenSettings: () => void;
@@ -18,13 +24,38 @@ interface ProfileHeaderProps {
 
 export function ProfileHeader({ onOpenSettings }: ProfileHeaderProps) {
   const { user } = useAuth();
-  const { level, embers, currentTheme } = useForgeStore();
+  const { xp, level, embers, currentTheme, isSyncing, syncError } = useForgeStore();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const levelProgress = (xp % 1000) / 10;
 
   const toggleMenu = () => {
     soundService.playClick();
     setIsMenuOpen(!isMenuOpen);
+  };
+
+  const handleAvatarClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    soundService.playClick();
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      await uploadAvatar(file);
+      soundService.playSmelt();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   if (!user) return null;
@@ -38,7 +69,7 @@ export function ProfileHeader({ onOpenSettings }: ProfileHeaderProps) {
         className="flex items-center gap-4 bg-white/5 border border-white/10 rounded-full pl-2 pr-5 py-2 backdrop-blur-md hover:bg-white/10 transition-all group"
       >
         {/* Avatar Ring with Dynamic Theme Glow */}
-        <div className="relative w-10 h-10 rounded-full p-0.5 forge-glow border border-forge-accent/30 overflow-hidden shrink-0">
+        <div className="relative w-10 h-10 rounded-full p-0.5 forge-glow border border-forge-accent/30 overflow-hidden shrink-0 group/avatar">
           <div className="absolute inset-0 bg-gradient-to-tr from-forge-accent/20 to-transparent animate-pulse" />
           {user.photoURL ? (
             <img 
@@ -52,20 +83,56 @@ export function ProfileHeader({ onOpenSettings }: ProfileHeaderProps) {
               <UserCircle size={24} className="text-stone-600" />
             </div>
           )}
+          
+          {/* Overlay for quick upload */}
+          <div 
+            onClick={handleAvatarClick}
+            className="absolute inset-0 bg-black/40 z-20 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity cursor-pointer"
+          >
+            {isUploading ? <Loader2 size={16} className="animate-spin text-white" /> : <Camera size={16} className="text-white" />}
+          </div>
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            className="hidden" 
+            accept="image/*" 
+            onChange={handleFileChange} 
+          />
         </div>
 
-        <div className="text-left">
-          <div className="flex items-center gap-2">
+        <div className="text-left pr-2">
+          <div className="flex items-center gap-2 mb-1">
             <span className="text-sm font-display font-black uppercase italic tracking-tighter text-white truncate max-w-[120px]">
               {user.displayName || 'Apprentice'}
             </span>
             <div className="px-1.5 py-0.5 bg-forge-accent/10 border border-forge-accent/20 rounded-md text-[8px] font-black text-forge-accent uppercase tracking-widest">
-              Lvl {level}
+              LVL {level}
+            </div>
+            
+            {/* Cloud Sync Icon */}
+            <div className="ml-1">
+              {isSyncing ? (
+                <RefreshCw size={12} className="text-forge-accent animate-spin" />
+              ) : syncError ? (
+                <CloudOff size={12} className="text-red-500" />
+              ) : (
+                <CloudCheck size={12} className="text-green-500 animate-pulse" />
+              )}
             </div>
           </div>
-          <div className="flex items-center gap-2 text-stone-500">
-            <Flame size={10} className="text-forge-accent" />
-            <span className="text-[10px] font-bold uppercase tracking-widest">{embers} Embers</span>
+          
+          <div className="flex flex-col gap-1">
+            <div className="w-24 h-1 bg-white/5 rounded-full overflow-hidden border border-white/5">
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: `${levelProgress}%` }}
+                className="h-full bg-forge-accent shadow-[0_0_8px_rgba(251,146,60,0.5)]" 
+              />
+            </div>
+            <div className="flex items-center gap-2 text-stone-500">
+              <Flame size={10} className="text-forge-accent" />
+              <span className="text-[10px] font-bold uppercase tracking-widest leading-none">{embers} Embers</span>
+            </div>
           </div>
         </div>
 

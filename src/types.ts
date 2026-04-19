@@ -69,6 +69,8 @@ export interface UserStats {
   level: number;
   streak: number;
   embers: number;
+  name?: string | null;
+  avatarUrl?: string | null;
   lastActiveDate: string | null;
   plan: 'Free' | 'Premium';
   currentTheme: string;

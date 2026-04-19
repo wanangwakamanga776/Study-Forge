@@ -14,7 +14,7 @@ export const signInWithGoogle = async () => {
     return result.user;
   } catch (error: any) {
     if (error.code === 'auth/unauthorized-domain') {
-      throw new Error("The Forge doesn't recognize this domain yet. Please use the main link.");
+      throw new Error("The Forge doesn't recognize this preview link yet. Please use the main study-forge.pages.dev link.");
     }
     console.error("Google Sign In Error Detailed:", {
       code: error.code,

@@ -32,6 +32,9 @@ export const uploadAvatar = async (file: File): Promise<string> => {
     // 5. Update Firebase Auth Profile
     await updateProfile(user, { photoURL });
 
+    // 6. Update Firestore Profile
+    await saveUserStats(user.uid, { avatarUrl: photoURL });
+
     return photoURL;
   } catch (error) {
     console.error("Avatar Smelting Error:", error);
@@ -48,6 +51,7 @@ export const updateDisplayName = async (name: string): Promise<void> => {
 
   try {
     await updateProfile(user, { displayName: name });
+    await saveUserStats(user.uid, { name: name });
   } catch (error) {
     console.error("Name Smelting Error:", error);
     throw new Error("The Forge failed to update your name.");

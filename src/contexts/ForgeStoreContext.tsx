@@ -3,7 +3,7 @@ import { useAppState } from '../hooks/useAppState';
 import { useRewards } from '../components/RewardToast';
 import { soundService } from '../services/soundService';
 import { motion, AnimatePresence } from 'motion/react';
-import { Trophy, Star, Flame } from 'lucide-react';
+import { Trophy, Star, Flame, CloudCheck, CloudOff, RefreshCw } from 'lucide-react';
 import { useAuth } from '../services/authService';
 import { saveUserStats, loadUserStats } from '../services/dataService';
 import { UserStats } from '../types';
@@ -18,6 +18,8 @@ interface ForgeStoreContextType {
   setTheme: (theme: string) => void;
   unlockedThemes: string[];
   unlockTheme: (theme: string) => void;
+  isSyncing: boolean;
+  syncError: boolean;
 }
 
 const ForgeStoreContext = createContext<ForgeStoreContextType | undefined>(undefined);
@@ -39,6 +41,8 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
   const { triggerReward } = useRewards();
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [leveledTo, setLeveledTo] = useState(1);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncError, setSyncError] = useState(false);
   const isInitialLoad = useRef(true);
 
   const { xp, level, embers, currentTheme, unlockedThemes } = state.stats;
@@ -57,8 +61,10 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
           const initialStats: UserStats = {
             xp: 0,
             level: 1,
-            streak: 1,
-            embers: 0,
+            streak: 0,
+            embers: 100,
+            name: user.displayName || 'Apprentice',
+            avatarUrl: user.photoURL,
             lastActiveDate: new Date().toISOString().split('T')[0],
             currentTheme: 'Default Ember',
             unlockedThemes: ['Default Ember'],
@@ -86,7 +92,16 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
   // Cloud Sync: Save stats on change
   useEffect(() => {
     if (user && !isInitialLoad.current) {
-      saveUserStats(user.uid, state.stats);
+      setIsSyncing(true);
+      setSyncError(false);
+      saveUserStats(user.uid, state.stats)
+        .then(() => {
+          setTimeout(() => setIsSyncing(false), 2000); // Keep status visible for a bit
+        })
+        .catch(() => {
+          setIsSyncing(false);
+          setSyncError(true);
+        });
     }
   }, [state.stats, user]);
 
@@ -194,7 +209,9 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
       currentTheme,
       setTheme,
       unlockedThemes,
-      unlockTheme
+      unlockTheme,
+      isSyncing,
+      syncError
     }}>
       {children}
       
