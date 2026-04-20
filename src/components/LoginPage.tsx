@@ -50,6 +50,9 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
     try {
       await signInWithGoogle();
     } catch (error: any) {
+      if (error.message.includes("Security Lock")) {
+        setAuthType('email');
+      }
       setErrorMsg(error.message || "The Forge failed to light. Check your connection.");
       setIsAuthenticating(false);
     }
@@ -70,10 +73,16 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
         await signUpWithEmail(email, password);
       }
     } catch (error: any) {
-      let msg = "The Forge failed to light.";
-      if (error.code === 'auth/invalid-credential') msg = "The credentials don't match our records.";
-      if (error.code === 'auth/email-already-in-use') msg = "An apprentice already uses this email.";
-      if (error.code === 'auth/weak-password') msg = "Your password isn't strong enough for the Forge.";
+      let msg = "The Forge does not recognize these credentials.";
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+        msg = "The Forge does not recognize these credentials. Verify your scrolls.";
+      } else if (error.code === 'auth/email-already-in-use') {
+        msg = "An apprentice already uses this email. Return to the Login Gate.";
+      } else if (error.code === 'auth/weak-password') {
+        msg = "Your password isn't strong enough for the heat of the Forge.";
+      } else if (error.code === 'auth/invalid-email') {
+        msg = "That email scroll is not formatted correctly.";
+      }
       setErrorMsg(msg);
       setIsAuthenticating(false);
     }
@@ -148,22 +157,22 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
         {/* Toggle Switch */}
         <div className="flex p-1 bg-white/[0.03] border border-white/5 rounded-2xl mb-6 backdrop-blur-md">
           <button
-            onClick={() => { setAuthType('google'); soundService.playClick(); }}
-            className={cn(
-              "flex-1 py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-              authType === 'google' ? "bg-forge-accent text-forge-dark shadow-lg" : "text-stone-500 hover:text-stone-300"
-            )}
-          >
-            Google Gate
-          </button>
-          <button
             onClick={() => { setAuthType('email'); soundService.playClick(); }}
             className={cn(
               "flex-1 py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
               authType === 'email' ? "bg-forge-accent text-forge-dark shadow-lg" : "text-stone-500 hover:text-stone-300"
             )}
           >
-            Email Scribe
+            Forge Sign-In
+          </button>
+          <button
+            onClick={() => { setAuthType('google'); soundService.playClick(); }}
+            className={cn(
+              "flex-1 py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+              authType === 'google' ? "bg-forge-accent text-forge-dark shadow-lg" : "text-stone-500 hover:text-stone-300"
+            )}
+          >
+            Google Access
           </button>
         </div>
 
@@ -245,14 +254,14 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
                 >
                   <div className="text-center space-y-1 mb-6">
                     <h2 className="text-2xl font-display font-black uppercase italic tracking-tighter text-white">
-                      {authMode === 'login' ? 'Return to the Anvil' : 'Apply for Apprenticeship'}
+                      {authMode === 'login' ? 'Returning Forger' : 'New Apprentice'}
                     </h2>
                     <button 
                       type="button"
                       onClick={() => { setAuthMode(authMode === 'login' ? 'signup' : 'login'); soundService.playClick(); }}
                       className="text-forge-accent text-[10px] font-black uppercase tracking-widest hover:underline"
                     >
-                      {authMode === 'login' ? 'Need to sign up?' : 'Already registered?'}
+                      {authMode === 'login' ? 'Create new apprenticeship?' : 'Already have a key?'}
                     </button>
                   </div>
 
@@ -300,7 +309,7 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
                       <Loader2 className="animate-spin" size={24} />
                     ) : (
                       <>
-                        <span className="text-xl">{authMode === 'login' ? 'Ignite Session' : 'Begin Training'}</span>
+                        <span className="text-xl">{authMode === 'login' ? 'Login' : 'Register'}</span>
                         <ChevronRight size={20} />
                       </>
                     )}
