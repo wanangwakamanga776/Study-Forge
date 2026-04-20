@@ -73,16 +73,22 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
         await signUpWithEmail(email, password);
       }
     } catch (error: any) {
-      let msg = "The Forge does not recognize these credentials.";
-      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+      let msg = forgeMode === 'login' 
+        ? "The Forge does not recognize these credentials." 
+        : "The Forge was unable to scribe your new apprenticeship.";
+
+      if (error.code === 'auth/operation-not-allowed') {
+        msg = "The Master Smith has not enabled Email/Password sign-ins in the Firebase Console.";
+      } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
         msg = "The Forge does not recognize these credentials. Verify your scrolls.";
       } else if (error.code === 'auth/email-already-in-use') {
         msg = "An apprentice already uses this email. Return to the Login Gate.";
       } else if (error.code === 'auth/weak-password') {
-        msg = "Your password isn't strong enough for the heat of the Forge.";
+        msg = "Your password isn't strong enough for the heat of the Forge (Min 6 characters).";
       } else if (error.code === 'auth/invalid-email') {
         msg = "That email scroll is not formatted correctly.";
       }
+      
       setErrorMsg(msg);
       setIsAuthenticating(false);
     }

@@ -17,7 +17,7 @@ export const signInWithGoogle = async () => {
     return result.user;
   } catch (error: any) {
     if (error.code === 'auth/unauthorized-domain') {
-      throw new Error("Security Lock: This preview link isn't authorized in Firebase yet.");
+      throw new Error(`Security Lock: The domain "study-forge.pages.dev" (or your preview link) is not authorized in your Firebase Console. See settings -> Authorized Domains.`);
     }
     if (error.code === 'auth/operation-not-supported-in-this-environment') {
       console.error("The current environment does not support Google Popups. Please ensure you are not in an incognito window or restricted browser.");
