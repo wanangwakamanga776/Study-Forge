@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Hammer, Flame, Shield, User, Loader2, Mail, Lock, Sparkles, ChevronRight, AlertCircle, RefreshCw } from 'lucide-react';
 import { signInWithGoogle, loginWithEmail, signUpWithEmail, resetPassword } from '../services/authService';
+import { saveUserStats } from '../services/dataService';
 import { soundService } from '../services/soundService';
 import { cn } from '../lib/utils';
 
@@ -48,7 +49,16 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
     setSuccessMsg(null);
     
     try {
-      await signInWithGoogle();
+      const user = await signInWithGoogle();
+      if (user) {
+        // Initialize user doc if not exists
+        await saveUserStats(user.uid, {
+          xp: 0,
+          level: 1,
+          embers: 100,
+          name: user.displayName || 'Apprentice'
+        });
+      }
     } catch (error: any) {
       if (error.message.includes("Security Lock")) {
         setAuthType('forge');
@@ -70,16 +80,27 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
       if (forgeMode === 'login') {
         await loginWithEmail(email, password);
       } else {
-        await signUpWithEmail(email, password);
+        const user = await signUpWithEmail(email, password);
+        if (user) {
+          // Immediately create the user document in Firestore
+          await saveUserStats(user.uid, {
+            xp: 0,
+            level: 1,
+            embers: 100,
+            name: 'Apprentice'
+          });
+          setSuccessMsg("Apprenticeship scribed! The Forge awaits.");
+        }
       }
     } catch (error: any) {
+      // Default thematic message based on mode
       let msg = forgeMode === 'login' 
-        ? "The Forge does not recognize these credentials." 
-        : "The Forge was unable to scribe your new apprenticeship.";
+        ? "The Forge does not recognize these credentials. Verify your scrolls." 
+        : "The Forge was unable to scribe your new apprenticeship. Check your scrolls.";
 
       if (error.code === 'auth/operation-not-allowed') {
         msg = "The Master Smith has not enabled Email/Password sign-ins in the Firebase Console.";
-      } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+      } else if (forgeMode === 'login' && (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password')) {
         msg = "The Forge does not recognize these credentials. Verify your scrolls.";
       } else if (error.code === 'auth/email-already-in-use') {
         msg = "An apprentice already uses this email. Return to the Login Gate.";
