@@ -56,6 +56,7 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
             ...prev,
             stats: { ...prev.stats, ...cloudStats }
           }));
+          triggerReward(0, 0, "Forge Initialized");
         } else {
           // Initialize New User
           const initialStats: UserStats = {
@@ -81,13 +82,14 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
             ...prev,
             stats: initialStats
           }));
+          triggerReward(0, 0, "New Hearth Lit");
         }
         isInitialLoad.current = false;
       });
     } else if (!user) {
       isInitialLoad.current = true;
     }
-  }, [user, setState]);
+  }, [user, setState, triggerReward]);
 
   // Cloud Sync: Save stats on change
   useEffect(() => {

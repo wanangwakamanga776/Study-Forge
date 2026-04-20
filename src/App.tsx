@@ -384,29 +384,50 @@ function AppContent() {
                 Forge Shop
             </button>
 
-            <div className="flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/5 relative group">
-              <div className="w-8 h-8 rounded-full bg-forge-accent text-forge-dark flex items-center justify-center text-xs font-black shadow-[0_0_10px_rgba(251,146,60,0.3)] shrink-0">
-                {user ? <img src={user.photoURL || ''} alt="" className="w-full h-full rounded-full" /> : level}
+            {user ? (
+               <div className="flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/5 relative group overflow-hidden">
+                 <div className="w-8 h-8 rounded-full p-[2px] bg-gradient-to-br from-stone-400 to-stone-600 shadow-[0_0_10px_rgba(251,146,60,0.3)] shrink-0 overflow-hidden">
+                   <img src={user.photoURL || ''} alt="" className="w-full h-full rounded-full object-cover" />
+                 </div>
+                 <div className="flex-1 min-w-0">
+                   <p className="text-[10px] font-black text-stone-500 uppercase tracking-widest truncate">
+                     {user.displayName || 'Apprentice'}
+                   </p>
+                   <p className="text-sm font-bold text-white leading-none mt-1">{embers} Embers</p>
+                 </div>
+                 
+                 <button 
+                   onClick={() => {
+                     soundService.playClick();
+                     logout();
+                     setIsGuest(false);
+                   }}
+                   className="absolute -top-2 -right-2 p-2 bg-forge-dark border border-white/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-500 z-10"
+                   title="Exit Forge"
+                 >
+                   <LogOut size={14} />
+                 </button>
+               </div>
+            ) : (
+              <div className="flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/5 relative group">
+                <div className="w-8 h-8 rounded-full bg-forge-accent text-forge-dark flex items-center justify-center text-xs font-black shadow-[0_0_10px_rgba(251,146,60,0.3)] shrink-0">
+                  {level}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-black text-stone-500 uppercase tracking-widest truncate">
+                    Guest Apprentice
+                  </p>
+                  <p className="text-sm font-bold text-white">{xp} XP</p>
+                </div>
+                <button 
+                  onClick={() => setIsGuest(false)}
+                  className="absolute -top-2 -right-2 p-2 bg-forge-dark border border-white/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:text-white"
+                  title="Forge Sign In"
+                >
+                  <LogOut size={14} />
+                </button>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-black text-stone-500 uppercase tracking-widest truncate">
-                  {user ? user.displayName : `${state.stats.plan} • ${embers} Embers`}
-                </p>
-                <p className="text-sm font-bold text-white">{user ? `${embers} Embers` : `${xp} XP`}</p>
-              </div>
-              
-              <button 
-                onClick={() => {
-                  soundService.playClick();
-                  if (user) logout();
-                  setIsGuest(false);
-                }}
-                className="absolute -top-2 -right-2 p-2 bg-forge-dark border border-white/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-500"
-                title="Exit Forge"
-              >
-                <LogOut size={14} />
-              </button>
-            </div>
+            )}
           </div>
         </div>
       </aside>

@@ -3,9 +3,9 @@ import { Deck, Quiz, Flashcard, QuizQuestion, ForgeCastBlueprint, ForgeCastChapt
 
 /**
  * Indicates if the AI service has been configured with an API key.
- * In AI Studio Build, process.env.GEMINI_API_KEY is usually provided automatically.
+ * Checks both environment variables to ensure compatibility.
  */
-export const isAIConfigured = !!process.env.GEMINI_API_KEY;
+export const isAIConfigured = !!(process.env.GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY);
 
 let aiInstance: GoogleGenAI | null = null;
 
@@ -14,10 +14,10 @@ let aiInstance: GoogleGenAI | null = null;
  * Throws a specific error if the API key is missing.
  */
 function getAI(): GoogleGenAI {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
   
   if (!apiKey) {
-    console.error("Missing API Key: process.env.GEMINI_API_KEY is not defined.");
+    console.error("Missing API Key: process.env.GEMINI_API_KEY or VITE_GEMINI_API_KEY is not defined.");
     throw new Error("AI_SETUP_REQUIRED: Missing API Key.");
   }
 

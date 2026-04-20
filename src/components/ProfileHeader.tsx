@@ -24,7 +24,7 @@ interface ProfileHeaderProps {
 
 export function ProfileHeader({ onOpenSettings }: ProfileHeaderProps) {
   const { user } = useAuth();
-  const { xp, level, embers, currentTheme, isSyncing, syncError } = useForgeStore();
+  const { xp, level, embers, currentTheme, unlockedThemes, isSyncing, syncError } = useForgeStore();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -68,21 +68,23 @@ export function ProfileHeader({ onOpenSettings }: ProfileHeaderProps) {
         whileTap={{ scale: 0.98 }}
         className="flex items-center gap-4 bg-white/5 border border-white/10 rounded-full pl-2 pr-5 py-2 backdrop-blur-md hover:bg-white/10 transition-all group"
       >
-        {/* Avatar Ring with Dynamic Theme Glow */}
-        <div className="relative w-10 h-10 rounded-full p-0.5 forge-glow border border-forge-accent/30 overflow-hidden shrink-0 group/avatar">
-          <div className="absolute inset-0 bg-gradient-to-tr from-forge-accent/20 to-transparent animate-pulse" />
-          {user.photoURL ? (
-            <img 
-              src={user.photoURL} 
-              alt={user.displayName || 'Apprentice'} 
-              className="w-full h-full rounded-full object-cover relative z-10"
-              referrerPolicy="no-referrer"
-            />
-          ) : (
-            <div className="w-full h-full rounded-full bg-forge-dark flex items-center justify-center relative z-10">
-              <UserCircle size={24} className="text-stone-600" />
-            </div>
-          )}
+        {/* Avatar Ring with Dynamic Theme Glow & Metallic Frame */}
+        <div className="relative w-10 h-10 rounded-full p-[3px] bg-gradient-to-br from-stone-400 via-stone-200 to-stone-500 shadow-[inset_0_0_2px_rgba(255,255,255,0.5),0_0_15px_rgba(251,146,60,0.3)] shrink-0 group/avatar overflow-hidden">
+          <div className="w-full h-full rounded-full p-0.5 bg-forge-dark overflow-hidden relative">
+            <div className="absolute inset-0 bg-gradient-to-tr from-forge-accent/20 to-transparent animate-pulse" />
+            {user.photoURL ? (
+              <img 
+                src={user.photoURL} 
+                alt={user.displayName || 'Apprentice'} 
+                className="w-full h-full rounded-full object-cover relative z-10"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <div className="w-full h-full rounded-full bg-forge-dark flex items-center justify-center relative z-10">
+                <UserCircle size={24} className="text-stone-600" />
+              </div>
+            )}
+          </div>
           
           {/* Overlay for quick upload */}
           <div 
