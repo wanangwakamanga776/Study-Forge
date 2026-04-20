@@ -65,7 +65,7 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
             level: 1,
             streak: 0,
             embers: 100,
-            name: user.displayName || 'Apprentice',
+            name: user.displayName || 'Apprentice Forger',
             avatarUrl: user.photoURL,
             lastActiveDate: new Date().toISOString().split('T')[0],
             currentTheme: 'Default Ember',

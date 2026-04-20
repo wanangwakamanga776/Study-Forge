@@ -6,6 +6,22 @@
 class SoundService {
   private ctx: AudioContext | null = null;
   private enabled: boolean = true;
+  private hasInteracted: boolean = false;
+
+  constructor() {
+    if (typeof window !== 'undefined') {
+      const handleInteraction = () => {
+        this.hasInteracted = true;
+        this.init();
+        window.removeEventListener('click', handleInteraction);
+        window.removeEventListener('keydown', handleInteraction);
+        window.removeEventListener('touchstart', handleInteraction);
+      };
+      window.addEventListener('click', handleInteraction);
+      window.addEventListener('keydown', handleInteraction);
+      window.addEventListener('touchstart', handleInteraction);
+    }
+  }
 
   private init() {
     try {
@@ -17,7 +33,7 @@ class SoundService {
       }
       if (this.ctx && this.ctx.state === 'suspended') {
         this.ctx.resume().catch(() => {
-          // Ignore resume errors (usually due to lack of user interaction)
+          // Ignore resume errors
         });
       }
     } catch (e) {
@@ -35,11 +51,11 @@ class SoundService {
   }
 
   private playTone(freq: number, type: OscillatorType, duration: number, volume: number = 0.1) {
-    if (!this.enabled) return;
+    if (!this.enabled || !this.hasInteracted) return;
     
     try {
       this.init();
-      if (!this.ctx) return;
+      if (!this.ctx || this.ctx.state !== 'running') return;
 
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
@@ -96,6 +112,12 @@ class SoundService {
 
   playTick() {
     this.playTone(150, 'sine', 0.05, 0.01);
+  }
+
+  playAnvilClink() {
+    // Sharp metallic impact
+    this.playTone(2500, 'square', 0.03, 0.03);
+    setTimeout(() => this.playTone(800, 'sine', 0.15, 0.04), 10);
   }
 
   playError() {
