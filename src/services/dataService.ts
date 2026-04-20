@@ -2,8 +2,15 @@ import {
   doc, 
   getDoc, 
   setDoc, 
+  updateDoc,
+  increment,
   serverTimestamp,
-  FirestoreError
+  FirestoreError,
+  query,
+  collection,
+  orderBy,
+  limit,
+  getDocs
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { UserStats } from '../types';
@@ -54,6 +61,19 @@ export const saveUserStats = async (userId: string, stats: Partial<UserStats>) =
   }
 };
 
+export const incrementUserStats = async (userId: string, xpInc: number, embersInc: number) => {
+  const userDocRef = doc(db, 'users', userId);
+  try {
+    await updateDoc(userDocRef, {
+      xp: increment(xpInc),
+      embers: increment(embersInc),
+      updatedAt: serverTimestamp()
+    });
+  } catch (error) {
+    handleFirestoreError(error as FirestoreError, 'write', `users/${userId}`);
+  }
+};
+
 export const loadUserStats = async (userId: string): Promise<UserStats | null> => {
   const userDocRef = doc(db, 'users', userId);
   try {
@@ -65,5 +85,20 @@ export const loadUserStats = async (userId: string): Promise<UserStats | null> =
   } catch (error) {
     handleFirestoreError(error as FirestoreError, 'get', `users/${userId}`);
     return null;
+  }
+};
+
+export const getTopForgers = async (limitCount: number = 10): Promise<UserStats[]> => {
+  try {
+    const q = query(
+      collection(db, 'users'),
+      orderBy('xp', 'desc'),
+      limit(limitCount)
+    );
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => doc.data() as UserStats);
+  } catch (error) {
+    handleFirestoreError(error as FirestoreError, 'list', 'users');
+    return [];
   }
 };

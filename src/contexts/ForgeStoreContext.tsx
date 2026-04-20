@@ -5,7 +5,7 @@ import { soundService } from '../services/soundService';
 import { motion, AnimatePresence } from 'motion/react';
 import { Trophy, Star, Flame, CloudCheck, CloudOff, RefreshCw } from 'lucide-react';
 import { useAuth } from '../services/authService';
-import { saveUserStats, loadUserStats } from '../services/dataService';
+import { saveUserStats, loadUserStats, incrementUserStats } from '../services/dataService';
 import { UserStats } from '../types';
 
 interface ForgeStoreContextType {
@@ -14,6 +14,7 @@ interface ForgeStoreContextType {
   embers: number;
   awardXP: (amount: number) => void;
   spendEmbers: (amount: number) => boolean;
+  completeFocusSession: (xp: number, embers: number) => Promise<void>;
   currentTheme: string;
   setTheme: (theme: string) => void;
   unlockedThemes: string[];
@@ -201,6 +202,24 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
     }));
   }, [setState]);
 
+  const completeFocusSession = useCallback(async (xpAmount: number, embersAmount: number) => {
+    if (user) {
+      setIsSyncing(true);
+      try {
+        await incrementUserStats(user.uid, xpAmount, embersAmount);
+        awardXP(xpAmount); // This handles the local XP/Level/Streak and also fires a standard Reward Toast
+        // Embers are also updated locally via awardXP logic, but we've already done the cloud update atomically.
+        // The standard reward toast is handled by awardXP.
+      } catch (error) {
+        setSyncError(true);
+      } finally {
+        setTimeout(() => setIsSyncing(false), 2000);
+      }
+    } else {
+      awardXP(xpAmount);
+    }
+  }, [user, awardXP]);
+
   return (
     <ForgeStoreContext.Provider value={{
       xp,
@@ -208,6 +227,7 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
       embers,
       awardXP,
       spendEmbers,
+      completeFocusSession,
       currentTheme,
       setTheme,
       unlockedThemes,

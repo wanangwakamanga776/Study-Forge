@@ -1,291 +1,231 @@
-import React, { useState, useEffect } from 'react';
-import { Play, Pause, RotateCcw, Trophy, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { XP_PER_TIMER, MOTIVATIONAL_MESSAGES } from '../constants';
+import { Timer, Zap, Loader2, Play, Pause, RotateCcw, AlertTriangle, ShieldCheck, Flame } from 'lucide-react';
+import { useForgeStore } from '../contexts/ForgeStoreContext';
 import { soundService } from '../services/soundService';
+import { cn } from '../lib/utils';
 
-interface FocusTimerProps {
-  onComplete: (xp: number) => void;
-}
+const WORK_TIME = 25 * 60; // 25 minutes
+const REWARD_XP = 100;
+const REWARD_EMBERS = 50;
+const CHEAT_WARNING_THRESHOLD = 10000; // 10 seconds
 
-export const FocusTimer: React.FC<FocusTimerProps> = ({ onComplete }) => {
-  const [mode, setMode] = useState<'focus' | 'break'>('focus');
-  const [customTime, setCustomTime] = useState(25); // in minutes
-  const [timeLeft, setTimeLeft] = useState(25 * 60);
+export const FocusTimer: React.FC = () => {
+  const { awardXP, completeFocusSession } = useForgeStore();
+  const [timeLeft, setTimeLeft] = useState(WORK_TIME);
   const [isActive, setIsActive] = useState(false);
-  const [showReward, setShowReward] = useState(false);
-  const [message, setMessage] = useState('');
-  const [showBreakWarning, setShowBreakWarning] = useState(false);
-
-  // Persistence logic
-  useEffect(() => {
-    try {
-      const savedTime = localStorage.getItem('forge_timer_left');
-      const savedMode = localStorage.getItem('forge_timer_mode');
-      if (savedTime) {
-        const parsed = parseInt(savedTime);
-        if (!isNaN(parsed)) setTimeLeft(parsed);
-      }
-      if (savedMode) setMode(savedMode as 'focus' | 'break');
-    } catch (e) {
-      console.error('Failed to load timer state:', e);
-    }
-  }, []);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('forge_timer_left', timeLeft.toString());
-      localStorage.setItem('forge_timer_mode', mode);
-    } catch (e) {
-      console.error('Failed to save timer state:', e);
-    }
-  }, [timeLeft, mode]);
-
-  useEffect(() => {
-    let interval: any = null;
-    if (isActive && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft(prev => prev - 1);
-        soundService.playTick();
-      }, 1000);
-    } else if (timeLeft === 0) {
-      handleTimerEnd();
-    }
-    return () => clearInterval(interval);
-  }, [isActive, timeLeft]);
-
-  const handleTimerEnd = () => {
-    setIsActive(false);
-    soundService.playTimerEnd();
-    if (mode === 'focus') {
-      onComplete(XP_PER_TIMER);
-      setMessage(MOTIVATIONAL_MESSAGES[Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length)]);
-      setShowReward(true);
-      setTimeout(() => setShowReward(false), 5000);
-      setMode('break');
-      setTimeLeft(5 * 60);
-    } else {
-      setMode('focus');
-      setTimeLeft(customTime * 60);
-    }
-  };
-
-  const toggleTimer = () => {
-    setIsActive(!isActive);
-    soundService.playClick();
-  };
+  const [isCheatWarning, setIsCheatWarning] = useState(false);
+  const [cheatTime, setCheatTime] = useState(0);
   
-  const resetTimer = () => {
-    setIsActive(false);
-    setTimeLeft(mode === 'focus' ? customTime * 60 : 5 * 60);
-    soundService.playClick();
-  };
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastVisibilityRef = useRef(Date.now());
+  const cheatTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
+    const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    if (hours > 0) {
-      return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleCustomTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = parseInt(e.target.value);
-    if (isNaN(val)) return;
-    const clamped = Math.min(Math.max(val, 1), 300); // 1 min to 5 hours (300 mins)
-    setCustomTime(clamped);
-    if (!isActive) setTimeLeft(clamped * 60);
+  const handleFinish = useCallback(async () => {
+    setIsActive(false);
+    soundService.playSuccess();
+    if (completeFocusSession) {
+      await completeFocusSession(REWARD_XP, REWARD_EMBERS);
+    } else {
+      awardXP(REWARD_XP);
+    }
+    setTimeLeft(WORK_TIME);
+  }, [awardXP, completeFocusSession]);
+
+  useEffect(() => {
+    if (isActive && timeLeft > 0) {
+      timerRef.current = setInterval(() => {
+        setTimeLeft(prev => prev - 1);
+      }, 1000);
+    } else if (timeLeft === 0) {
+      handleFinish();
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [isActive, timeLeft, handleFinish]);
+
+  // Anti-Cheat Logic
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        if (isActive) {
+          lastVisibilityRef.current = Date.now();
+          // Start counting cheat time
+          cheatTimerRef.current = setInterval(() => {
+            const hiddenDuration = Date.now() - lastVisibilityRef.current;
+            if (hiddenDuration > CHEAT_WARNING_THRESHOLD) {
+              setIsCheatWarning(true);
+              setIsActive(false); // Pauses the timer
+              soundService.playSmelt(); // Warning sound
+            }
+          }, 1000);
+        }
+      } else {
+        // Returned to page
+        if (cheatTimerRef.current) {
+          clearInterval(cheatTimerRef.current);
+          cheatTimerRef.current = null;
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isActive]);
+
+  const toggleTimer = () => {
+    soundService.playClick();
+    if (isCheatWarning) {
+      setIsCheatWarning(false);
+    }
+    setIsActive(!isActive);
   };
+
+  const resetTimer = () => {
+    soundService.playClick();
+    setIsActive(false);
+    setIsCheatWarning(false);
+    setTimeLeft(WORK_TIME);
+  };
+
+  const progress = ((WORK_TIME - timeLeft) / WORK_TIME) * 100;
 
   return (
-    <>
-      <div className="flex flex-col items-center justify-center p-12 glass-card rounded-[3rem] max-w-md mx-auto">
-        <h2 className="text-xs font-bold uppercase tracking-[0.3em] text-stone-500 mb-8">
-          {mode === 'focus' ? 'Forge Configuration' : 'Quench Break'}
-        </h2>
-
-        {!isActive && mode === 'focus' && (
-          <div className="mb-8 w-full space-y-4">
-            <label className="block text-[10px] font-black uppercase tracking-widest text-stone-600 text-center">Set Smelting Duration (1-300 mins)</label>
-            <div className="flex items-center gap-4">
-              <input 
-                type="range" 
-                min="1" 
-                max="300" 
-                value={customTime}
-                onChange={handleCustomTimeChange}
-                className="forge-slider flex-1"
-                style={{
-                  // @ts-ignore
-                  '--slider-height': '6px',
-                  '--slider-bg': 'rgba(255, 255, 255, 0.1)'
-                }}
-              />
-              <span className="text-xl font-display font-bold text-white w-16 text-right italic">{customTime}m</span>
-            </div>
-          </div>
-        )}
-        
-        <div className="relative flex items-center justify-center w-72 h-72 mb-10">
-          <svg className="absolute inset-0 w-full h-full -rotate-90">
-            <circle
-              cx="144"
-              cy="144"
-              r="136"
-              fill="transparent"
-              stroke="currentColor"
-              strokeWidth="4"
-              className="text-white/5"
-            />
-            <motion.circle
-              cx="144"
-              cy="144"
-              r="136"
-              fill="transparent"
-              stroke="currentColor"
-              strokeWidth="8"
-              strokeDasharray={2 * Math.PI * 136}
-              initial={{ strokeDashoffset: 0 }}
-              animate={{ 
-                strokeDashoffset: (1 - timeLeft / (mode === 'focus' ? customTime * 60 : 5 * 60)) * 2 * Math.PI * 136 
-              }}
-              className={mode === 'focus' ? 'text-forge-accent' : 'text-blue-400'}
-              style={{ filter: 'drop-shadow(0 0 8px currentColor)' }}
-            />
-          </svg>
-          <div className="text-7xl font-extrabold font-display tracking-tighter text-white italic">
-            {formatTime(timeLeft)}
-          </div>
-        </div>
-
-        <div className="flex gap-6">
-          <button
-            onClick={toggleTimer}
-            className="p-6 rounded-full bg-white text-forge-dark hover:scale-110 transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)]"
-          >
-            {isActive ? <Pause size={32} /> : <Play size={32} />}
-          </button>
-          <button
-            onClick={resetTimer}
-            className="p-6 rounded-full bg-white/5 text-stone-400 hover:bg-white/10 transition-all border border-white/10"
-          >
-            <RotateCcw size={32} />
-          </button>
-        </div>
-
-        <AnimatePresence>
-          {showReward && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="mt-10 p-6 bg-forge-accent/10 border border-forge-accent/20 rounded-3xl flex items-center gap-4 text-forge-accent forge-glow"
-            >
-              <Trophy size={24} />
-              <div className="text-sm font-bold uppercase tracking-tighter">
-                <p className="text-white">{message}</p>
-                <p className="text-[10px] opacity-70">+{XP_PER_TIMER} XP Forged!</p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+    <div className="max-w-xl mx-auto space-y-8">
+      <div className="text-center">
+        <h2 className="text-4xl font-display font-black uppercase italic tracking-tighter text-white mb-2">Focus Forge</h2>
+        <p className="text-stone-500 text-[10px] font-bold uppercase tracking-widest">Master your time, Smelt your distractions</p>
       </div>
 
-      {/* The Lockout Overlay */}
-      <AnimatePresence>
-        {isActive && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex items-center justify-center backdrop-blur-2xl bg-forge-dark/80"
+      <div className="relative aspect-square glass-card rounded-full p-12 flex flex-col items-center justify-center border border-white/5 overflow-hidden group shadow-[0_0_100px_rgba(251,146,60,0.05)]">
+        {/* Progress Ring */}
+        <svg className="absolute inset-0 w-full h-full -rotate-90">
+          <circle
+            cx="50%"
+            cy="50%"
+            r="48%"
+            className="fill-none stroke-white/5"
+            strokeWidth="4"
+          />
+          <motion.circle
+            cx="50%"
+            cy="50%"
+            r="48%"
+            className="fill-none stroke-forge-accent"
+            strokeWidth="4"
+            strokeDasharray="100 100"
+            initial={{ strokeDashoffset: 100 }}
+            animate={{ strokeDashoffset: 100 - progress }}
+            transition={{ duration: 1, ease: "linear" }}
+            strokeLinecap="round"
+          />
+        </svg>
+
+        {/* Inner Content */}
+        <div className="relative z-10 text-center space-y-2">
+          <motion.div 
+            animate={isActive ? { scale: [1, 1.05, 1] } : { scale: 1 }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="text-7xl sm:text-8xl font-display font-black tracking-tighter text-white italic drop-shadow-[0_0_30px_rgba(255,255,255,0.2)]"
           >
-            <div className="text-center space-y-12">
-              <h2 className="text-xl font-display font-extrabold uppercase italic tracking-[0.5em] text-forge-accent forge-glow">The Forge is Hot</h2>
-              
-              <div className="relative flex items-center justify-center w-96 h-96 mx-auto">
-                <svg className="absolute inset-0 w-full h-full -rotate-90">
-                  <circle
-                    cx="192"
-                    cy="192"
-                    r="180"
-                    fill="transparent"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                    className="text-white/5"
-                  />
-                  <motion.circle
-                    cx="192"
-                    cy="192"
-                    r="180"
-                    fill="transparent"
-                    stroke="currentColor"
-                    strokeWidth="12"
-                    strokeDasharray={2 * Math.PI * 180}
-                    animate={{ 
-                      strokeDashoffset: (1 - timeLeft / (mode === 'focus' ? customTime * 60 : 5 * 60)) * 2 * Math.PI * 180 
-                    }}
-                    className={mode === 'focus' ? 'text-forge-accent' : 'text-blue-400'}
-                    style={{ filter: 'drop-shadow(0 0 15px currentColor)' }}
-                  />
-                </svg>
-                <div className="text-9xl font-extrabold font-display tracking-tighter text-white italic">
-                  {formatTime(timeLeft)}
-                </div>
-              </div>
+            {formatTime(timeLeft)}
+          </motion.div>
+          <div className="flex items-center justify-center gap-2 text-stone-500 font-black uppercase tracking-widest text-[10px]">
+            {isActive ? (
+              <>
+                <Zap size={12} className="text-forge-accent animate-pulse" />
+                Forge is Hot
+              </>
+            ) : timeLeft < WORK_TIME ? (
+              <>
+                <ShieldCheck size={12} />
+                Forge Idle
+              </>
+            ) : (
+              'Ready for Smelting'
+            )}
+          </div>
+        </div>
 
-              <div className="space-y-6">
-                <button
-                  onClick={() => setShowBreakWarning(true)}
-                  className="px-12 py-4 border-2 border-white/10 text-stone-400 rounded-2xl hover:bg-white/5 transition-all font-bold uppercase tracking-widest text-xs"
-                >
-                  Break Forge
-                </button>
-                <p className="text-stone-600 text-[10px] font-bold uppercase tracking-widest">Stay focused. Mastery requires heat.</p>
-              </div>
+        {/* Background Ambience */}
+        <div className={cn(
+          "absolute inset-0 bg-forge-accent/5 opacity-0 transition-opacity duration-1000",
+          isActive && "opacity-100"
+        )} />
+      </div>
+
+      {/* Warning Modal Overlay */}
+      <AnimatePresence>
+        {isCheatWarning && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="absolute inset-0 z-50 glass-card rounded-[2.5rem] bg-orange-950/40 backdrop-blur-xl border border-forge-accent/30 flex flex-col items-center justify-center p-8 text-center"
+          >
+            <div className="w-20 h-20 bg-forge-accent/20 text-forge-accent rounded-full flex items-center justify-center mb-6 forge-glow">
+              <AlertTriangle size={40} />
             </div>
-
-            {/* Break Warning Modal */}
-            <AnimatePresence>
-              {showBreakWarning && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  className="absolute inset-0 z-[210] flex items-center justify-center p-6 bg-forge-dark/90 backdrop-blur-md"
-                >
-                  <div className="max-w-sm w-full p-10 glass-card rounded-[3rem] text-center space-y-8 border-forge-accent/20">
-                    <AlertCircle size={64} className="mx-auto text-forge-accent" />
-                    <div className="space-y-2">
-                      <h3 className="text-2xl font-display font-extrabold uppercase italic tracking-tighter text-white">Quench the Heat?</h3>
-                      <p className="text-stone-400 text-sm font-bold">Breaking the forge will pause your progress. Are you sure you want to exit the focus state?</p>
-                    </div>
-                    <div className="flex gap-4">
-                      <button
-                        onClick={() => setShowBreakWarning(false)}
-                        className="flex-1 py-4 bg-white/5 border border-white/10 text-white rounded-2xl font-bold uppercase tracking-widest text-[10px]"
-                      >
-                        Stay Hot
-                      </button>
-                      <button
-                        onClick={() => {
-                          setIsActive(false);
-                          setShowBreakWarning(false);
-                        }}
-                        className="flex-1 py-4 bg-forge-accent text-forge-dark rounded-2xl font-display font-extrabold uppercase italic tracking-tighter"
-                      >
-                        Break Forge
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <h3 className="text-2xl font-display font-black uppercase italic tracking-tighter text-white mb-2">The Forge Cools Down</h3>
+            <p className="text-stone-300 text-sm mb-8 leading-relaxed">
+              "Master Smith says: Focus requires presence! Your attention drifted, and the fires have dimmed."
+            </p>
+            <button
+              onClick={toggleTimer}
+              className="px-8 py-3 bg-forge-accent text-forge-dark rounded-xl font-display font-black uppercase italic tracking-tighter hover:scale-105 transition-transform"
+            >
+              Re-Light the Forge
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
-    </>
+
+      <div className="flex items-center justify-center gap-6">
+        <button
+          onClick={resetTimer}
+          className="p-5 bg-white/5 text-stone-500 rounded-3xl hover:text-white transition-colors border border-white/5"
+          title="Reset Forge"
+        >
+          <RotateCcw size={28} />
+        </button>
+        
+        <button
+          onClick={toggleTimer}
+          className={cn(
+            "w-24 h-24 rounded-full flex items-center justify-center transition-all duration-500 forge-glow",
+            isActive 
+              ? "bg-white/5 text-forge-accent border border-forge-accent/20" 
+              : "bg-forge-accent text-forge-dark hover:scale-105"
+          )}
+        >
+          {isActive ? <Pause size={40} /> : <Play size={40} className="ml-2" />}
+        </button>
+
+        <div className="p-5 bg-white/5 text-stone-700 rounded-3xl border border-white/5" title="Rewards">
+           <div className="flex items-center gap-2 text-stone-400 font-black text-xs">
+              <Flame size={14} className="text-forge-accent" fill="currentColor" />
+              {REWARD_EMBERS}
+           </div>
+           <div className="mt-1 text-[8px] font-black uppercase tracking-widest text-stone-600">Reward</div>
+        </div>
+      </div>
+      
+      <div className="p-6 glass-card rounded-[2rem] border border-white/5 flex items-center gap-6">
+        <div className="w-12 h-12 bg-forge-accent/10 rounded-2xl flex items-center justify-center text-forge-accent">
+          <ShieldCheck size={24} />
+        </div>
+        <div className="flex-1">
+          <h4 className="text-sm font-black text-white uppercase tracking-widest mb-1">Purity Protocol</h4>
+          <p className="text-xs text-stone-500 leading-relaxed font-medium">Keep this tab active. The Smith detects absences. Stray for more than 10s, and the forge cools.</p>
+        </div>
+      </div>
+    </div>
   );
 };

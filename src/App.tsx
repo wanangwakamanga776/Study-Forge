@@ -5,7 +5,7 @@
 
 import { useState, lazy, Suspense, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Layout, Timer, ListTodo, Layers, BrainCircuit, Menu, X, Star, Sparkles, Zap, Loader2, Video, Play, SkipBack, Monitor, RotateCcw, Trash2, Flame, LogOut } from 'lucide-react';
+import { Layout, Timer, ListTodo, Layers, BrainCircuit, Menu, X, Star, Sparkles, Zap, Loader2, Video, Play, SkipBack, Monitor, RotateCcw, Trash2, Flame, LogOut, Trophy } from 'lucide-react';
 import { useAppState } from './hooks/useAppState';
 import { Dashboard } from './components/Dashboard';
 import { PremiumModal } from './components/PremiumModal';
@@ -32,8 +32,9 @@ const QuizMode = lazy(() => import('./components/QuizMode').then(m => ({ default
 const MatchGame = lazy(() => import('./components/MatchGame').then(m => ({ default: m.MatchGame })));
 const AIGenerator = lazy(() => import('./components/AIGenerator').then(m => ({ default: m.AIGenerator })));
 const ForgeCast = lazy(() => import('./components/ForgeCast').then(m => ({ default: m.ForgeCast })));
+const Leaderboard = lazy(() => import('./components/Leaderboard').then(m => ({ default: m.Leaderboard })));
 
-type View = 'dashboard' | 'planner' | 'timer' | 'flashcards' | 'quiz' | 'match' | 'forge-library' | 'forge-player';
+type View = 'dashboard' | 'planner' | 'timer' | 'flashcards' | 'quiz' | 'match' | 'forge-library' | 'forge-player' | 'leaderboard';
 
 export default function App() {
   return (
@@ -118,6 +119,7 @@ function AppContent() {
     { id: 'match', label: 'Match Mode', icon: <Zap size={20} /> },
     { id: 'quiz', label: 'Quiz Mode', icon: <BrainCircuit size={20} /> },
     { id: 'forge-library', label: 'ForgeCasts', icon: <Video size={20} /> },
+    { id: 'leaderboard', label: 'Hall of Fame', icon: <Trophy size={20} /> },
   ];
 
   const handleMatchComplete = (xp: number, time: number, deckId: string) => {
@@ -269,7 +271,7 @@ function AppContent() {
           />
         );
       case 'timer':
-        return <FocusTimer onComplete={awardXP} />;
+        return <FocusTimer />;
       case 'flashcards':
         return (
           <Flashcards 
@@ -293,6 +295,8 @@ function AppContent() {
             onComplete={handleMatchComplete}
           />
         );
+      case 'leaderboard':
+        return <Leaderboard />;
       default:
         return (
           <Dashboard 
@@ -480,6 +484,7 @@ function AppContent() {
                      currentView === 'timer' ? 'Focus Forge' :
                      currentView === 'flashcards' ? 'Flashcard Blueprints' :
                      currentView === 'match' ? 'Velocity Match' :
+                     currentView === 'leaderboard' ? 'Elite Leaderboard' :
                      'Knowledge Smelters'}
                   </h2>
                   <p className="text-stone-400 mt-1 max-w-lg font-bold text-sm">
@@ -489,6 +494,7 @@ function AppContent() {
                     {currentView === 'flashcards' && "Active recall blueprints for rapid mastery."}
                     {currentView === 'match' && "Speed is power. Match terms with their definitions."}
                     {currentView === 'quiz' && "Smelt your knowledge in the fires of examination."}
+                    {currentView === 'leaderboard' && "The highest-ranking smiths in the forge archives."}
                   </p>
                 </div>
 
