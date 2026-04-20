@@ -19,6 +19,9 @@ export const signInWithGoogle = async () => {
     if (error.code === 'auth/unauthorized-domain') {
       throw new Error("Security Lock: This preview link isn't authorized in Firebase yet.");
     }
+    if (error.code === 'auth/operation-not-supported-in-this-environment') {
+      console.error("The current environment does not support Google Popups. Please ensure you are not in an incognito window or restricted browser.");
+    }
     console.error("Google Sign In Error Detailed:", {
       code: error.code,
       message: error.message,

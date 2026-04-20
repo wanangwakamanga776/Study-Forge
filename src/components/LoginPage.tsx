@@ -9,12 +9,12 @@ interface LoginPageProps {
   onGuestAccess: () => void;
 }
 
-type AuthMode = 'login' | 'signup';
-type AuthType = 'google' | 'email';
+type AuthType = 'forge' | 'google';
+type ForgeMode = 'login' | 'register';
 
 export function LoginPage({ onGuestAccess }: LoginPageProps) {
-  const [authType, setAuthType] = useState<AuthType>('google');
-  const [authMode, setAuthMode] = useState<AuthMode>('login');
+  const [authType, setAuthType] = useState<AuthType>('forge');
+  const [forgeMode, setForgeMode] = useState<ForgeMode>('login');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [email, setEmail] = useState('');
@@ -51,7 +51,7 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
       await signInWithGoogle();
     } catch (error: any) {
       if (error.message.includes("Security Lock")) {
-        setAuthType('email');
+        setAuthType('forge');
       }
       setErrorMsg(error.message || "The Forge failed to light. Check your connection.");
       setIsAuthenticating(false);
@@ -67,7 +67,7 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
     setSuccessMsg(null);
 
     try {
-      if (authMode === 'login') {
+      if (forgeMode === 'login') {
         await loginWithEmail(email, password);
       } else {
         await signUpWithEmail(email, password);
@@ -157,10 +157,10 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
         {/* Toggle Switch */}
         <div className="flex p-1 bg-white/[0.03] border border-white/5 rounded-2xl mb-6 backdrop-blur-md">
           <button
-            onClick={() => { setAuthType('email'); soundService.playClick(); }}
+            onClick={() => { setAuthType('forge'); soundService.playClick(); }}
             className={cn(
               "flex-1 py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-              authType === 'email' ? "bg-forge-accent text-forge-dark shadow-lg" : "text-stone-500 hover:text-stone-300"
+              authType === 'forge' ? "bg-forge-accent text-forge-dark shadow-lg" : "text-stone-500 hover:text-stone-300"
             )}
           >
             Forge Sign-In
@@ -245,7 +245,7 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
                 </motion.div>
               ) : (
                 <motion.form
-                  key="email"
+                  key={forgeMode}
                   onSubmit={handleEmailAuth}
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -254,15 +254,30 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
                 >
                   <div className="text-center space-y-1 mb-6">
                     <h2 className="text-2xl font-display font-black uppercase italic tracking-tighter text-white">
-                      {authMode === 'login' ? 'Returning Forger' : 'New Apprentice'}
+                      {forgeMode === 'login' ? 'Returning Forger' : 'New Apprentice'}
                     </h2>
-                    <button 
-                      type="button"
-                      onClick={() => { setAuthMode(authMode === 'login' ? 'signup' : 'login'); soundService.playClick(); }}
-                      className="text-forge-accent text-[10px] font-black uppercase tracking-widest hover:underline"
-                    >
-                      {authMode === 'login' ? 'Create new apprenticeship?' : 'Already have a key?'}
-                    </button>
+                    <div className="flex items-center justify-center gap-4 mt-2">
+                      <button 
+                        type="button"
+                        onClick={() => { setForgeMode('login'); soundService.playClick(); }}
+                        className={cn(
+                          "text-[9px] font-black uppercase tracking-widest transition-all px-3 py-1 rounded-full border",
+                          forgeMode === 'login' ? "border-forge-accent text-forge-accent" : "border-white/10 text-stone-600 hover:text-stone-400"
+                        )}
+                      >
+                        Login
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => { setForgeMode('register'); soundService.playClick(); }}
+                        className={cn(
+                          "text-[9px] font-black uppercase tracking-widest transition-all px-3 py-1 rounded-full border",
+                          forgeMode === 'register' ? "border-forge-accent text-forge-accent" : "border-white/10 text-stone-600 hover:text-stone-400"
+                        )}
+                      >
+                        Register
+                      </button>
+                    </div>
                   </div>
 
                   <div className="space-y-4">
@@ -290,15 +305,17 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
                     </div>
                   </div>
 
-                  <div className="flex justify-between items-center px-1">
-                    <button
-                      type="button"
-                      onClick={handleResetPassword}
-                      className="text-[9px] font-black uppercase text-stone-500 hover:text-stone-300 transition-colors tracking-widest"
-                    >
-                      Lost your key?
-                    </button>
-                  </div>
+                  {forgeMode === 'login' && (
+                    <div className="flex justify-between items-center px-1">
+                      <button
+                        type="button"
+                        onClick={handleResetPassword}
+                        className="text-[9px] font-black uppercase text-stone-500 hover:text-stone-300 transition-colors tracking-widest"
+                      >
+                        Lost your key?
+                      </button>
+                    </div>
+                  )}
 
                   <button
                     type="submit"
@@ -309,7 +326,7 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
                       <Loader2 className="animate-spin" size={24} />
                     ) : (
                       <>
-                        <span className="text-xl">{authMode === 'login' ? 'Login' : 'Register'}</span>
+                        <span className="text-xl">{forgeMode === 'login' ? 'Login' : 'Register'}</span>
                         <ChevronRight size={20} />
                       </>
                     )}
