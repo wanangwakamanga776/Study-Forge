@@ -10,10 +10,25 @@ import {
   collection,
   orderBy,
   limit,
-  getDocs
+  getDocs,
+  getDocFromServer
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { UserStats } from '../types';
+
+/**
+ * Validates the connection to the Forge's Archives (Firestore).
+ */
+export const testArchivesConnection = async () => {
+  try {
+    // Attempt a cold-start read to verify domain and permissions
+    await getDocFromServer(doc(db, 'test', 'connection'));
+  } catch (error: any) {
+    if (error.message?.includes('offline')) {
+      console.warn("The Forge is currently in disconnected mode. Verify your Firebase network settings.");
+    }
+  }
+};
 
 interface FirestoreErrorInfo {
   error: string;

@@ -23,6 +23,7 @@ import { cn } from './lib/utils';
 import { Deck, Quiz, ForgeCastBlueprint } from './types';
 import { soundService } from './services/soundService';
 import { useAuth, logout } from './services/authService';
+import { testArchivesConnection } from './services/dataService';
 import { HelpCircle, Store } from 'lucide-react';
 
 const TaskPlanner = lazy(() => import('./components/TaskPlanner').then(m => ({ default: m.TaskPlanner })));
@@ -59,6 +60,10 @@ function AppContent() {
   const [selectedForgeCast, setSelectedForgeCast] = useState<ForgeCastBlueprint | null>(null);
   const [isForgeOpen, setIsForgeOpen] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
+
+  useEffect(() => {
+    testArchivesConnection();
+  }, []);
 
   const handleCloseTutorial = () => {
     localStorage.setItem('forge_tutorial_seen', 'true');
