@@ -10,11 +10,9 @@ interface LoginPageProps {
   onGuestAccess: () => void;
 }
 
-type AuthType = 'forge' | 'google';
 type ForgeMode = 'login' | 'register';
 
 export function LoginPage({ onGuestAccess }: LoginPageProps) {
-  const [authType, setAuthType] = useState<AuthType>('forge');
   const [forgeMode, setForgeMode] = useState<ForgeMode>('login');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -60,9 +58,6 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
         });
       }
     } catch (error: any) {
-      if (error.message.includes("Security Lock")) {
-        setAuthType('forge');
-      }
       setErrorMsg(error.message || "The Forge failed to light. Check your connection.");
       setIsAuthenticating(false);
     }
@@ -105,7 +100,7 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
       } else if (error.code === 'auth/email-already-in-use') {
         msg = "An apprentice already uses this email. Return to the Login Gate.";
       } else if (error.code === 'auth/weak-password') {
-        msg = "Your password isn't strong enough for the heat of the Forge (Min 6 characters).";
+        msg = "The metal is too weak (Password must be 6+ characters).";
       } else if (error.code === 'auth/invalid-email') {
         msg = "That email scroll is not formatted correctly.";
       }
@@ -181,28 +176,6 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
         transition={{ duration: 0.8, delay: 0.2 }}
         className="w-full max-w-md relative z-10"
       >
-        {/* Toggle Switch */}
-        <div className="flex p-1 bg-white/[0.03] border border-white/5 rounded-2xl mb-6 backdrop-blur-md">
-          <button
-            onClick={() => { setAuthType('forge'); soundService.playClick(); }}
-            className={cn(
-              "flex-1 py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-              authType === 'forge' ? "bg-forge-accent text-forge-dark shadow-lg" : "text-stone-500 hover:text-stone-300"
-            )}
-          >
-            Forge Sign-In
-          </button>
-          <button
-            onClick={() => { setAuthType('google'); soundService.playClick(); }}
-            className={cn(
-              "flex-1 py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-              authType === 'google' ? "bg-forge-accent text-forge-dark shadow-lg" : "text-stone-500 hover:text-stone-300"
-            )}
-          >
-            Google Access
-          </button>
-        </div>
-
         {/* Form Card */}
         <div className="bg-white/[0.02] border border-white/10 rounded-[3rem] p-8 sm:p-10 backdrop-blur-xl relative overflow-hidden shadow-2xl group transition-all hover:border-white/20">
           {/* Brushed Steel Visual Effect */}
@@ -235,138 +208,107 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
               </motion.div>
             )}
 
-            <AnimatePresence mode="wait">
-              {authType === 'google' ? (
-                <motion.div
-                  key="google"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  className="space-y-6"
-                >
-                  <div className="text-center space-y-2 mb-8">
-                    <h2 className="text-2xl font-display font-black uppercase italic tracking-tighter text-white">The Golden Gate</h2>
-                    <p className="text-stone-500 text-[10px] font-bold uppercase tracking-widest">Instant entry through the Forge's trusted partner.</p>
-                  </div>
-                  
-                  <button
-                    onClick={handleGoogleSignIn}
-                    disabled={isAuthenticating}
-                    className="w-full h-16 flex items-center justify-center gap-4 bg-white text-forge-dark rounded-2xl font-display font-black uppercase italic tracking-tighter hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)] group/btn"
+            <motion.form
+              onSubmit={handleEmailAuth}
+              className="space-y-4"
+            >
+              <div className="text-center space-y-1 mb-6">
+                <h2 className="text-2xl font-display font-black uppercase italic tracking-tighter text-white">
+                  {forgeMode === 'login' ? 'Returning Forger' : 'New Apprentice'}
+                </h2>
+                <div className="flex items-center justify-center gap-2 mt-2">
+                  <span className="text-[9px] font-bold text-stone-600 uppercase tracking-widest">
+                    {forgeMode === 'login' ? "New to the Forge?" : "Already an apprentice?"}
+                  </span>
+                  <button 
+                    type="button"
+                    onClick={() => { 
+                      setForgeMode(prev => prev === 'login' ? 'register' : 'login'); 
+                      soundService.playClick(); 
+                      setErrorMsg(null);
+                      setSuccessMsg(null);
+                    }}
+                    className="text-[9px] font-black uppercase tracking-widest text-forge-accent hover:underline"
                   >
-                    {isAuthenticating ? (
-                      <Loader2 className="animate-spin" size={24} />
-                    ) : (
-                      <>
-                        <img src="https://www.google.com/favicon.ico" alt="" className="w-6 h-6 grayscale group-hover/btn:grayscale-0 transition-all" />
-                        <span className="text-xl">Continue with Google</span>
-                      </>
-                    )}
+                    {forgeMode === 'login' ? 'Register' : 'Login'}
                   </button>
-                  
-                  <div className="pt-4 flex items-center gap-4">
-                    <div className="flex-1 h-px bg-white/5" />
-                    <span className="text-[9px] font-bold text-stone-600 uppercase tracking-[0.3em]">Protocol</span>
-                    <div className="flex-1 h-px bg-white/5" />
-                  </div>
-                </motion.div>
-              ) : (
-                <motion.form
-                  key={forgeMode}
-                  onSubmit={handleEmailAuth}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  className="space-y-4"
-                >
-                  <div className="text-center space-y-1 mb-6">
-                    <h2 className="text-2xl font-display font-black uppercase italic tracking-tighter text-white">
-                      {forgeMode === 'login' ? 'Returning Forger' : 'New Apprentice'}
-                    </h2>
-                    <div className="flex items-center justify-center gap-4 mt-2">
-                      <button 
-                        type="button"
-                        onClick={() => { setForgeMode('login'); soundService.playClick(); }}
-                        className={cn(
-                          "text-[9px] font-black uppercase tracking-widest transition-all px-3 py-1 rounded-full border",
-                          forgeMode === 'login' ? "border-forge-accent text-forge-accent" : "border-white/10 text-stone-600 hover:text-stone-400"
-                        )}
-                      >
-                        Login
-                      </button>
-                      <button 
-                        type="button"
-                        onClick={() => { setForgeMode('register'); soundService.playClick(); }}
-                        className={cn(
-                          "text-[9px] font-black uppercase tracking-widest transition-all px-3 py-1 rounded-full border",
-                          forgeMode === 'register' ? "border-forge-accent text-forge-accent" : "border-white/10 text-stone-600 hover:text-stone-400"
-                        )}
-                      >
-                        Register
-                      </button>
-                    </div>
-                  </div>
+                </div>
+              </div>
 
-                  <div className="space-y-4">
-                    <div className="relative group/input">
-                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-600 group-focus-within/input:text-forge-accent transition-colors" size={18} />
-                      <input
-                        type="email"
-                        placeholder="Master Email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                        className="w-full h-14 bg-white/[0.03] border border-white/5 rounded-2xl pl-12 pr-4 text-white text-sm font-bold placeholder:text-stone-700 focus:outline-none focus:border-forge-accent focus:ring-4 focus:ring-forge-accent/10 transition-all"
-                      />
-                    </div>
-                    <div className="relative group/input">
-                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-600 group-focus-within/input:text-forge-accent transition-colors" size={18} />
-                      <input
-                        type="password"
-                        placeholder="Secure Parchment"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        className="w-full h-14 bg-white/[0.03] border border-white/5 rounded-2xl pl-12 pr-4 text-white text-sm font-bold placeholder:text-stone-700 focus:outline-none focus:border-forge-accent focus:ring-4 focus:ring-forge-accent/10 transition-all"
-                      />
-                    </div>
-                  </div>
+              <div className="space-y-4">
+                <div className="relative group/input">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-600 group-focus-within/input:text-forge-accent transition-colors" size={18} />
+                  <input
+                    type="email"
+                    placeholder="Master Email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full h-14 bg-white/[0.03] border border-white/5 rounded-2xl pl-12 pr-4 text-white text-sm font-bold placeholder:text-stone-700 focus:outline-none focus:border-forge-accent focus:ring-4 focus:ring-forge-accent/10 transition-all"
+                  />
+                </div>
+                <div className="relative group/input">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-600 group-focus-within/input:text-forge-accent transition-colors" size={18} />
+                  <input
+                    type="password"
+                    placeholder="Secure Parchment"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="w-full h-14 bg-white/[0.03] border border-white/5 rounded-2xl pl-12 pr-4 text-white text-sm font-bold placeholder:text-stone-700 focus:outline-none focus:border-forge-accent focus:ring-4 focus:ring-forge-accent/10 transition-all"
+                  />
+                </div>
+              </div>
 
-                  {forgeMode === 'login' && (
-                    <div className="flex justify-between items-center px-1">
-                      <button
-                        type="button"
-                        onClick={handleResetPassword}
-                        className="text-[9px] font-black uppercase text-stone-500 hover:text-stone-300 transition-colors tracking-widest"
-                      >
-                        Lost your key?
-                      </button>
-                    </div>
-                  )}
-
+              {forgeMode === 'login' && (
+                <div className="flex justify-between items-center px-1">
                   <button
-                    type="submit"
-                    disabled={isAuthenticating}
-                    className="w-full h-16 bg-forge-accent text-forge-dark rounded-2xl font-display font-black uppercase italic tracking-tighter hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 forge-glow"
+                    type="button"
+                    onClick={handleResetPassword}
+                    className="text-[9px] font-black uppercase text-stone-500 hover:text-stone-300 transition-colors tracking-widest"
                   >
-                    {isAuthenticating ? (
-                      <Loader2 className="animate-spin" size={24} />
-                    ) : (
-                      <>
-                        <span className="text-xl">{forgeMode === 'login' ? 'Login' : 'Register'}</span>
-                        <ChevronRight size={20} />
-                      </>
-                    )}
+                    Lost your key?
                   </button>
-                </motion.form>
+                </div>
               )}
-            </AnimatePresence>
+
+              <button
+                type="submit"
+                disabled={isAuthenticating}
+                className="w-full h-16 bg-forge-accent text-forge-dark rounded-2xl font-display font-black uppercase italic tracking-tighter hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 forge-glow shadow-[0_0_20px_rgba(251,146,60,0.3)]"
+              >
+                {isAuthenticating ? (
+                  <Loader2 className="animate-spin" size={24} />
+                ) : (
+                  <>
+                    <span className="text-xl">Ignite</span>
+                    <Flame size={20} />
+                  </>
+                )}
+              </button>
+
+              <div className="pt-6 flex items-center gap-4">
+                <div className="flex-1 h-px bg-white/5" />
+                <span className="text-[9px] font-bold text-stone-600 uppercase tracking-[0.3em]">Or Master Access</span>
+                <div className="flex-1 h-px bg-white/5" />
+              </div>
+
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                disabled={isAuthenticating}
+                className="w-full h-14 flex items-center justify-center gap-3 bg-white/[0.03] border border-white/5 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all group/google"
+              >
+                <img src="https://www.google.com/favicon.ico" alt="" className="w-4 h-4 grayscale group-hover/google:grayscale-0 transition-all" />
+                Google Backup
+              </button>
+            </motion.form>
 
             <button
               onClick={() => { soundService.playClick(); onGuestAccess(); }}
-              className="w-full py-4 mt-8 bg-white/5 text-stone-500 border border-white/5 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-white/10 hover:text-white transition-all flex items-center justify-center gap-2"
+              className="w-full py-4 mt-6 bg-white/[0.01] text-stone-600 border border-white/5 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] hover:bg-white/5 hover:text-stone-400 transition-all flex items-center justify-center gap-2"
             >
-              <RefreshCw size={14} />
+              <RefreshCw size={12} />
               Continue as Guest
             </button>
           </div>
