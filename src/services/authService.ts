@@ -17,11 +17,11 @@ export const signInWithGoogle = async () => {
     return result.user;
   } catch (error: any) {
     if (error.code === 'auth/unauthorized-domain') {
-      const currentHost = window.location.host;
-      throw new Error(`Security Lock: The domain "${currentHost}" is not authorized. PLEASE FIX: Go to Firebase Console -> Authentication -> Settings -> Authorized Domains and Add "${currentHost}".`);
+      const currentHost = window.location.hostname;
+      throw new Error(`Security Lock: The domain "${currentHost}" is not authorized. PLEASE FIX: 1. Go to Firebase Console -> Authentication -> Settings -> Authorized Domains. 2. Add "${currentHost}". 3. Also add your preview link domains.`);
     }
     if (error.code === 'auth/operation-not-supported-in-this-environment') {
-      console.error("The current environment does not support Google Popups. Please ensure you are not in an incognito window or restricted browser.");
+      throw new Error("The Forge cannot open a Gate here. Popups are restricted. Please try opening this page in a direct browser tab instead of an iframe.");
     }
     console.error("Google Sign In Error Detailed:", {
       code: error.code,
