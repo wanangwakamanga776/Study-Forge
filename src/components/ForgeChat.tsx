@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { MessageSquare, X, Send, Paperclip, Loader2, User, BookOpen, FileText, Trash2, Zap } from 'lucide-react';
+import { MessageSquare, X, Send, Paperclip, Loader2, User, BookOpen, FileText, Trash2, Zap, Layers, BrainCircuit } from 'lucide-react';
 import { chatWithAcademicAssistant, isAIConfigured } from '../services/aiService';
 import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import { cn } from '../lib/utils';
 import { soundService } from '../services/soundService';
 
@@ -173,8 +175,13 @@ export function ForgeChat({ onNavigate, onOpenForge, onSaveData }: ForgeChatProp
                         ? "bg-white/5 text-white rounded-tr-none" 
                         : "bg-white/[0.02] text-stone-300 border border-white/5 rounded-tl-none pr-8 relative"
                     )}>
-                      <div className="prose prose-invert prose-sm">
-                        <ReactMarkdown>{message.content.replace(/\[\[ACTION:.*?\]\]/g, '').replace(/\[\[DATA:.*?\]\]/g, '')}</ReactMarkdown>
+                      <div className="prose prose-invert prose-sm overflow-x-auto">
+                        <ReactMarkdown 
+                          remarkPlugins={[remarkMath]} 
+                          rehypePlugins={[rehypeKatex]}
+                        >
+                          {message.content.replace(/\[\[ACTION:.*?\]\]/g, '').replace(/\[\[DATA:.*?\]\]/g, '')}
+                        </ReactMarkdown>
                       </div>
                       
                       {/* Data & Action Triggers */}

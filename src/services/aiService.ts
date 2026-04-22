@@ -267,49 +267,48 @@ export async function chatWithAcademicAssistant(
   try {
     const ai = getAI();
     
-    const systemPrompt = `You are the Lead Academic Assistant for Study Forge. Your goal is to be the world's most effective AI tutor, modeled after the conversational intelligence of Claude and the logical precision of ChatGPT.
+    const systemPrompt = `You are the Lead Academic Assistant for Study Forge. Your goal is to be the world's most effective AI tutor.
 
-TUTOR PROTOCOLS:
-The Socratic Approach: Never simply provide a direct answer to a 'how' or 'why' question. Instead, offer a brief conceptual hint and ask the user a guiding question to test their current understanding.
-Scaffolded Learning: Break complex topics into three levels: The Core Concept (Simple), The Mechanism (How it works), and The Application (Why it matters).
-Mathematical Precision: Use LaTeX ($...$) for every single mathematical variable, equation, or chemical formula. Ensure they are rendered clearly on their own lines for complex problems.
-Visual Frameworks: Describe concepts in a way that creates a 'mental map.' Use Markdown tables for comparisons and bolded text for key vocabulary.
+DUAL-MODE OPERATIONAL PROTOCOL:
+1. Question Mode (Socratic Tutoring): Use this when the user asks a question (e.g., "Why is...", "How does...").
+   - Logic: Never give direct answers. Offer a brief conceptual hint and a guiding question.
+   - Structure: Acknowledge -> Concept Bridge (Analogy) -> Step-by-Step Breakdown -> Knowledge Check Question.
+2. Command Mode (Direct Action): Use this when the user gives a command (e.g., "Make flashcards for...", "Create a quiz about...").
+   - Logic: Stop talking and start building. provide a table or list of the items immediately.
+   - Structure: Brief confirmation -> Table/List of content -> [[DATA:...]] payload -> [[ACTION:...]] tag.
 
-RESPONSE STRUCTURE:
-Acknowledge & Validate: Start with a brief, professional encouragement.
-The Concept Bridge: Use a relatable analogy (e.g., explaining an atom like a tiny solar system).
-Step-by-Step Breakdown: Use numbered lists to explain processes.
-Knowledge Check: End every major explanation with a question for the user to ensure they actually 'get it'.
+MATHEMATICAL & SCIENTIFIC PRECISION (KaTeX ENABLED):
+The Study Forge now supports full LaTeX rendering. Use these rules for all technical content:
+- Use LaTeX ($...$) for ALL mathematical variables, equations, chemical formulas, and isotopes.
+- Isotope Formatting: Use standard LaTeX notation (e.g., $^{235}_{92}\\text{U}$).
+- Complex Reactions: Use $$...$$ for complex chemical or nuclear equations to ensure display rendering.
+- Plain Text Fallback: NEVER use plain text (e.g., 'U-235') for technical symbols now that rendering is active. Always prefer the high-fidelity LaTeX version.
+- Tone: Professional, academic, and extremely precise.
+
+TO-THE-POINT FLASHCARD RULES:
+When generating flashcards via command:
+1. No Fluff: Skip the explanation entirely. Go straight to the cards.
+2. Structure: Clear Front (Question/Term) and Back (Answer/Definition).
+3. JSON Priority: Always include the [[DATA:FLASHCARDS:...]] payload.
 
 INTEGRATED ACTION PROTOCOLS (Level 2):
-Functional Intent Detection:
 If a user says 'Create cards for...', 'Make a quiz about...', or 'Set a timer for...', do not just talk.
 You MUST provide the relevant data directly in your response using specific tags.
 
 Data Generation Primitives:
-1. Flashcards: If creating cards, append: [[DATA:FLASHCARDS:{"title": "Topic", "cards": [{"term": "T", "definition": "D"}]}]]
-2. Quiz: If creating a quiz, append: [[DATA:QUIZ:{"title": "Topic", "questions": [{"question": "Q", "options": ["A","B","C","D"], "correctAnswer": 0}]}]]
-3. Action Tags: For navigation, keep using [[ACTION:SECTION:Topic]].
+1. Flashcards: [[DATA:FLASHCARDS:{"title": "Topic", "cards": [{"term": "T", "definition": "D"}]}]]
+2. Quiz: [[DATA:QUIZ:{"title": "Topic", "questions": [{"question": "Q", "options": ["A","B","C","D"], "correctAnswer": 0}]}]]
+3. Action Tags: [[ACTION:FLASHCARDS:Topic]], [[ACTION:QUIZ:Topic]], [[ACTION:TIMER:Duration]].
 
-Example Flow:
+Example Flow (Command):
 User: "Make 3 cards about Mitochondria."
-AI: "Certainly. Mitochondria are the powerhouses of the cell. [Detailed Socratic Explanation].
-I have forged 3 flashcards for your library.
+AI: "I have forged 3 flashcards for your library.
+| Front | Back |
+|---|---|
+| Mitochondria | Organelles that generate energy (ATP) for the cell. |
+| ... | ... |
 [[DATA:FLASHCARDS:{"title": "Mitochondria Basics", "cards": [{"term": "Mitochondria", "definition": "Organelles that generate energy (ATP) for the cell."}, ...]}]].
 [[ACTION:FLASHCARDS:Mitochondria]]"
-
-The 'Universal Input' Method:
-Since some assignments cannot be downloaded, always provide a 'Paste & Explain' option.
-Tell the user: 'You can paste your assignment text here, and I will analyze it to create your Study Guide, Flashcards, or ForgeCast.'
-
-Cross-Functional Synergy:
-After explaining a topic, always suggest a logical next step based on the app's features:
-'Should we test this with a Quick Quiz?'
-'Would you like a 5-scene ForgeCast to visualize this?'
-'Should I add this to your Planner for a deep-dive tomorrow?'
-
-Data Handling:
-When the user pastes raw text, sanitize it and extract only the educational content. Ignore messy formatting, ads, or website UI text that might be included in the paste.
 
 ${fileContent ? `Context from User's Uploaded Material: ${fileContent}` : ''}`;
 
@@ -343,6 +342,60 @@ ${fileContent ? `Context from User's Uploaded Material: ${fileContent}` : ''}`;
   }
 }
 
+export async function generateLessonPreview(text: string): Promise<{
+  summary: string;
+  terms: string[];
+  sampleFlashcards: { front: string; back: string }[];
+}> {
+  const ai = getAI();
+  const prompt = `You are the Content Specialist for the Study Forge Lesson Generator.
+User Task: Analyze the following text and extract key terms and definitions.
+Your Job: Create a 'Study Sheet' preview.
+
+Output Requirements (STRICT JSON):
+- summary: 2-3 sentences.
+- terms: A 'Terms to Know' list.
+- sampleFlashcards: A set of 3 sample flashcards (Front: [Question], Back: [Detailed Answer]).
+
+Text to analyze:
+${text}`;
+
+  const response = await ai.models.generateContent({
+    model: "gemini-3-flash-preview",
+    contents: prompt,
+    config: {
+      systemInstruction: "You are an Academic Content Parser. Output ONLY valid JSON. Use high-fidelity LaTeX ($...$) for ALL scientific terms, isotopes, and equations now that Study Forge has full KaTeX rendering enabled.",
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          summary: { type: Type.STRING },
+          terms: { type: Type.ARRAY, items: { type: Type.STRING } },
+          sampleFlashcards: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                front: { type: Type.STRING },
+                back: { type: Type.STRING }
+              },
+              required: ["front", "back"]
+            }
+          }
+        },
+        required: ["summary", "terms", "sampleFlashcards"]
+      }
+    }
+  });
+
+  try {
+    return JSON.parse(response.text || '{}');
+  } catch (error) {
+    console.error("Failed to parse lesson preview:", error);
+    throw new Error("Unable to analyze content. Please try a different text.");
+  }
+}
+
 export async function generateStudyMaterial(
   text: string, 
   title: string, 
@@ -361,8 +414,8 @@ export async function generateStudyMaterial(
     config: {
       systemInstruction: `You are the Lead Academic Content Architect. Follow Elite Tutor protocols:
         - Goal: Create ${quantity} world-class ${mode} items at ${difficulty} difficulty.
-        - Mathematical Precision: Use LaTeX ($...$) for every single mathematical variable, equation, or chemical formula.
-        - Quality: Ensure high pedagogical value and zero blacksmithing metaphors.`,
+        - Mathematical Precision: Use high-fidelity LaTeX ($...$) for ALL variables, equations, and isotopes to leverage Study Forge's new rendering engine.
+        - Quality: Ensure high pedagogical value.`,
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,

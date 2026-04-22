@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { Plus, Trash2, ChevronLeft, BrainCircuit, CheckCircle2, XCircle, Trophy, Flame, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import { Quiz, QuizQuestion } from '../types';
 import { XP_PER_QUIZ_QUESTION } from '../constants';
 import { cn } from '../lib/utils';
@@ -162,7 +165,9 @@ export const QuizMode: React.FC<QuizModeProps> = ({ quizzes, onUpdate, onComplet
         </div>
 
         <div className="mb-8 p-8 bg-white rounded-3xl border border-black/5 shadow-sm">
-          <h3 className="text-lg font-medium text-stone-800 mb-8">{currentQ.question}</h3>
+          <div className="text-lg font-medium text-stone-800 mb-8 markdown-content">
+            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{currentQ.question}</ReactMarkdown>
+          </div>
           <div className="grid gap-3">
             {currentQ.options.map((option, idx) => (
               <button
@@ -178,7 +183,9 @@ export const QuizMode: React.FC<QuizModeProps> = ({ quizzes, onUpdate, onComplet
                 )}
               >
                 <div className="flex items-center justify-between">
-                  <span>{option}</span>
+                  <div className="markdown-content prose-sm">
+                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{option}</ReactMarkdown>
+                  </div>
                   {isAnswered && idx === currentQ.correctAnswer && <CheckCircle2 size={20} />}
                   {isAnswered && selectedOption === idx && idx !== currentQ.correctAnswer && <XCircle size={20} />}
                 </div>

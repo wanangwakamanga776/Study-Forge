@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, ChevronLeft, ChevronRight, Layers, RotateCw, Globe, Lock, Check } from 'lucide-react';
+import { Plus, Trash2, ChevronLeft, ChevronRight, Layers, RotateCw, Globe, Lock, Check, Edit2, Save, X as CloseIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import { Deck, Flashcard, DeckCategory } from '../types';
 import { cn } from '../lib/utils';
 import { soundService } from '../services/soundService';
@@ -16,6 +19,8 @@ const CATEGORIES: DeckCategory[] = ['Educational', 'Personal', 'Work', 'Other'];
 export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
   const [activeDeckId, setActiveDeckId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editingTitle, setEditingTitle] = useState('');
   const [newDeckTitle, setNewDeckTitle] = useState('');
   const [isPublic, setIsPublic] = useState(false);
   const [category, setCategory] = useState<DeckCategory>('Educational');
@@ -59,6 +64,43 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
     onUpdate(updatedDecks);
   };
 
+  const updateCard = (cardId: string, term: string, definition: string) => {
+    if (!activeDeck) return;
+    const updatedDecks = decks.map(d => 
+      d.id === activeDeckId ? {
+        ...d,
+        cards: d.cards.map(c => c.id === cardId ? { ...c, term, definition } : c)
+      } : d
+    );
+    onUpdate(updatedDecks);
+  };
+
+  const removeCard = (cardId: string) => {
+    if (!activeDeck) return;
+    const updatedDecks = decks.map(d => 
+      d.id === activeDeckId ? {
+        ...d,
+        cards: d.cards.filter(c => c.id !== cardId)
+      } : d
+    );
+    if (activeDeck.cards.length <= 1) {
+      setCurrentCardIndex(0);
+    } else if (currentCardIndex >= activeDeck.cards.length - 1) {
+      setCurrentCardIndex(prev => Math.max(0, prev - 1));
+    }
+    onUpdate(updatedDecks);
+  };
+
+  const saveTitle = () => {
+    if (!activeDeck || !editingTitle.trim()) return;
+    const updatedDecks = decks.map(d => 
+      d.id === activeDeckId ? { ...d, title: editingTitle } : d
+    );
+    onUpdate(updatedDecks);
+    setIsEditingTitle(false);
+    soundService.playSuccess();
+  };
+
   const deleteDeck = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     onUpdate(decks.filter(d => d.id !== id));
@@ -80,8 +122,44 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
         </button>
 
         <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl font-semibold text-stone-800">{activeDeck.title}</h2>
-          <span className="text-xs font-medium text-stone-400 uppercase tracking-widest">
+          {isEditingTitle ? (
+            <div className="flex items-center gap-2 flex-1 mr-4">
+              <input
+                autoFocus
+                type="text"
+                value={editingTitle}
+                onChange={(e) => setEditingTitle(e.target.value)}
+                className="flex-1 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-xl font-semibold text-white focus:outline-none focus:ring-2 focus:ring-forge-accent/50"
+                onKeyDown={(e) => e.key === 'Enter' && saveTitle()}
+              />
+              <button 
+                onClick={saveTitle}
+                className="p-2 text-emerald-500 hover:bg-emerald-500/10 rounded-lg transition-colors"
+              >
+                <Check size={20} />
+              </button>
+              <button 
+                onClick={() => setIsEditingTitle(false)}
+                className="p-2 text-stone-500 hover:bg-white/5 rounded-lg transition-colors"
+              >
+                <CloseIcon size={20} />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <h2 className="text-2xl font-semibold text-stone-800">{activeDeck.title}</h2>
+              <button
+                onClick={() => {
+                  setEditingTitle(activeDeck.title);
+                  setIsEditingTitle(true);
+                }}
+                className="p-1 text-stone-400 hover:text-forge-accent transition-colors"
+              >
+                <Edit2 size={16} />
+              </button>
+            </div>
+          )}
+          <span className="text-xs font-medium text-stone-400 uppercase tracking-widest whitespace-nowrap">
             {cards.length > 0 ? `${currentCardIndex + 1} / ${cards.length}` : 'No cards'}
           </span>
         </div>
@@ -103,7 +181,9 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
                 {/* Front */}
                 <div className="absolute inset-0 backface-hidden flex flex-col items-center justify-center p-12 bg-white rounded-3xl border border-black/5 shadow-sm text-center">
                   <span className="text-xs font-bold text-stone-300 uppercase tracking-widest mb-4">Term</span>
-                  <p className="text-2xl font-medium text-stone-800">{currentCard.term}</p>
+                  <div className="text-2xl font-medium text-stone-800 markdown-content">
+                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{currentCard.term}</ReactMarkdown>
+                  </div>
                   <div className="absolute bottom-6 flex items-center gap-2 text-stone-300 text-xs">
                     <RotateCw size={14} />
                     Click to flip
@@ -114,7 +194,9 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
                   className="absolute inset-0 backface-hidden flex flex-col items-center justify-center p-12 bg-stone-900 rounded-3xl border border-black/5 shadow-sm text-center rotate-y-180"
                 >
                   <span className="text-xs font-bold text-stone-500 uppercase tracking-widest mb-4">Definition</span>
-                  <p className="text-xl text-white leading-relaxed">{currentCard.definition}</p>
+                  <div className="text-xl text-white leading-relaxed markdown-content prose prose-invert">
+                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{currentCard.definition}</ReactMarkdown>
+                  </div>
                 </div>
               </motion.div>
             </div>
@@ -152,9 +234,41 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
         )}
 
         {cards.length > 0 && (
-          <div className="mt-12">
-            <h3 className="text-sm font-semibold text-stone-400 uppercase tracking-widest mb-4">Add New Card</h3>
-            <AddCardForm onAdd={addCard} />
+          <div className="mt-12 space-y-12">
+            <div>
+               <h3 className="text-sm font-semibold text-stone-400 uppercase tracking-widest mb-4">Manage Blueprints</h3>
+               <div className="space-y-3">
+                 {cards.map((card, i) => (
+                   <div key={card.id} className="group p-4 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-between gap-4">
+                     <div className="flex-1 grid grid-cols-2 gap-4">
+                       <input
+                        type="text"
+                        value={card.term}
+                        onChange={(e) => updateCard(card.id, e.target.value, card.definition)}
+                        className="bg-transparent text-sm font-bold text-white focus:outline-none focus:ring-1 focus:ring-forge-accent/30 rounded px-1"
+                       />
+                       <input
+                        type="text"
+                        value={card.definition}
+                        onChange={(e) => updateCard(card.id, card.term, e.target.value)}
+                        className="bg-transparent text-sm text-stone-400 focus:outline-none focus:ring-1 focus:ring-forge-accent/30 rounded px-1"
+                       />
+                     </div>
+                     <button
+                       onClick={() => removeCard(card.id)}
+                       className="p-2 text-stone-600 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                     >
+                       <Trash2 size={16} />
+                     </button>
+                   </div>
+                 ))}
+               </div>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-semibold text-stone-400 uppercase tracking-widest mb-4">Add New Card</h3>
+              <AddCardForm onAdd={addCard} />
+            </div>
           </div>
         )}
       </div>

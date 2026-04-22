@@ -4,8 +4,12 @@ import { Upload, FileText, Sparkles, Loader2, CheckCircle2, AlertCircle, X, Brai
 import { cn } from '../lib/utils';
 import { UserStats } from '../types';
 import { extractTextFromFile } from '../lib/extraction';
-import { generateStudyMaterial, generateForgeCast, isAIConfigured } from '../services/aiService';
+import { generateStudyMaterial, generateForgeCast, generateLessonPreview, isAIConfigured } from '../services/aiService';
 import { soundService } from '../services/soundService';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import { BookOpen, ChevronRight, MessageCircle } from 'lucide-react';
 
 interface AIGeneratorProps {
   stats: UserStats;
@@ -35,6 +39,12 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({
   const setIsOpen = onOpenChange ?? setInternalIsOpen;
 
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isPreviewing, setIsPreviewing] = useState(false);
+  const [previewData, setPreviewData] = useState<{
+    summary: string;
+    terms: string[];
+    sampleFlashcards: { front: string; back: string }[];
+  } | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -94,6 +104,30 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({
     if (file) handleFileSelect(file);
   };
 
+  const generatePreview = async () => {
+    if (!selectedFile && !pastedText.trim()) {
+      setError('Please upload a file or paste text first.');
+      return;
+    }
+
+    setIsGenerating(true);
+    setError(null);
+    setLoadingMessage('AI is analyzing your material...');
+    soundService.playProcess();
+
+    try {
+      const extractedText = selectedFile ? await extractTextFromFile(selectedFile) : pastedText;
+      const preview = await generateLessonPreview(extractedText);
+      setPreviewData(preview);
+      setIsPreviewing(true);
+      soundService.playSuccess();
+    } catch (err: any) {
+      setError(err.message || 'Failed to analyze content.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const generateLessonMaterial = async () => {
     if (!selectedFile && !pastedText.trim()) {
       setError('Please upload a file or paste text first.');
@@ -138,6 +172,8 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({
         setIsOpen(false);
         setSelectedFile(null);
         setPastedText('');
+        setIsPreviewing(false);
+        setPreviewData(null);
       }, 2000);
 
     } catch (err: any) {
@@ -240,7 +276,7 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({
                   </div>
                 ) : (
                   <div className="space-y-10">
-                    {!selectedFile && !pastedText.trim() && !isGenerating && (
+                    {!isGenerating && !isPreviewing && (
                       <div className="flex gap-2 p-1 bg-white/5 rounded-2xl mb-6">
                         <button 
                           onClick={() => {
@@ -269,79 +305,82 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({
                       </div>
                     )}
 
-                    {!selectedFile && !pastedText.trim() && activeTab === 'upload' ? (
-                      <div 
-                        onDragOver={onDragOver}
-                        onDragLeave={onDragLeave}
-                        onDrop={onDrop}
-                        onClick={() => fileInputRef.current?.click()}
-                        className={cn(
-                          "relative border-2 border-dashed rounded-[2rem] p-16 text-center cursor-pointer transition-all duration-500",
-                          isDragging ? "border-forge-accent bg-forge-accent/5 scale-[1.02]" : "border-white/10 hover:border-white/20 hover:bg-white/5"
+                    {!isGenerating && !isPreviewing && (
+                      <>
+                        {activeTab === 'upload' ? (
+                          selectedFile ? (
+                            <div className="flex items-center justify-between p-6 bg-white/5 rounded-3xl border border-white/10 relative overflow-hidden group">
+                              <div className="absolute inset-0 bg-forge-accent/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                              <div className="flex items-center gap-4 relative z-10">
+                                <div className="p-3 bg-forge-accent/20 text-forge-accent rounded-2xl">
+                                  <FileText size={24} />
+                                </div>
+                                <div>
+                                    <p className="font-bold text-white truncate max-w-[200px]">{selectedFile.name}</p>
+                                    <p className="text-[10px] font-black text-stone-500 uppercase tracking-widest leading-none mt-1">
+                                      {(selectedFile.size / 1024 / 1024).toFixed(2)} MB • Ready
+                                    </p>
+                                </div>
+                              </div>
+                              <button 
+                                onClick={() => {
+                                    setSelectedFile(null);
+                                    soundService.playClick();
+                                }}
+                                className="p-3 text-stone-500 hover:text-red-500 transition-colors relative z-10"
+                              >
+                                <Trash2 size={24} />
+                              </button>
+                            </div>
+                          ) : (
+                            <div 
+                              onDragOver={onDragOver}
+                              onDragLeave={onDragLeave}
+                              onDrop={onDrop}
+                              onClick={() => fileInputRef.current?.click()}
+                              className={cn(
+                                "relative border-2 border-dashed rounded-[2rem] p-16 text-center cursor-pointer transition-all duration-500",
+                                isDragging ? "border-forge-accent bg-forge-accent/5 scale-[1.02]" : "border-white/10 hover:border-white/20 hover:bg-white/5"
+                              )}
+                            >
+                              <input 
+                                type="file" 
+                                ref={fileInputRef} 
+                                onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])} 
+                                className="hidden" 
+                                accept=".pdf,.docx,.doc,.rtf,.odt,.pages,.txt,.pptx,.ppt,.ppsx,.odp,.key,.potx"
+                              />
+                              <div className="flex flex-col items-center">
+                                <div className="p-5 bg-white/5 text-stone-400 rounded-3xl mb-6 group-hover:text-forge-accent transition-colors">
+                                  <Upload size={40} />
+                                </div>
+                                <p className="text-xl font-bold text-white mb-2">Drop Document or Slides here</p>
+                                <p className="text-stone-500 text-sm">PDF, Word, PowerPoint, and more</p>
+                              </div>
+                            </div>
+                          )
+                        ) : (
+                          <div className="space-y-4">
+                            <textarea
+                              placeholder="Paste your assignment text or study material here..."
+                              value={pastedText}
+                              onChange={(e) => setPastedText(e.target.value)}
+                              className="w-full h-52 bg-white/5 border border-white/10 rounded-3xl p-6 text-white text-sm font-medium placeholder:text-stone-700 focus:outline-none focus:border-forge-accent/30 transition-all resize-none"
+                            />
+                            {!pastedText.trim() && (
+                              <div className="flex items-center gap-4 p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
+                                <BrainCircuit className="text-stone-600 shrink-0" size={20} />
+                                <p className="text-[10px] text-stone-500 uppercase font-black tracking-widest leading-relaxed">
+                                  The Academic Assistant will analyze your text to forge customized study materials.
+                                </p>
+                              </div>
+                            )}
+                          </div>
                         )}
-                      >
-                        <input 
-                          type="file" 
-                          ref={fileInputRef} 
-                          onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])} 
-                          className="hidden" 
-                          accept=".pdf,.docx,.doc,.rtf,.odt,.pages,.txt,.pptx,.ppt,.ppsx,.odp,.key,.potx"
-                        />
-                        <div className="flex flex-col items-center">
-                          <div className="p-5 bg-white/5 text-stone-400 rounded-3xl mb-6 group-hover:text-forge-accent transition-colors">
-                            <Upload size={40} />
-                          </div>
-                          <p className="text-xl font-bold text-white mb-2">Drop Document or Slides here</p>
-                          <p className="text-stone-500 text-sm">PDF, Word, PowerPoint, and more</p>
-                        </div>
-                      </div>
-                    ) : !selectedFile && !pastedText.trim() && activeTab === 'paste' ? (
-                      <div className="space-y-4">
-                        <textarea
-                          placeholder="Paste your assignment text or study material here..."
-                          value={pastedText}
-                          onChange={(e) => setPastedText(e.target.value)}
-                          className="w-full h-52 bg-white/5 border border-white/10 rounded-3xl p-6 text-white text-sm font-medium placeholder:text-stone-700 focus:outline-none focus:border-forge-accent/30 transition-all resize-none"
-                        />
-                        <div className="flex items-center gap-4 p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
-                          <BrainCircuit className="text-stone-600 shrink-0" size={20} />
-                          <p className="text-[10px] text-stone-500 uppercase font-black tracking-widest leading-relaxed">
-                            The Academic Assistant will analyze your text to forge customized study materials.
-                          </p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-8">
-                        <div className="flex items-center justify-between p-6 bg-white/5 rounded-3xl border border-white/10 relative overflow-hidden group">
-                          <div className="absolute inset-0 bg-forge-accent/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                          <div className="flex items-center gap-4 relative z-10">
-                            <div className="p-3 bg-forge-accent/20 text-forge-accent rounded-2xl">
-                              <FileText size={24} />
-                            </div>
-                            <div>
-                                <p className="font-bold text-white truncate max-w-[200px]">
-                                  {selectedFile ? selectedFile.name : 'Pasted Research Material'}
-                                </p>
-                                <p className="text-[10px] font-black text-stone-500 uppercase tracking-widest leading-none mt-1">
-                                  {selectedFile ? `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB • Ready` : `${pastedText.length} Characters • Ready`}
-                                </p>
-                            </div>
-                          </div>
-                          <button 
-                            onClick={() => {
-                                setSelectedFile(null);
-                                setPastedText('');
-                                soundService.playClick();
-                            }}
-                            className="p-3 text-stone-500 hover:text-red-500 transition-colors relative z-10"
-                          >
-                            <Trash2 size={24} />
-                          </button>
-                        </div>
-                      </div>
+                      </>
                     )}
 
-                    {(selectedFile || pastedText.trim()) && !isGenerating && (
+                    {(selectedFile || (activeTab === 'paste' && pastedText.trim())) && !isGenerating && !isPreviewing && (
                         <div className="grid grid-cols-4 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                           <button
                             onClick={() => {
@@ -401,7 +440,7 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({
                         </div>
                     )}
 
-                    {(selectedFile || pastedText.trim()) && !isGenerating && (
+                    {(selectedFile || pastedText.trim()) && !isGenerating && !isPreviewing && (
                         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
                             <div className="space-y-6">
                               <div className="flex items-center justify-between">
@@ -450,31 +489,88 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({
                               </div>
                             )}
 
-                            <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest px-2">
-                              <span className="text-stone-600">Daily Access</span>
-                              <span className="text-forge-accent">
-                                Unlimited
-                              </span>
-                            </div>
-
-                            <button
-                              disabled={isGenerating}
-                              onClick={generateLessonMaterial}
-                              className="w-full py-5 forge-gradient text-forge-dark rounded-2xl hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all font-display font-extrabold uppercase italic tracking-tighter text-xl flex items-center justify-center gap-4 forge-glow"
-                            >
-                              {isGenerating ? (
-                                <>
-                                  <Loader2 size={24} className="animate-spin" />
-                                  {loadingMessage}
-                                </>
-                              ) : (
-                                <>
-                                  <Sparkles size={24} />
-                                  Generate Lesson
-                                </>
-                              )}
-                            </button>
+                             <button
+                               disabled={isGenerating}
+                               onClick={generatePreview}
+                               className="w-full py-5 forge-gradient text-forge-dark rounded-2xl hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all font-display font-extrabold uppercase italic tracking-tighter text-xl flex items-center justify-center gap-4 forge-glow"
+                             >
+                               <Sparkles size={24} />
+                               Analyze Content
+                             </button>
                         </div>
+                    )}
+
+                    {isPreviewing && previewData && (
+                      <motion.div 
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="space-y-8"
+                      >
+                        <div className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-6">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-forge-accent">
+                               <FileText size={16} />
+                               <span className="text-[10px] font-black uppercase tracking-widest">Expert Summary</span>
+                            </div>
+                            <p className="text-sm text-stone-300 leading-relaxed font-medium">{previewData.summary}</p>
+                          </div>
+
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 text-forge-accent">
+                               <BookOpen size={16} />
+                               <span className="text-[10px] font-black uppercase tracking-widest">Key Terms Detected</span>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {previewData.terms.map((term, i) => (
+                                <span key={i} className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] font-bold text-stone-400">
+                                  {term}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="space-y-4">
+                            <div className="flex items-center gap-2 text-forge-accent">
+                               <Layers size={16} />
+                               <span className="text-[10px] font-black uppercase tracking-widest">Sample Flashcards</span>
+                            </div>
+                            <div className="space-y-2">
+                              {previewData.sampleFlashcards.map((card, i) => (
+                                <div key={i} className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl flex items-start gap-4">
+                                  <div className="w-6 h-6 bg-forge-accent/20 text-forge-accent rounded-lg flex items-center justify-center text-[10px] font-black shrink-0">
+                                    {i + 1}
+                                  </div>
+                                  <div className="space-y-1">
+                                    <div className="text-xs font-bold text-white leading-tight">
+                                       <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{card.front}</ReactMarkdown>
+                                    </div>
+                                    <div className="text-[10px] text-stone-500 font-medium italic">
+                                       <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{card.back}</ReactMarkdown>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <button
+                            onClick={() => setIsPreviewing(false)}
+                            className="py-4 bg-white/5 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] border border-white/10 hover:bg-white/10 transition-all"
+                          >
+                            Modify Text
+                          </button>
+                          <button
+                            onClick={generateLessonMaterial}
+                            disabled={isGenerating}
+                            className="py-4 bg-forge-accent text-forge-dark rounded-2xl font-black uppercase tracking-widest text-[10px] forge-glow hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
+                          >
+                            {isGenerating ? <Loader2 size={16} className="animate-spin" /> : <ChevronRight size={16} />}
+                            Confirm & Generate
+                          </button>
+                        </div>
+                      </motion.div>
                     )}
 
                     {error && (
