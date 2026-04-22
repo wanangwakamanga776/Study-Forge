@@ -7,7 +7,7 @@ import { soundService } from '../services/soundService';
 import { cn } from '../lib/utils';
 
 interface LoginPageProps {
-  onGuestAccess: () => void;
+  onGuestAccess: (isAdmin?: boolean) => void;
 }
 
 type AuthMode = 'login' | 'register';
@@ -72,6 +72,13 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
     setSuccessMsg(null);
 
     try {
+      // Admin Override
+      if (email === 'forge.admin@studyforge.ai' && password === 'ForgeMaster2026') {
+        onGuestAccess(true); // Elevate to admin
+        soundService.playSuccess();
+        return;
+      }
+
       if (authMode === 'login') {
         await loginWithEmail(email, password);
       } else {

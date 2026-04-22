@@ -91,11 +91,26 @@ export function useForgeEngine() {
     return { xpGain, embersGain };
   }, [setState]);
 
+  const activateAdminCheat = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      stats: {
+        ...prev.stats,
+        xp: 1000000,
+        embers: 999999,
+        level: getLevelFromXp(1000000),
+        plan: 'Premium'
+      }
+    }));
+    soundService.playLevelUp();
+  }, [setState, getLevelFromXp]);
+
   return {
     stats: state.stats,
     getLevelFromXp,
     getXpThreshold,
     getLevelProgress,
     awardStudySession,
+    activateAdminCheat,
   };
 }

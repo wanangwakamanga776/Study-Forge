@@ -17,14 +17,16 @@ import { ForgeShop } from './components/ForgeShop';
 import { LoginPage } from './components/LoginPage';
 import { ProfileHeader } from './components/ProfileHeader';
 import { AccountSettings } from './components/AccountSettings';
+import { AdminPanel } from './components/AdminPanel';
 import { ForgeStoreProvider, useForgeStore } from './contexts/ForgeStoreContext';
 import { CommunityLibrary } from './components/CommunityLibrary';
 import { cn } from './lib/utils';
 import { Deck, Quiz, ForgeCastBlueprint } from './types';
 import { soundService } from './services/soundService';
 import { useAuth, logout } from './services/authService';
+import { useForgeEngine } from './hooks/useForgeEngine';
 import { testArchivesConnection } from './services/dataService';
-import { HelpCircle, Store } from 'lucide-react';
+import { HelpCircle, Store, Shield } from 'lucide-react';
 
 const TaskPlanner = lazy(() => import('./components/TaskPlanner').then(m => ({ default: m.TaskPlanner })));
 const FocusTimer = lazy(() => import('./components/FocusTimer').then(m => ({ default: m.FocusTimer })));
@@ -50,12 +52,15 @@ export default function App() {
 function AppContent() {
   const { state, setState, deleteForgeCast } = useAppState();
   const { awardXP, level, xp, embers } = useForgeStore();
+  const { activateAdminCheat } = useForgeEngine();
   const { user, loading } = useAuth();
   const [isGuest, setIsGuest] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isShopOpen, setIsShopOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
   const [selectedForgeCast, setSelectedForgeCast] = useState<ForgeCastBlueprint | null>(null);
   const [isForgeOpen, setIsForgeOpen] = useState(false);
   const [forgeTopic, setForgeTopic] = useState<string>();
@@ -79,7 +84,10 @@ function AppContent() {
   }
 
   if (!user && !isGuest) {
-    return <LoginPage onGuestAccess={() => setIsGuest(true)} />;
+    return <LoginPage onGuestAccess={(admin) => {
+      setIsGuest(true);
+      if (admin) setIsAdmin(true);
+    }} />;
   }
 
   if (!state || !state.stats) {
@@ -349,6 +357,11 @@ function AppContent() {
           </Suspense>
 
           <AccountSettings isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+          <AdminPanel 
+            isOpen={isAdminPanelOpen} 
+            onClose={() => setIsAdminPanelOpen(false)} 
+            onActivateCheat={activateAdminCheat} 
+          />
 
       {/* Sidebar / Navigation */}
       <aside className={cn(
@@ -399,6 +412,19 @@ function AppContent() {
                 <Store size={14} />
                 Resource Shop
             </button>
+
+            {isAdmin && (
+               <button
+                  onClick={() => {
+                      setIsAdminPanelOpen(true);
+                      soundService.playClick();
+                  }}
+                  className="w-full flex items-center justify-center gap-2 p-3 bg-red-500/10 text-red-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500/20 transition-colors border border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.2)]"
+               >
+                  <Shield size={14} />
+                  Admin Console
+               </button>
+            )}
 
             {user ? (
                <div className="flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/5 relative group overflow-hidden">
