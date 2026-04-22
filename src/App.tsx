@@ -355,7 +355,7 @@ function AppContent() {
         "fixed inset-y-0 left-0 z-50 w-64 bg-forge-dark border-r border-white/5 transition-transform lg:translate-x-0",
         isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
       )}>
-        <div className="flex flex-col h-full p-6">
+        <div className="flex flex-col h-full p-6 overflow-y-auto metallic-scrollbar">
             <div className="flex items-center gap-4 mb-14">
               <div className="w-12 h-12 bg-forge-accent rounded-2xl flex items-center justify-center text-forge-dark forge-glow border border-white/10">
                 <BrainCircuit size={28} strokeWidth={2.5} />
