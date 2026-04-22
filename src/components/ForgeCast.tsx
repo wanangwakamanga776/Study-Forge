@@ -60,7 +60,7 @@ export const ForgeCast: React.FC<ForgeCastProps> = ({
 
   // Agent State
   const [messages, setMessages] = useState<Message[]>([
-    { id: '1', role: 'agent', content: "Welcome to the Forge. I am your Cinematic Agent. Tell me a topic or upload a file, and I'll create a 5-scene video item for you." }
+    { id: '1', role: 'agent', content: "Welcome! I am your Academic Video Assistant. Tell me a topic or upload a file, and I'll create a 5-scene educational lesson for you." }
   ]);
   const [input, setInput] = useState('');
   const [isForging, setIsForging] = useState(false);
@@ -148,7 +148,7 @@ export const ForgeCast: React.FC<ForgeCastProps> = ({
     if (!isAIConfigured) {
       setMessages(prev => [...prev, 
         { id: Date.now().toString(), role: 'user', content: input },
-        { id: (Date.now() + 1).toString(), role: 'agent', content: "Error: The Forge is cold. Please configure your VITE_GEMINI_API_KEY in the environment secrets to start smelting." }
+        { id: (Date.now() + 1).toString(), role: 'agent', content: "Error: AI Configuration needed. Please set your Gemini API Key in the settings to begin your study session." }
       ]);
       setInput('');
       setUploadedFile(null);
@@ -177,7 +177,7 @@ export const ForgeCast: React.FC<ForgeCastProps> = ({
         metadata: {
           title: blueprint.video_metadata.title,
           estimated_duration: blueprint.scenes.reduce((acc: number, s: any) => acc + s.duration_seconds, 0),
-          theme_color: "#FF6321"
+          theme_color: "#3B82F6"
         },
         chapters: blueprint.scenes.map((s: any) => ({
           chapter_id: Number(s.id),
@@ -186,8 +186,8 @@ export const ForgeCast: React.FC<ForgeCastProps> = ({
           visual_ai_prompt: s.visual_prompt,
           image_url: s.image_url,
           screen_overlays: {
-            text: s.on_screen_latex ? [s.on_screen_latex] : [],
-            latex_formula: s.on_screen_latex
+            text: s.screen_overlays?.text || [],
+            latex_formula: s.screen_overlays?.latex_formula || ""
           },
           transition: "fade"
         })),
@@ -212,7 +212,7 @@ export const ForgeCast: React.FC<ForgeCastProps> = ({
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'agent',
-        content: "The Forge failed to smelt this request. The heat was too intense. Please try again."
+        content: "I encountered an error generating this request. Please try again with a different topic."
       }]);
     } finally {
       setIsForging(false);
@@ -231,10 +231,10 @@ export const ForgeCast: React.FC<ForgeCastProps> = ({
           </div>
           <div>
             <h2 className="text-white font-display font-black uppercase italic tracking-tighter text-xl">
-              {currentBlueprint?.metadata.title || "ForgeCast Cinematic Engine"}
+              {currentBlueprint?.metadata.title || "Academic Video Engine"}
             </h2>
             <p className="text-stone-400 text-[10px] uppercase tracking-widest font-bold">
-              {mode === 'player' ? `Scene ${currentChapterIndex + 1} of ${currentBlueprint?.chapters.length}` : "Creating Item"}
+              {mode === 'player' ? `Scene ${currentChapterIndex + 1} of ${currentBlueprint?.chapters.length}` : "Generating Lesson"}
             </p>
           </div>
         </div>
@@ -292,9 +292,9 @@ export const ForgeCast: React.FC<ForgeCastProps> = ({
                       transition={{ delay: 0.5 }}
                       className="space-y-8"
                     >
-                      {currentChapter.screen_overlays.latex_formula && (
+                      {currentChapter.screen_overlays.latex_formula && currentChapter.screen_overlays.latex_formula.trim() && (
                         <div className="text-5xl font-mono text-forge-accent forge-glow mb-12 py-8 bg-black/40 backdrop-blur-sm rounded-3xl border border-white/5 flex items-center justify-center">
-                          <BlockMath math={currentChapter.screen_overlays.latex_formula.replace(/^\$|\$$/g, '')} />
+                          <BlockMath math={currentChapter.screen_overlays.latex_formula.replace(/^\$|\$$/g, '').trim()} />
                         </div>
                       )}
                       
@@ -367,7 +367,7 @@ export const ForgeCast: React.FC<ForgeCastProps> = ({
                     onClick={handleAssessmentSubmit}
                     className="w-full py-6 forge-gradient text-forge-dark rounded-2xl font-display font-black uppercase italic tracking-tighter text-2xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
                   >
-                    {assessmentResult === 'correct' ? 'Verified ✓' : assessmentResult === 'incorrect' ? 'Try Again' : 'Verify Item'}
+                    {assessmentResult === 'correct' ? 'Correct ✓' : assessmentResult === 'incorrect' ? 'Try Again' : 'Verify Learning'}
                   </button>
                 </motion.div>
               ) : (
@@ -463,7 +463,7 @@ export const ForgeCast: React.FC<ForgeCastProps> = ({
                     className="flex items-center gap-4 text-stone-500"
                   >
                     <Loader2 size={20} className="animate-spin" />
-                    <span className="text-[10px] font-black uppercase tracking-widest animate-pulse">Creating Item...</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest animate-pulse">Generating Lesson...</span>
                   </motion.div>
                 )}
                 <div ref={messagesEndRef} />

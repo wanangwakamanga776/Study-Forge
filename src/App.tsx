@@ -5,10 +5,9 @@
 
 import { useState, lazy, Suspense, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Layout, Timer, ListTodo, Layers, BrainCircuit, Menu, X, Star, Sparkles, Zap, Loader2, Video, Play, SkipBack, Monitor, RotateCcw, Trash2, Flame, LogOut, Trophy } from 'lucide-react';
+import { Layout, Timer, ListTodo, Layers, BrainCircuit, Menu, X, Star, Sparkles, Zap, Loader2, Video, Play, SkipBack, Monitor, RotateCcw, Trash2, Flame, LogOut, Trophy, BookOpen } from 'lucide-react';
 import { useAppState } from './hooks/useAppState';
 import { Dashboard } from './components/Dashboard';
-import { PremiumModal } from './components/PremiumModal';
 import { LevelBar } from './components/LevelBar';
 import { ForgeChat } from './components/ForgeChat';
 import { ForgeHeatIcon } from './components/ForgeHeatIcon';
@@ -19,6 +18,7 @@ import { LoginPage } from './components/LoginPage';
 import { ProfileHeader } from './components/ProfileHeader';
 import { AccountSettings } from './components/AccountSettings';
 import { ForgeStoreProvider, useForgeStore } from './contexts/ForgeStoreContext';
+import { CommunityLibrary } from './components/CommunityLibrary';
 import { cn } from './lib/utils';
 import { Deck, Quiz, ForgeCastBlueprint } from './types';
 import { soundService } from './services/soundService';
@@ -35,7 +35,7 @@ const AIGenerator = lazy(() => import('./components/AIGenerator').then(m => ({ d
 const ForgeCast = lazy(() => import('./components/ForgeCast').then(m => ({ default: m.ForgeCast })));
 const Leaderboard = lazy(() => import('./components/Leaderboard').then(m => ({ default: m.Leaderboard })));
 
-type View = 'dashboard' | 'planner' | 'timer' | 'flashcards' | 'quiz' | 'match' | 'forge-library' | 'forge-player' | 'leaderboard';
+type View = 'dashboard' | 'planner' | 'timer' | 'flashcards' | 'quiz' | 'match' | 'forge-library' | 'forge-player' | 'leaderboard' | 'community';
 
 export default function App() {
   return (
@@ -54,11 +54,11 @@ function AppContent() {
   const [isGuest, setIsGuest] = useState(false);
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
   const [isShopOpen, setIsShopOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [selectedForgeCast, setSelectedForgeCast] = useState<ForgeCastBlueprint | null>(null);
   const [isForgeOpen, setIsForgeOpen] = useState(false);
+  const [forgeTopic, setForgeTopic] = useState<string>();
   const [showTutorial, setShowTutorial] = useState(false);
 
   useEffect(() => {
@@ -90,14 +90,6 @@ function AppContent() {
     );
   }
 
-  const handleUpgrade = (plan: 'Premium') => {
-    setState(prev => ({
-      ...prev,
-      stats: { ...prev.stats, plan }
-    }));
-    setIsPremiumModalOpen(false);
-  };
-
   const handleAIGenerated = (type: 'flashcards' | 'quiz' | 'forgeCast', data: any) => {
     setState(prev => {
       const newState = { ...prev };
@@ -123,7 +115,8 @@ function AppContent() {
     { id: 'flashcards', label: 'Flashcards', icon: <Layers size={20} /> },
     { id: 'match', label: 'Match Mode', icon: <Zap size={20} /> },
     { id: 'quiz', label: 'Quiz Mode', icon: <BrainCircuit size={20} /> },
-    { id: 'forge-library', label: 'ForgeCasts', icon: <Video size={20} /> },
+    { id: 'community', label: 'Community', icon: <BookOpen size={20} /> },
+    { id: 'forge-library', label: 'Study Lessons', icon: <Video size={20} /> },
     { id: 'leaderboard', label: 'Hall of Fame', icon: <Trophy size={20} /> },
   ];
 
@@ -145,6 +138,14 @@ function AppContent() {
     });
   };
 
+  const handleAddDeck = (deck: Deck) => {
+    setState(prev => ({
+      ...prev,
+      decks: [deck, ...prev.decks]
+    }));
+    soundService.playSuccess();
+  };
+
   const renderView = () => {
     switch (currentView) {
       case 'dashboard':
@@ -162,8 +163,8 @@ function AppContent() {
           <div className="space-y-8">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-3xl font-display font-black uppercase italic tracking-tighter text-white">The Vault</h2>
-                <p className="text-stone-500 text-[10px] font-bold uppercase tracking-widest">Your Smelted ForgeCasts</p>
+                <h2 className="text-3xl font-display font-black uppercase italic tracking-tighter text-white">Study Library</h2>
+                <p className="text-stone-500 text-[10px] font-bold uppercase tracking-widest">Your Professional Lessons</p>
               </div>
               <button 
                 onClick={() => {
@@ -173,7 +174,7 @@ function AppContent() {
                 }}
                 className="px-6 py-2 bg-forge-accent text-forge-dark rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform forge-glow"
               >
-                Create Item
+                New Lesson
               </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -209,7 +210,7 @@ function AppContent() {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (window.confirm('Are you sure you want to delete this ForgeCast?')) {
+                    if (window.confirm('Are you sure you want to delete this Lesson?')) {
                       deleteForgeCast(fc.id);
                     }
                   }}
@@ -227,19 +228,19 @@ function AppContent() {
                   }}
                 >
                   <div className="flex items-center justify-between mb-4">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-forge-accent">{fc.metadata.estimated_duration}s Cinematic</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-forge-accent">{fc.metadata.estimated_duration}s Lesson</span>
                     <span className="text-[10px] font-mono text-stone-600">{new Date(fc.createdAt).toLocaleDateString()}</span>
                   </div>
                   <h3 className="text-2xl font-display font-black uppercase italic tracking-tighter text-white mb-2">{fc.metadata.title}</h3>
-                  <p className="text-stone-500 text-xs uppercase tracking-widest font-bold">{fc.chapters.length} Scenes • High Fidelity</p>
+                  <p className="text-stone-500 text-xs uppercase tracking-widest font-bold">{fc.chapters.length} Modules • High Fidelity</p>
                 </div>
               </motion.div>
             ))}
             {state.forgeCasts.length === 0 && (
               <div className="col-span-full py-20 text-center glass-card rounded-[2.5rem] border border-white/5">
                 <Video size={64} className="mx-auto text-stone-700 mb-6" />
-                <h3 className="text-2xl font-display font-black uppercase italic tracking-tighter text-white mb-4">The Vault is Empty</h3>
-                <p className="text-stone-500 font-bold uppercase tracking-widest text-xs mb-8">Generate your first ForgeCast to see it here</p>
+                <h3 className="text-2xl font-display font-black uppercase italic tracking-tighter text-white mb-4">The Library is Empty</h3>
+                <p className="text-stone-500 font-bold uppercase tracking-widest text-xs mb-8">Generate your first study lesson to see it here</p>
                 <button 
                   onClick={() => {
                     setSelectedForgeCast(null);
@@ -248,7 +249,7 @@ function AppContent() {
                   }}
                   className="px-8 py-3 bg-white text-forge-dark rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform"
                 >
-                  Create Item
+                  New Lesson
                 </button>
               </div>
             )}
@@ -302,6 +303,8 @@ function AppContent() {
         );
       case 'leaderboard':
         return <Leaderboard />;
+      case 'community':
+        return <CommunityLibrary onAddDeck={handleAddDeck} onNavigate={(v) => setCurrentView(v as View)} />;
       default:
         return (
           <Dashboard 
@@ -317,19 +320,33 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900 font-sans selection:bg-stone-200">
-      <PremiumModal 
-        isOpen={isPremiumModalOpen} 
-        onClose={() => setIsPremiumModalOpen(false)} 
-        onUpgrade={handleUpgrade}
-      />
-
           <AnimatePresence>
             {showTutorial && <ForgeTutorial onClose={() => setShowTutorial(false)} />}
           </AnimatePresence>
 
           <ForgeShop isOpen={isShopOpen} onClose={() => setIsShopOpen(false)} />
 
-          <ForgeChat />
+          <ForgeChat 
+            onNavigate={(v) => setCurrentView(v as View)}
+            onOpenForge={(topic) => {
+              setForgeTopic(topic);
+              setIsForgeOpen(true);
+            }}
+            onSaveData={handleAIGenerated}
+          />
+
+          <Suspense fallback={null}>
+            <AIGenerator 
+              stats={state.stats} 
+              onGenerated={handleAIGenerated}
+              onOpenPremium={() => setIsShopOpen(true)}
+              onNavigate={(v) => setCurrentView(v as View)}
+              isOpen={isForgeOpen}
+              onOpenChange={setIsForgeOpen}
+              initialTopic={forgeTopic}
+              hideTrigger={true}
+            />
+          </Suspense>
 
           <AccountSettings isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
 
@@ -372,16 +389,6 @@ function AppContent() {
           <div className="mt-auto pt-6 border-t border-white/5 space-y-4">
             <ForgeHeatIcon streak={state.stats.streak} />
             
-            {state.stats.plan === 'Free' && (
-              <button
-                onClick={() => setIsPremiumModalOpen(true)}
-                className="w-full flex items-center justify-center gap-2 p-3 bg-forge-accent/10 text-forge-accent rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-forge-accent/20 transition-colors"
-              >
-                <Star size={14} fill="currentColor" />
-                Forge Elite
-              </button>
-            )}
-
             <button
                 onClick={() => {
                     setIsShopOpen(true);
@@ -390,7 +397,7 @@ function AppContent() {
                 className="w-full flex items-center justify-center gap-2 p-3 bg-white/5 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-colors border border-white/5"
             >
                 <Store size={14} />
-                Forge Shop
+                Resource Shop
             </button>
 
             {user ? (
@@ -400,7 +407,7 @@ function AppContent() {
                  </div>
                  <div className="flex-1 min-w-0">
                    <p className="text-[10px] font-black text-stone-500 uppercase tracking-widest truncate">
-                     {user.displayName || 'Apprentice'}
+                     {user.displayName || 'Student'}
                    </p>
                    <p className="text-sm font-bold text-white leading-none mt-1">{embers} Embers</p>
                  </div>
@@ -412,7 +419,7 @@ function AppContent() {
                      setIsGuest(false);
                    }}
                    className="absolute -top-2 -right-2 p-2 bg-forge-dark border border-white/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-500 z-10"
-                   title="Exit Forge"
+                   title="Log Out"
                  >
                    <LogOut size={14} />
                  </button>
@@ -424,14 +431,14 @@ function AppContent() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[10px] font-black text-stone-500 uppercase tracking-widest truncate">
-                    Guest Apprentice
+                    Guest Student
                   </p>
                   <p className="text-sm font-bold text-white">{xp} XP</p>
                 </div>
                 <button 
                   onClick={() => setIsGuest(false)}
                   className="absolute -top-2 -right-2 p-2 bg-forge-dark border border-white/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:text-white"
-                  title="Forge Sign In"
+                  title="Session Login"
                 >
                   <LogOut size={14} />
                 </button>
@@ -484,22 +491,24 @@ function AppContent() {
               <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                 <div>
                   <h2 className="text-4xl font-extrabold tracking-tighter font-display text-white uppercase italic mb-2">
-                    {currentView === 'dashboard' ? 'The Forge' : 
+                    {currentView === 'dashboard' ? 'Workspace' : 
                      currentView === 'planner' ? 'Dynamic Planner' :
-                     currentView === 'timer' ? 'Focus Forge' :
-                     currentView === 'flashcards' ? 'Flashcard Blueprints' :
+                     currentView === 'timer' ? 'Focus Mode' :
+                     currentView === 'flashcards' ? 'Flashcard Decks' :
                      currentView === 'match' ? 'Velocity Match' :
                      currentView === 'leaderboard' ? 'Elite Leaderboard' :
-                     'Knowledge Smelters'}
+                     currentView === 'community' ? 'Academy Archives' :
+                     'Knowledge Lab'}
                   </h2>
                   <p className="text-stone-400 mt-1 max-w-lg font-bold text-sm">
-                    {currentView === 'dashboard' && "Heat up your knowledge. Forge your future."}
-                    {currentView === 'planner' && "Strategize your ascent. Sort by urgency and priority."}
-                    {currentView === 'timer' && "Enter the heat. Lock out distractions and master your time."}
-                    {currentView === 'flashcards' && "Active recall blueprints for rapid mastery."}
+                    {currentView === 'dashboard' && "Prepare your knowledge. Build your future."}
+                    {currentView === 'planner' && "Strategize your goals. Sort by urgency and priority."}
+                    {currentView === 'timer' && "Enter focus mode. Block out distractions and master your time."}
+                    {currentView === 'flashcards' && "Active recall decks for rapid mastery."}
                     {currentView === 'match' && "Speed is power. Match terms with their definitions."}
-                    {currentView === 'quiz' && "Smelt your knowledge in the fires of examination."}
-                    {currentView === 'leaderboard' && "The highest-ranking smiths in the forge archives."}
+                    {currentView === 'quiz' && "Test your knowledge with rigorous assessment."}
+                    {currentView === 'leaderboard' && "The highest-ranking academic heroes in the archives."}
+                    {currentView === 'community' && "Shared repository of community-driven academic curricula."}
                   </p>
                 </div>
 
@@ -511,25 +520,20 @@ function AppContent() {
                             soundService.playClick();
                         }}
                         className="p-3 bg-white/5 text-stone-500 rounded-2xl hover:text-white transition-colors border border-white/5"
-                        title="How to Use the Forge"
+                        title="How to Use Study Forge"
                     >
                         <HelpCircle size={24} />
                     </button>
-                    <Suspense fallback={
-                      <div className="flex items-center gap-3 px-8 py-4 bg-white/5 text-stone-500 rounded-2xl animate-pulse font-display font-extrabold uppercase italic tracking-tighter">
-                        <Loader2 size={20} className="animate-spin" />
-                        Loading Forge...
-                      </div>
-                    }>
-                      <AIGenerator 
-                        stats={state.stats} 
-                        onGenerated={handleAIGenerated}
-                        onOpenPremium={() => setIsPremiumModalOpen(true)}
-                        onNavigate={(v) => setCurrentView(v as View)}
-                        isOpen={isForgeOpen}
-                        onOpenChange={setIsForgeOpen}
-                      />
-                    </Suspense>
+                    <button
+                      onClick={() => {
+                        setIsForgeOpen(true);
+                        soundService.playClick();
+                      }}
+                      className="flex items-center gap-3 px-8 py-4 bg-white text-forge-dark rounded-2xl hover:scale-105 transition-all shadow-[0_0_30px_rgba(255,255,255,0.1)] font-display font-extrabold uppercase italic tracking-tighter"
+                    >
+                      <Sparkles size={20} className="text-forge-accent" />
+                      Lesson Generator
+                    </button>
                   </div>
                 )}
               </div>

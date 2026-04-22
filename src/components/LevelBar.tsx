@@ -18,11 +18,11 @@ export function LevelBar() {
           <div className="w-8 h-8 rounded-lg bg-forge-accent text-forge-dark flex items-center justify-center font-black animate-pulse shadow-[0_0_15px_rgba(var(--forge-accent-rgb),0.4)]">
             {level}
           </div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-white/70">Master Smith Level</span>
+          <span className="text-[10px] font-black uppercase tracking-widest text-white/70">Academic Level</span>
         </div>
         <div className="text-right">
           <span className="text-[10px] font-black uppercase tracking-widest text-forge-accent">{xp} XP</span>
-          <p className="text-[8px] font-bold text-stone-500 uppercase tracking-widest">Next Rank: {nextXp}</p>
+          <p className="text-[8px] font-bold text-stone-500 uppercase tracking-widest">Next Milestone: {nextXp}</p>
         </div>
       </div>
       

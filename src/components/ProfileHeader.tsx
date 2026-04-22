@@ -50,7 +50,7 @@ export function ProfileHeader({ onOpenSettings }: ProfileHeaderProps) {
     setIsUploading(true);
     try {
       await uploadAvatar(file);
-      soundService.playSmelt();
+      soundService.playProcess();
     } catch (error) {
       console.error(error);
     } finally {
@@ -75,7 +75,7 @@ export function ProfileHeader({ onOpenSettings }: ProfileHeaderProps) {
             {user.photoURL ? (
               <img 
                 src={user.photoURL} 
-                alt={user.displayName || 'Apprentice'} 
+                alt={user.displayName || 'Student'} 
                 className="w-full h-full rounded-full object-cover relative z-10"
                 referrerPolicy="no-referrer"
               />
@@ -105,7 +105,7 @@ export function ProfileHeader({ onOpenSettings }: ProfileHeaderProps) {
         <div className="text-left pr-2">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-sm font-display font-black uppercase italic tracking-tighter text-white truncate max-w-[120px]">
-              {user.displayName || 'Apprentice'}
+              {user.displayName || 'Student'}
             </span>
             <div className="px-1.5 py-0.5 bg-forge-accent/10 border border-forge-accent/20 rounded-md text-[8px] font-black text-forge-accent uppercase tracking-widest">
               LVL {level}
@@ -172,7 +172,7 @@ export function ProfileHeader({ onOpenSettings }: ProfileHeaderProps) {
                   className="w-full flex items-center gap-3 px-4 py-3 text-stone-400 hover:text-white hover:bg-white/5 rounded-xl transition-all group"
                 >
                   <Settings size={18} className="group-hover:rotate-45 transition-transform" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Account Forge</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">Account Settings</span>
                 </button>
 
                 <button
@@ -184,7 +184,7 @@ export function ProfileHeader({ onOpenSettings }: ProfileHeaderProps) {
                   className="w-full flex items-center gap-3 px-4 py-3 text-red-500/70 hover:text-red-500 hover:bg-red-500/5 rounded-xl transition-all"
                 >
                   <LogOut size={18} />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Extinguish Hearth</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">Log Out</span>
                 </button>
               </div>
             </motion.div>

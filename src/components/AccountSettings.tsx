@@ -51,7 +51,7 @@ export function AccountSettings({ isOpen, onClose }: AccountSettingsProps) {
       soundService.playLevelUp();
     } catch (error) {
       console.error(error);
-      alert("Failed to smelt avatar.");
+      alert("Failed to update avatar.");
     } finally {
       setIsUploading(false);
     }
@@ -99,8 +99,8 @@ export function AccountSettings({ isOpen, onClose }: AccountSettingsProps) {
               <Hammer className="text-forge-accent" />
             </div>
             <div>
-              <h2 className="text-3xl font-display font-black uppercase italic tracking-tighter text-white">Account Forge</h2>
-              <p className="text-stone-500 text-[10px] font-bold uppercase tracking-widest mt-1">Refine your apprentice profile</p>
+              <h2 className="text-3xl font-display font-black uppercase italic tracking-tighter text-white">Account Settings</h2>
+              <p className="text-stone-500 text-[10px] font-bold uppercase tracking-widest mt-1">Configure your student profile</p>
             </div>
           </div>
           <button 
@@ -151,7 +151,7 @@ export function AccountSettings({ isOpen, onClose }: AccountSettingsProps) {
               <>
                 {/* Avatar Section */}
                 <section className="space-y-6">
-                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-stone-500">Master Avatar</h3>
+                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-stone-500">Profile Picture</h3>
                   <div className="flex items-center gap-8">
                     <div className="relative group">
                       <div className="w-32 h-32 rounded-3xl overflow-hidden border-2 border-forge-accent/30 forge-glow relative">
@@ -189,9 +189,9 @@ export function AccountSettings({ isOpen, onClose }: AccountSettingsProps) {
                       />
                     </div>
                     <div className="space-y-2">
-                      <p className="text-sm font-bold text-white">Custom Smelting</p>
+                      <p className="text-sm font-bold text-white">Personal Identity</p>
                       <p className="text-[10px] text-stone-500 uppercase tracking-widest leading-relaxed">
-                        Upload a portrait for your<br/>Master Smith to recognize you.<br/>Max size: 2MB (PNG/JPG)
+                        Upload a portrait for your<br/>Academic Assistant to recognize you.<br/>Max size: 2MB (PNG/JPG)
                       </p>
                     </div>
                   </div>
@@ -199,14 +199,14 @@ export function AccountSettings({ isOpen, onClose }: AccountSettingsProps) {
 
                 {/* Display Name Section */}
                 <section className="space-y-4">
-                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-stone-500">Forger Name</h3>
+                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-stone-500">Student Name</h3>
                   <div className="flex gap-4">
                     <div className="flex-1 relative">
                       <input
                         type="text"
                         value={newName}
                         onChange={(e) => setNewName(e.target.value)}
-                        placeholder="Enter forge name..."
+                        placeholder="Enter display name..."
                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-white font-bold focus:outline-none focus:border-forge-accent/50 transition-colors"
                       />
                       {saveSuccess && (
@@ -216,7 +216,7 @@ export function AccountSettings({ isOpen, onClose }: AccountSettingsProps) {
                           className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2 text-green-500 text-[10px] font-black uppercase"
                         >
                           <Check size={14} />
-                          Forged
+                          Saved
                         </motion.div>
                       )}
                     </div>
@@ -232,7 +232,7 @@ export function AccountSettings({ isOpen, onClose }: AccountSettingsProps) {
               </>
             ) : (
               <section className="space-y-8">
-                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-stone-500">Forge Prefereces</h3>
+                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-stone-500">Study Preferences</h3>
                 
                 <div className="flex items-center justify-between p-6 bg-white/5 rounded-2xl border border-white/5 group hover:border-white/10 transition-colors">
                   <div className="flex items-center gap-4">
@@ -240,8 +240,8 @@ export function AccountSettings({ isOpen, onClose }: AccountSettingsProps) {
                       <Volume2 size={20} />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-white uppercase tracking-tighter">Forge Sound Effects</p>
-                      <p className="text-[10px] text-stone-500 font-bold uppercase tracking-widest">Ambient clinks, sucess sparks, and level ups</p>
+                      <p className="text-sm font-bold text-white uppercase tracking-tighter">Study Sound Effects</p>
+                      <p className="text-[10px] text-stone-500 font-bold uppercase tracking-widest">Ambient tones, success feedback, and level ups</p>
                     </div>
                   </div>
                   <button 
@@ -266,7 +266,7 @@ export function AccountSettings({ isOpen, onClose }: AccountSettingsProps) {
                     </div>
                     <div>
                       <p className="text-sm font-bold text-white uppercase tracking-tighter">Study Reminders</p>
-                      <p className="text-[10px] text-stone-500 font-bold uppercase tracking-widest">Keep your heat high with streak notifications</p>
+                      <p className="text-[10px] text-stone-500 font-bold uppercase tracking-widest">Keep your streak active with goal notifications</p>
                     </div>
                   </div>
                   <div className="w-12 h-6 rounded-full bg-white/10 relative cursor-not-allowed">
@@ -287,7 +287,7 @@ export function AccountSettings({ isOpen, onClose }: AccountSettingsProps) {
                 className="flex items-center gap-3 px-6 py-4 bg-red-500/10 text-red-500 border border-red-500/20 rounded-2xl font-display font-black uppercase italic tracking-tighter hover:bg-red-500 hover:text-white transition-all w-full justify-center group"
               >
                 <LogOut size={20} className="group-hover:-translate-x-1 transition-transform" />
-                Extinguish Hearth (Log Out)
+                Account Log Out
               </button>
             </section>
           </div>

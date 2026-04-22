@@ -1,33 +1,47 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, ChevronLeft, ChevronRight, Layers, RotateCw } from 'lucide-react';
+import { Plus, Trash2, ChevronLeft, ChevronRight, Layers, RotateCw, Globe, Lock, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Deck, Flashcard } from '../types';
+import { Deck, Flashcard, DeckCategory } from '../types';
 import { cn } from '../lib/utils';
 import { soundService } from '../services/soundService';
+import { publishDeck } from '../services/dataService';
 
 interface FlashcardsProps {
   decks: Deck[];
   onUpdate: (decks: Deck[]) => void;
 }
 
+const CATEGORIES: DeckCategory[] = ['Educational', 'Personal', 'Work', 'Other'];
+
 export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
   const [activeDeckId, setActiveDeckId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [newDeckTitle, setNewDeckTitle] = useState('');
+  const [isPublic, setIsPublic] = useState(false);
+  const [category, setCategory] = useState<DeckCategory>('Educational');
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
 
   const activeDeck = decks.find(d => d.id === activeDeckId);
 
-  const createDeck = () => {
+  const createDeck = async () => {
     if (!newDeckTitle.trim()) return;
     const newDeck: Deck = {
       id: crypto.randomUUID(),
       title: newDeckTitle,
       cards: [],
+      isPublic,
+      category,
+      createdAt: Date.now()
     };
+
+    if (isPublic) {
+      await publishDeck(newDeck);
+    }
+
     onUpdate([...decks, newDeck]);
     setNewDeckTitle('');
+    setIsPublic(false);
     setIsCreating(false);
     setActiveDeckId(newDeck.id);
   };
@@ -164,7 +178,7 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-10 p-8 glass-card rounded-[2.5rem]"
+          className="mb-10 p-8 glass-card rounded-[2.5rem] space-y-6"
         >
           <div className="flex gap-4">
             <input
@@ -173,20 +187,62 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
               placeholder="Blueprint Title (e.g., Quantum Mechanics)"
               value={newDeckTitle}
               onChange={(e) => setNewDeckTitle(e.target.value)}
-              className="flex-1 px-6 py-3 rounded-xl bg-white/5 border border-white/10 focus:ring-2 focus:ring-forge-accent/50 text-white font-bold"
+              className="flex-1 px-6 py-4 rounded-xl bg-white/5 border border-white/10 focus:ring-2 focus:ring-forge-accent/50 text-white font-bold outline-none"
             />
-            <button
-              onClick={createDeck}
-              className="px-8 py-3 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-colors font-bold uppercase tracking-widest text-xs"
-            >
-              Create
-            </button>
-            <button
-              onClick={() => setIsCreating(false)}
-              className="px-6 py-3 text-stone-500 hover:text-white font-bold uppercase tracking-widest text-xs"
-            >
-              Cancel
-            </button>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-6">
+            <div className="flex items-center gap-6">
+               <div className="space-y-2">
+                 <label className="text-[10px] font-black uppercase tracking-widest text-stone-600 block">Category</label>
+                 <div className="flex gap-2">
+                   {CATEGORIES.map(cat => (
+                     <button
+                       key={cat}
+                       onClick={() => setCategory(cat)}
+                       className={cn(
+                         "px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all",
+                         category === cat ? "bg-forge-accent text-forge-dark" : "bg-white/5 text-stone-500 hover:bg-white/10"
+                       )}
+                     >
+                       {cat}
+                     </button>
+                   ))}
+                 </div>
+               </div>
+
+               <div className="space-y-2">
+                 <label className="text-[10px] font-black uppercase tracking-widest text-stone-600 block">Visibility</label>
+                 <button
+                    onClick={() => setIsPublic(!isPublic)}
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-2 rounded-xl border transition-all",
+                      isPublic 
+                        ? "bg-forge-accent/10 border-forge-accent text-forge-accent" 
+                        : "bg-white/5 border-white/10 text-stone-500"
+                    )}
+                 >
+                   {isPublic ? <Globe size={14} /> : <Lock size={14} />}
+                   <span className="text-[10px] font-bold uppercase tracking-widest">{isPublic ? 'Public' : 'Private'}</span>
+                   {isPublic && <Check size={12} />}
+                 </button>
+               </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setIsCreating(false)}
+                className="px-6 py-3 text-stone-600 hover:text-white font-black uppercase tracking-widest text-[10px] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={createDeck}
+                className="px-8 py-3 bg-white text-forge-dark rounded-xl font-black uppercase tracking-widest text-[10px] hover:scale-105 active:scale-95 transition-all shadow-lg"
+              >
+                Create Deck
+              </button>
+            </div>
           </div>
         </motion.div>
       )}

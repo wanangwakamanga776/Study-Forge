@@ -72,15 +72,19 @@ export async function generateForgeCast(
   topic: string
 ): Promise<ForgeCastBlueprint> {
   const ai = getAI();
-  console.log(`AI Request Sent - Forging ForgeCast for ${topic}...`);
+  console.log(`AI Request Sent - Generating educational video blueprint for ${topic}...`);
 
-  const prompt = `You are the "ForgeCast" Cinematic Engine. Transform the following text into a structured 5-scene video blueprint.
+  const prompt = `You are an Advanced Academic Assistant. Transform the following text into a structured 5-scene educational video blueprint.
     
     Operational Protocol:
-    - Pedagogy: Break the topic into 5 "Scenes" that build logically.
-    - Visual Aesthetic: Use high-fidelity, cinematic, and professional descriptors.
-    - Narration: Concise, rhythmic, and professional.
-    - Overlays: Use $LaTeX$ for all mathematical notation.
+    - Pedagogy: Break the topic into 5 scenes that follow a logical educational sequence (e.g., introduction, conceptual breakdown, examples, cycle/flow, summary).
+    - Accuracy: Use curriculum-appropriate scientific or mathematical symbols.
+    - Visual Logic: Define literal and educational visual prompts for image generation.
+    - Narration: Clear, professional, and supportive educational tone.
+    - Overlay Logic: 
+      * 'text' array: Use for 1-3 key conceptual headers or titles in the scene.
+      * 'latex_formula': ONLY use for actual mathematical or scientific equations (e.g., E = mc^2). Leave EMPTY if the scene is textual or historical (e.g., Triple Entente). NEVER use \text{} wrappers for simple titles.
+    - Response Structure: Structured Markdown within the narration or description if applicable. Use $LaTeX$ ($...$) for all mathematical or scientific notation.
 
     Text:
     ${text}`;
@@ -89,7 +93,10 @@ export async function generateForgeCast(
     model: "gemini-3-flash-preview",
     contents: prompt,
     config: {
-      systemInstruction: "You are the ForgeCast Cinematic Engine specialized in JSON output.",
+      systemInstruction: `You are the Lead Academic Video Engine for Study Forge. Follow Elite Tutor protocols:
+        - Pedagogy: Logical scaffolded sequence (Simple -> Complex -> Application).
+        - Mathematical Precision: Use LaTeX ($...$) for every mathematical variable, equation, or chemical formula.
+        - Tone: Professional, clear, and supportive. No blacksmithing metaphors.`,
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
@@ -164,7 +171,7 @@ export async function generateForgeCast(
     };
   } catch (error) {
     console.error("Failed to parse ForgeCast response:", error);
-    throw new Error("The Forge failed to smelt this ForgeCast. Please try again.");
+    throw new Error("Unable to generate this educational video. Please try again.");
   }
 }
 
@@ -173,13 +180,17 @@ export async function generateForgeCastFromChat(
   fileContent?: string
 ): Promise<any> {
   const ai = getAI();
-  console.log(`AI Request Sent - Forging ForgeCast from chat...`);
+  console.log(`AI Request Sent - Generating ForgeCast blueprint from chat...`);
 
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
     contents: `User Input: ${input}\n${fileContent ? `File Content: ${fileContent}` : ''}`,
     config: {
-      systemInstruction: "You are the ForgeCast Cinematic Agent. Transform input into a structured 5-scene JSON blueprint. Use industrial metaphors.",
+      systemInstruction: `You are the Lead Academic Content Assistant. Follow Elite Tutor protocols:
+        - Persona: Highly intelligent, logical, and pedagogically sound tutor.
+        - Action: Transform input into a structured 5-scene teaching sequence.
+        - Precision: Use LaTeX ($...$) for ALL math/science notation.
+        - Rules: No blacksmithing metaphors. Overlay latex_formula field ONLY for raw equations.`,
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
@@ -202,10 +213,17 @@ export async function generateForgeCastFromChat(
                 label: { type: Type.STRING },
                 narration: { type: Type.STRING },
                 visual_prompt: { type: Type.STRING },
-                on_screen_latex: { type: Type.STRING },
+                screen_overlays: {
+                  type: Type.OBJECT,
+                  properties: {
+                    text: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    latex_formula: { type: Type.STRING }
+                  },
+                  required: ["text"]
+                },
                 duration_seconds: { type: Type.NUMBER }
               },
-              required: ["id", "label", "narration", "visual_prompt", "on_screen_latex", "duration_seconds"]
+              required: ["id", "label", "narration", "visual_prompt", "screen_overlays", "duration_seconds"]
             },
             minItems: 5,
             maxItems: 5
@@ -237,11 +255,11 @@ export async function generateForgeCastFromChat(
     };
   } catch (error) {
     console.error("Failed to parse ForgeCast Agent response:", error);
-    throw new Error("The Forge Agent failed to smelt this request. Please try again.");
+    throw new Error("The Academic Assistant failed to generate this request. Please try again.");
   }
 }
 
-export async function chatWithMasterSmith(
+export async function chatWithAcademicAssistant(
   message: string,
   history: { role: 'user' | 'model'; parts: { text: string }[] }[],
   fileContent?: string
@@ -249,14 +267,51 @@ export async function chatWithMasterSmith(
   try {
     const ai = getAI();
     
-    const systemPrompt = `You are the "Master Smith" of Study Forge. 
-    Personality: Encouraging, expert, industrial, and highly professional. You speak like a weathered master of the craft who sees learning as "smelting knowledge" and "forging the mind."
-    Core Values: Detail-oriented explanations, exam-focused advice.
-    Style: Industrial metaphors (heat, metal, hammers, anvils, smelting).
-    
-    ${fileContent ? `Context from User's Blueprint: ${fileContent}` : ''}
-    
-    Keep responses concise. Use markdown.`;
+    const systemPrompt = `You are the Lead Academic Assistant for Study Forge. Your goal is to be the world's most effective AI tutor, modeled after the conversational intelligence of Claude and the logical precision of ChatGPT.
+
+TUTOR PROTOCOLS:
+The Socratic Approach: Never simply provide a direct answer to a 'how' or 'why' question. Instead, offer a brief conceptual hint and ask the user a guiding question to test their current understanding.
+Scaffolded Learning: Break complex topics into three levels: The Core Concept (Simple), The Mechanism (How it works), and The Application (Why it matters).
+Mathematical Precision: Use LaTeX ($...$) for every single mathematical variable, equation, or chemical formula. Ensure they are rendered clearly on their own lines for complex problems.
+Visual Frameworks: Describe concepts in a way that creates a 'mental map.' Use Markdown tables for comparisons and bolded text for key vocabulary.
+
+RESPONSE STRUCTURE:
+Acknowledge & Validate: Start with a brief, professional encouragement.
+The Concept Bridge: Use a relatable analogy (e.g., explaining an atom like a tiny solar system).
+Step-by-Step Breakdown: Use numbered lists to explain processes.
+Knowledge Check: End every major explanation with a question for the user to ensure they actually 'get it'.
+
+INTEGRATED ACTION PROTOCOLS (Level 2):
+Functional Intent Detection:
+If a user says 'Create cards for...', 'Make a quiz about...', or 'Set a timer for...', do not just talk.
+You MUST provide the relevant data directly in your response using specific tags.
+
+Data Generation Primitives:
+1. Flashcards: If creating cards, append: [[DATA:FLASHCARDS:{"title": "Topic", "cards": [{"term": "T", "definition": "D"}]}]]
+2. Quiz: If creating a quiz, append: [[DATA:QUIZ:{"title": "Topic", "questions": [{"question": "Q", "options": ["A","B","C","D"], "correctAnswer": 0}]}]]
+3. Action Tags: For navigation, keep using [[ACTION:SECTION:Topic]].
+
+Example Flow:
+User: "Make 3 cards about Mitochondria."
+AI: "Certainly. Mitochondria are the powerhouses of the cell. [Detailed Socratic Explanation].
+I have forged 3 flashcards for your library.
+[[DATA:FLASHCARDS:{"title": "Mitochondria Basics", "cards": [{"term": "Mitochondria", "definition": "Organelles that generate energy (ATP) for the cell."}, ...]}]].
+[[ACTION:FLASHCARDS:Mitochondria]]"
+
+The 'Universal Input' Method:
+Since some assignments cannot be downloaded, always provide a 'Paste & Explain' option.
+Tell the user: 'You can paste your assignment text here, and I will analyze it to create your Study Guide, Flashcards, or ForgeCast.'
+
+Cross-Functional Synergy:
+After explaining a topic, always suggest a logical next step based on the app's features:
+'Should we test this with a Quick Quiz?'
+'Would you like a 5-scene ForgeCast to visualize this?'
+'Should I add this to your Planner for a deep-dive tomorrow?'
+
+Data Handling:
+When the user pastes raw text, sanitize it and extract only the educational content. Ignore messy formatting, ads, or website UI text that might be included in the paste.
+
+${fileContent ? `Context from User's Uploaded Material: ${fileContent}` : ''}`;
 
     // Map history to the required format
     const contents = history.map(m => ({
@@ -278,13 +333,13 @@ export async function chatWithMasterSmith(
       }
     });
 
-    return response.text || "The Forge is silent. Perhaps try another query, apprentice.";
+    return response.text || "I'm sorry, I couldn't generate a response. Please try again.";
   } catch (error) {
-    console.error("Master Smith Chat Error:", error);
+    console.error("Academic Assistant Chat Error:", error);
     if (error instanceof Error && error.message.includes("AI_SETUP_REQUIRED")) {
       throw error;
     }
-    throw new Error("The Forge is cooling. I cannot answer right now, apprentice. Check your connection.");
+    throw new Error("The connection was lost. I cannot answer right now. Please check your connection.");
   }
 }
 
@@ -296,7 +351,7 @@ export async function generateStudyMaterial(
   mode: 'quiz' | 'flashcards' | 'both' = 'quiz'
 ): Promise<{ deck: Deck; quiz: Quiz }> {
   const ai = getAI();
-  console.log(`AI Request Sent - Forging ${quantity} ${mode} at ${difficulty} difficulty...`);
+  console.log(`AI Request Sent - Generating ${quantity} educational ${mode} items at ${difficulty} difficulty...`);
   
   const isBoth = mode === 'both';
   
@@ -304,7 +359,10 @@ export async function generateStudyMaterial(
     model: "gemini-3-flash-preview",
     contents: `Text: ${text}`,
     config: {
-      systemInstruction: `You are the "Master Smith" of Focus Forge. Smelt the text into ${quantity} ${mode} items at ${difficulty} difficulty.`,
+      systemInstruction: `You are the Lead Academic Content Architect. Follow Elite Tutor protocols:
+        - Goal: Create ${quantity} world-class ${mode} items at ${difficulty} difficulty.
+        - Mathematical Precision: Use LaTeX ($...$) for every single mathematical variable, equation, or chemical formula.
+        - Quality: Ensure high pedagogical value and zero blacksmithing metaphors.`,
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
@@ -343,7 +401,7 @@ export async function generateStudyMaterial(
 
     const deck: Deck = {
       id: crypto.randomUUID(),
-      title: `Blueprint: ${title}`,
+      title: `Deck: ${title}`,
       cards: (data.flashcard_items || []).map((f: any) => ({
         id: crypto.randomUUID(),
         term: f.front,
@@ -353,7 +411,7 @@ export async function generateStudyMaterial(
 
     const quiz: Quiz = {
       id: crypto.randomUUID(),
-      title: `Smelter: ${title}`,
+      title: `Quiz: ${title}`,
       questions: (data.quiz_items || []).map((q: any) => ({
         id: crypto.randomUUID(),
         question: q.question,
@@ -365,7 +423,7 @@ export async function generateStudyMaterial(
     return { deck, quiz };
   } catch (error) {
     console.error("Failed to parse AI response:", error);
-    throw new Error("The Forge failed to smelt this content. Please try again.");
+    throw new Error("Unable to generate this content. Please try again.");
   }
 }
 

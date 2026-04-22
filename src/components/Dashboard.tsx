@@ -59,7 +59,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onNavigate, onSelec
           <div>
             <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">Current Streak</p>
             <h3 className="text-2xl font-extrabold font-display uppercase italic tracking-tighter text-white">{stats.streak} Days</h3>
-            <p className="text-[10px] text-stone-600 mt-1 font-bold uppercase tracking-widest">The Forge is Hot</p>
+            <p className="text-[10px] text-stone-600 mt-1 font-bold uppercase tracking-widest">Keep Learning</p>
           </div>
         </motion.div>
 
@@ -75,7 +75,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onNavigate, onSelec
           <div>
             <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">Tasks Today</p>
             <h3 className="text-2xl font-extrabold font-display uppercase italic tracking-tighter text-white">{todayTasks.length} Pending</h3>
-            <p className="text-[10px] text-stone-600 mt-1 font-bold uppercase tracking-widest">Ready to Smelt</p>
+            <p className="text-[10px] text-stone-600 mt-1 font-bold uppercase tracking-widest">Focusing on Goals</p>
           </div>
         </motion.div>
       </div>
@@ -83,7 +83,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onNavigate, onSelec
       {/* Quick Actions */}
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-display font-black uppercase italic tracking-tighter text-white">The Forge Tools</h2>
+          <h2 className="text-xl font-display font-black uppercase italic tracking-tighter text-white">Study Tools</h2>
           <button 
             onClick={() => {
               onOpenForge();
@@ -92,7 +92,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onNavigate, onSelec
             className="flex items-center gap-2 px-6 py-3 bg-forge-accent text-forge-dark rounded-xl hover:scale-105 transition-all font-display font-extrabold uppercase italic tracking-tighter shadow-[0_0_20px_rgba(251,146,60,0.3)]"
           >
             <Sparkles size={16} />
-            Enter The Forge
+            Lesson Generator
           </button>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-6">
@@ -122,7 +122,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onNavigate, onSelec
           />
           <QuickActionButton 
             icon={<Video size={24} />} 
-            label="ForgeCasts" 
+            label="Lessons" 
             color="bg-white/5 border border-white/10 hover:bg-white/10" 
             onClick={() => onNavigate('forge-library')}
           />
@@ -131,15 +131,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onNavigate, onSelec
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-          {/* Active ForgeCasts Section */}
+          {/* Active Lessons Section */}
           <section className="glass-card rounded-[2.5rem] p-8 sm:p-12 border border-white/5">
             <div className="flex items-center justify-between mb-10">
-              <h2 className="text-3xl font-display font-black uppercase italic tracking-tighter text-white">Active ForgeCasts</h2>
+              <h2 className="text-3xl font-display font-black uppercase italic tracking-tighter text-white">Curriculum Lessons</h2>
               <button 
                 onClick={() => onNavigate('forge-library')}
                 className="text-forge-accent text-xs font-bold uppercase tracking-widest hover:underline"
               >
-                View Vault
+                View Library
               </button>
             </div>
             {forgeCasts.length > 0 ? (
@@ -170,7 +170,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onNavigate, onSelec
                             <Play size={14} fill="currentColor" />
                           </div>
                           <span className="text-[10px] font-black uppercase tracking-widest text-forge-accent">
-                            {fc.metadata.estimated_duration}s Cinematic
+                            {fc.metadata.estimated_duration}s Studio
                           </span>
                         </div>
                         <h3 className="text-xl font-display font-black uppercase italic tracking-tighter text-white group-hover:text-forge-accent transition-colors">
@@ -182,7 +182,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onNavigate, onSelec
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (window.confirm('Are you sure you want to delete this ForgeCast?')) {
+                        if (window.confirm('Are you sure you want to delete this Lesson?')) {
                           onDeleteForgeCast(fc.id);
                         }
                       }}
@@ -196,7 +196,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onNavigate, onSelec
             ) : (
               <div className="text-center py-16 border-2 border-dashed border-white/5 rounded-[2rem]">
                 <Video size={48} className="mx-auto text-stone-700 mb-4" />
-                <p className="text-stone-500 font-bold uppercase tracking-widest text-xs">No ForgeCasts generated yet</p>
+                <p className="text-stone-500 font-bold uppercase tracking-widest text-xs">No lessons generated yet</p>
               </div>
             )}
           </section>
@@ -204,7 +204,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onNavigate, onSelec
           {/* Today's Tasks Preview */}
           <div className="glass-card rounded-[2.5rem] overflow-hidden">
             <div className="p-8 border-b border-white/5 flex items-center justify-between">
-              <h3 className="font-extrabold font-display uppercase italic tracking-tighter text-white text-xl">Today's Blueprints</h3>
+              <h3 className="font-extrabold font-display uppercase italic tracking-tighter text-white text-xl">Today's Schedule</h3>
               <button 
                 onClick={() => onNavigate('planner')}
                 className="text-xs font-bold uppercase tracking-widest text-stone-500 hover:text-forge-accent transition-colors"
@@ -219,8 +219,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onNavigate, onSelec
                     <div key={task.id} className="flex items-center gap-5 group">
                       <div className={cn(
                         "w-3 h-3 rounded-full shadow-lg",
-                        task.priority === 'High' ? "bg-red-500 shadow-red-500/20" :
-                        task.priority === 'Medium' ? "bg-amber-500 shadow-amber-500/20" : "bg-blue-500 shadow-blue-500/20"
+                        task.priority === 'Urgent' ? "bg-[#DC143C] shadow-[#DC143C]/20" :
+                        task.priority === 'High' ? "bg-[#F97316] shadow-[#F97316]/20" :
+                        task.priority === 'Medium' ? "bg-[#ADFF2F] shadow-[#ADFF2F]/20" : 
+                        "bg-[#90EE90] shadow-[#90EE90]/20"
                       )} />
                       <span className="text-stone-300 font-bold group-hover:text-white transition-colors">{task.title}</span>
                       <span className="ml-auto text-[10px] font-bold text-stone-600 uppercase tracking-widest">{new Date(task.deadline).toLocaleDateString()}</span>
@@ -228,7 +230,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onNavigate, onSelec
                   ))}
                   {todayTasks.length > 3 && (
                     <p className="text-[10px] font-bold text-stone-600 text-center pt-4 uppercase tracking-widest">
-                      + {todayTasks.length - 3} more blueprints
+                      + {todayTasks.length - 3} more tasks
                     </p>
                   )}
                 </div>
@@ -237,8 +239,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onNavigate, onSelec
                   <div className="inline-flex p-4 bg-emerald-500/10 text-emerald-400 rounded-full mb-6 forge-glow">
                     <CheckCircle2 size={32} />
                   </div>
-                  <p className="text-stone-400 font-bold uppercase tracking-tighter text-lg">All Blueprints Completed</p>
-                  <p className="text-stone-600 text-xs mt-1 uppercase tracking-widest font-bold">The Forge is clear for today</p>
+                  <p className="text-stone-400 font-bold uppercase tracking-tighter text-lg">Daily Goals Achieved</p>
+                  <p className="text-stone-600 text-xs mt-1 uppercase tracking-widest font-bold">Your schedule is clear for today</p>
                 </div>
               )}
             </div>

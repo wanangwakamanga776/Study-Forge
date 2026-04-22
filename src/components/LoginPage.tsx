@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Hammer, Flame, Shield, User, Loader2, Mail, Lock, Sparkles, ChevronRight, AlertCircle, RefreshCw } from 'lucide-react';
+import { GraduationCap, Flame, Shield, User, Loader2, Mail, Lock, Sparkles, ChevronRight, AlertCircle, RefreshCw } from 'lucide-react';
 import { signInWithGoogle, loginWithEmail, signUpWithEmail, resetPassword } from '../services/authService';
 import { saveUserStats } from '../services/dataService';
 import { soundService } from '../services/soundService';
@@ -10,10 +10,10 @@ interface LoginPageProps {
   onGuestAccess: () => void;
 }
 
-type ForgeMode = 'login' | 'register';
+type AuthMode = 'login' | 'register';
 
 export function LoginPage({ onGuestAccess }: LoginPageProps) {
-  const [forgeMode, setForgeMode] = useState<ForgeMode>('login');
+  const [authMode, setAuthMode] = useState<AuthMode>('login');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [email, setEmail] = useState('');
@@ -41,7 +41,7 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
 
   const handleGoogleSignIn = async () => {
     if (isAuthenticating) return;
-    soundService.playAnvilClink();
+    soundService.playActionImpact();
     setIsAuthenticating(true);
     setErrorMsg(null);
     setSuccessMsg(null);
@@ -54,11 +54,11 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
           xp: 0,
           level: 1,
           embers: 100,
-          name: user.displayName || 'Apprentice'
+          name: user.displayName || 'Academic Hero'
         });
       }
     } catch (error: any) {
-      setErrorMsg(error.message || "The Forge failed to light. Check your connection.");
+      setErrorMsg(error.message || "Unable to connect. Please check your connection.");
       setIsAuthenticating(false);
     }
   };
@@ -66,13 +66,13 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isAuthenticating) return;
-    soundService.playAnvilClink();
+    soundService.playActionImpact();
     setIsAuthenticating(true);
     setErrorMsg(null);
     setSuccessMsg(null);
 
     try {
-      if (forgeMode === 'login') {
+      if (authMode === 'login') {
         await loginWithEmail(email, password);
       } else {
         const user = await signUpWithEmail(email, password);
@@ -82,27 +82,27 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
             xp: 0,
             level: 1,
             embers: 100,
-            name: 'Apprentice'
+            name: 'Academic Hero'
           });
-          setSuccessMsg("Apprenticeship scribed! The Forge awaits.");
+          setSuccessMsg("Account created! Welcome to Study Forge.");
         }
       }
     } catch (error: any) {
-      // Default thematic message based on mode
-      let msg = forgeMode === 'login' 
-        ? "The Forge does not recognize these credentials. Verify your scrolls." 
-        : "The Forge was unable to scribe your new apprenticeship. Check your scrolls.";
+      // Default academic message based on mode
+      let msg = authMode === 'login' 
+        ? "Unable to recognize these credentials. Please check your inputs." 
+        : "We were unable to create your account. Please try again.";
 
       if (error.code === 'auth/operation-not-allowed') {
-        msg = "The Master Smith has not enabled Email/Password sign-ins in the Firebase Console.";
-      } else if (forgeMode === 'login' && (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password')) {
-        msg = "The Forge does not recognize these credentials. Verify your scrolls.";
+        msg = "Email/Password sign-ins are currently disabled.";
+      } else if (authMode === 'login' && (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password')) {
+        msg = "Unable to recognize these credentials. Please check your inputs.";
       } else if (error.code === 'auth/email-already-in-use') {
-        msg = "An apprentice already uses this email. Return to the Login Gate.";
+        msg = "An account already exists with this email.";
       } else if (error.code === 'auth/weak-password') {
-        msg = "The metal is too weak (Password must be 6+ characters).";
+        msg = "The password is too weak (must be 6+ characters).";
       } else if (error.code === 'auth/invalid-email') {
-        msg = "That email scroll is not formatted correctly.";
+        msg = "That email address is not formatted correctly.";
       }
       
       setErrorMsg(msg);
@@ -165,7 +165,7 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
           Study Forge
         </h1>
         <p className="text-forge-accent/60 font-black uppercase tracking-[0.4em] text-[8px] mt-3">
-          Master the Heat • Forge Your Future
+          Deep Learning • Academic Excellence
         </p>
       </motion.div>
 
@@ -214,23 +214,23 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
             >
               <div className="text-center space-y-1 mb-6">
                 <h2 className="text-2xl font-display font-black uppercase italic tracking-tighter text-white">
-                  {forgeMode === 'login' ? 'Returning Forger' : 'New Apprentice'}
+                  {authMode === 'login' ? 'Returning Student' : 'New Scholar'}
                 </h2>
                 <div className="flex items-center justify-center gap-2 mt-2">
                   <span className="text-[9px] font-bold text-stone-600 uppercase tracking-widest">
-                    {forgeMode === 'login' ? "New to the Forge?" : "Already an apprentice?"}
+                    {authMode === 'login' ? "New to Study Forge?" : "Already have an account?"}
                   </span>
                   <button 
                     type="button"
                     onClick={() => { 
-                      setForgeMode(prev => prev === 'login' ? 'register' : 'login'); 
+                      setAuthMode(prev => prev === 'login' ? 'register' : 'login'); 
                       soundService.playClick(); 
                       setErrorMsg(null);
                       setSuccessMsg(null);
                     }}
                     className="text-[9px] font-black uppercase tracking-widest text-forge-accent hover:underline"
                   >
-                    {forgeMode === 'login' ? 'Register' : 'Login'}
+                    {authMode === 'login' ? 'Create Account' : 'Login'}
                   </button>
                 </div>
               </div>
@@ -240,7 +240,7 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-600 group-focus-within/input:text-forge-accent transition-colors" size={18} />
                   <input
                     type="email"
-                    placeholder="Master Email"
+                    placeholder="Email Address"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -251,7 +251,7 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-600 group-focus-within/input:text-forge-accent transition-colors" size={18} />
                   <input
                     type="password"
-                    placeholder="Secure Parchment"
+                    placeholder="Access Token"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -260,14 +260,14 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
                 </div>
               </div>
 
-              {forgeMode === 'login' && (
+              {authMode === 'login' && (
                 <div className="flex justify-between items-center px-1">
                   <button
                     type="button"
                     onClick={handleResetPassword}
                     className="text-[9px] font-black uppercase text-stone-500 hover:text-stone-300 transition-colors tracking-widest"
                   >
-                    Lost your key?
+                    Forgot password?
                   </button>
                 </div>
               )}
@@ -281,8 +281,8 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
                   <Loader2 className="animate-spin" size={24} />
                 ) : (
                   <>
-                    <span className="text-xl">Ignite</span>
-                    <Flame size={20} />
+                    <span className="text-xl">Begin Mastery</span>
+                    <ChevronRight size={20} />
                   </>
                 )}
               </button>
@@ -315,7 +315,7 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
 
           {/* Corner Branding */}
           <div className="absolute bottom-0 right-0 p-8 opacity-[0.03] pointer-events-none">
-            <Hammer size={120} className="-rotate-12" />
+            <GraduationCap size={120} className="-rotate-12" />
           </div>
         </div>
       </motion.div>
@@ -329,7 +329,7 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
       >
         <Shield size={12} className="text-forge-accent/50" />
         <span className="text-[10px] font-bold text-stone-600 uppercase tracking-widest">
-          End-to-End Encryption • Forge Verified
+          End-to-End Encryption • Academy Verified
         </span>
       </motion.div>
     </div>

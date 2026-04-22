@@ -6,19 +6,34 @@ import { soundService } from '../services/soundService';
 
 const STEPS = [
   {
-    title: "1. Upload Blueprint",
-    content: "Begin your ascent by uploading your raw materials. PDF, Word, or text files—the Forge accepts all knowledge foundations.",
+    title: "1. Upload Curriculum",
+    content: "Upload PDFs, documents, or paste notes into our system. Our Academic AI parses your materials to identify key concepts, complex formulas, and core themes.",
     icon: <Upload className="text-forge-accent" size={48} />,
   },
   {
-    title: "2. Smelt Content",
-    content: "Enter the Forge to activate the AI. Choose your difficulty and quantity, then watch as the Master Smith smelts your notes into study tools.",
+    title: "2. Create Study Lessons",
+    content: "Generate cinematic 'StudyCasts'—interactive educational videos that break down complex topics into 5 logical scenes with detailed visuals and clear explanations.",
     icon: <Sparkles className="text-forge-accent" size={48} />,
   },
   {
-    title: "3. Play & Master",
-    content: "The true work begins. Take the Quizzes or play the Match games to harden your knowledge and earn Embers for your ascent.",
+    title: "3. Dynamic Planner",
+    content: "Organize your academic life with our Todoist-style planner. Use P1-P4 priority flags and professional sections to keep your schedule fully synchronized.",
     icon: <Zap className="text-forge-accent" size={48} />,
+  },
+  {
+    title: "4. Active Recall Tools",
+    content: "Automatically generate Flashcards and Quizzes from your notes. Practice 'Velocity Match' mode to build speed and reinforce your long-term memory.",
+    icon: <Layers className="text-forge-accent" size={48} />,
+  },
+  {
+    title: "5. Focus Sessions",
+    content: "Enter 'Focus Mode' (Timer) to eliminate distractions. Every productive session earns you XP and Embers to level up your Academic Profile.",
+    icon: <Flame className="text-forge-accent" size={48} />,
+  },
+  {
+    title: "6. Academy Elite",
+    content: "Track your growth against students globally in the Archives. Reach the top of the Hall of Fame by maintaining study streaks and mastering more subjects.",
+    icon: <Trophy className="text-forge-accent" size={48} />,
   }
 ];
 
@@ -107,7 +122,7 @@ export function ForgeTutorial({ onClose }: { onClose: () => void }) {
                   onClick={next}
                   className="px-6 py-3 bg-forge-accent text-forge-dark rounded-xl font-black uppercase tracking-widest flex items-center gap-2 hover:scale-105 transition-transform forge-glow"
                 >
-                  {currentStep === STEPS.length - 1 ? 'Start Smelting' : 'Next'}
+                  {currentStep === STEPS.length - 1 ? 'Get Started' : 'Next'}
                   <ChevronRight size={18} />
                 </button>
             </div>

@@ -57,7 +57,7 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
             ...prev,
             stats: { ...prev.stats, ...cloudStats }
           }));
-          triggerReward(0, 0, "Forge Initialized");
+          triggerReward(0, 0, "Session Initialized");
         } else {
           // Initialize New User
           const initialStats: UserStats = {
@@ -65,7 +65,7 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
             level: 1,
             streak: 0,
             embers: 100,
-            name: user.displayName || 'Apprentice',
+            name: user.displayName || 'Student',
             avatarUrl: user.photoURL,
             lastActiveDate: new Date().toISOString().split('T')[0],
             currentTheme: 'Default Ember',
@@ -83,7 +83,7 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
             ...prev,
             stats: initialStats
           }));
-          triggerReward(0, 0, "New Hearth Lit");
+          triggerReward(0, 0, "New Profile Created");
         }
         isInitialLoad.current = false;
       });
@@ -148,7 +148,7 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
       }
 
       // Trigger standard reward toast
-      triggerReward(amount, Math.round(amount/5), "Forge Activity Complete!");
+      triggerReward(amount, Math.round(amount/5), "Session Complete!");
 
       return {
         ...prev,
@@ -251,12 +251,12 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
                 <Trophy size={48} className="text-forge-accent" />
               </div>
               <h2 className="text-4xl font-display font-black uppercase italic tracking-tighter text-white mb-2">Level Up!</h2>
-              <p className="text-stone-500 font-bold uppercase tracking-widest text-xs mb-8">You have reached Rank {leveledTo}</p>
+              <p className="text-stone-500 font-bold uppercase tracking-widest text-xs mb-8">You have reached Level {leveledTo}</p>
               
               <div className="flex justify-center gap-4 mb-8">
                 <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-xl border border-white/5">
                     <Star size={16} className="text-forge-accent fill-current" />
-                    <span className="text-sm font-black text-white">New Blueprint Slots</span>
+                    <span className="text-sm font-black text-white">New Features Unlocked</span>
                 </div>
               </div>
 
@@ -264,7 +264,7 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
                 onClick={() => setShowLevelUp(false)}
                 className="w-full py-4 bg-forge-accent text-forge-dark rounded-xl font-display font-black uppercase italic tracking-tighter hover:scale-105 transition-transform forge-glow"
               >
-                Continue Ascent
+                Continue Learning
               </button>
             </motion.div>
           </div>

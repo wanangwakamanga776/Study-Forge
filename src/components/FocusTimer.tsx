@@ -63,7 +63,7 @@ export const FocusTimer: React.FC = () => {
             if (hiddenDuration > CHEAT_WARNING_THRESHOLD) {
               setIsCheatWarning(true);
               setIsActive(false); // Pauses the timer
-              soundService.playSmelt(); // Warning sound
+              soundService.playProcess(); // Warning sound
             }
           }, 1000);
         }
@@ -100,8 +100,8 @@ export const FocusTimer: React.FC = () => {
   return (
     <div className="max-w-xl mx-auto space-y-8">
       <div className="text-center">
-        <h2 className="text-4xl font-display font-black uppercase italic tracking-tighter text-white mb-2">Focus Forge</h2>
-        <p className="text-stone-500 text-[10px] font-bold uppercase tracking-widest">Master your time, Smelt your distractions</p>
+        <h2 className="text-4xl font-display font-black uppercase italic tracking-tighter text-white mb-2">Focus Mode</h2>
+        <p className="text-stone-500 text-[10px] font-bold uppercase tracking-widest">Master your time, focus your mind</p>
       </div>
 
       <div className="relative aspect-square glass-card rounded-full p-12 flex flex-col items-center justify-center border border-white/5 overflow-hidden group shadow-[0_0_100px_rgba(251,146,60,0.05)]">
@@ -141,15 +141,15 @@ export const FocusTimer: React.FC = () => {
             {isActive ? (
               <>
                 <Zap size={12} className="text-forge-accent animate-pulse" />
-                Forge is Hot
+                Session Active
               </>
             ) : timeLeft < WORK_TIME ? (
               <>
                 <ShieldCheck size={12} />
-                Forge Idle
+                Session Paused
               </>
             ) : (
-              'Ready for Smelting'
+              'Ready for Study'
             )}
           </div>
         </div>
@@ -173,15 +173,15 @@ export const FocusTimer: React.FC = () => {
             <div className="w-20 h-20 bg-forge-accent/20 text-forge-accent rounded-full flex items-center justify-center mb-6 forge-glow">
               <AlertTriangle size={40} />
             </div>
-            <h3 className="text-2xl font-display font-black uppercase italic tracking-tighter text-white mb-2">The Forge Cools Down</h3>
+            <h3 className="text-2xl font-display font-black uppercase italic tracking-tighter text-white mb-2">Focus Interrupted</h3>
             <p className="text-stone-300 text-sm mb-8 leading-relaxed">
-              "Master Smith says: Focus requires presence! Your attention drifted, and the fires have dimmed."
+              "Academic Assistant says: Focus requires presence! Your attention drifted, and the timer has reset."
             </p>
             <button
               onClick={toggleTimer}
               className="px-8 py-3 bg-forge-accent text-forge-dark rounded-xl font-display font-black uppercase italic tracking-tighter hover:scale-105 transition-transform"
             >
-              Re-Light the Forge
+              Resume Focus
             </button>
           </motion.div>
         )}
@@ -191,7 +191,7 @@ export const FocusTimer: React.FC = () => {
         <button
           onClick={resetTimer}
           className="p-5 bg-white/5 text-stone-500 rounded-3xl hover:text-white transition-colors border border-white/5"
-          title="Reset Forge"
+          title="Reset Timer"
         >
           <RotateCcw size={28} />
         </button>
@@ -222,8 +222,8 @@ export const FocusTimer: React.FC = () => {
           <ShieldCheck size={24} />
         </div>
         <div className="flex-1">
-          <h4 className="text-sm font-black text-white uppercase tracking-widest mb-1">Purity Protocol</h4>
-          <p className="text-xs text-stone-500 leading-relaxed font-medium">Keep this tab active. The Smith detects absences. Stray for more than 10s, and the forge cools.</p>
+          <h4 className="text-sm font-black text-white uppercase tracking-widest mb-1">Focus Protocol</h4>
+          <p className="text-xs text-stone-500 leading-relaxed font-medium">Keep this tab active. The Assistant monitors presence. Stray for more than 10s, and the session pauses.</p>
         </div>
       </div>
     </div>

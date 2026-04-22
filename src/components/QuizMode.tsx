@@ -77,7 +77,7 @@ export const QuizMode: React.FC<QuizModeProps> = ({ quizzes, onUpdate, onComplet
       setShowResults(true);
       const finalScore = Math.round((score / activeQuiz!.questions.length) * 100);
       const { xpGain, embersGain } = awardStudySession(finalScore, 100, 10);
-      triggerReward(xpGain, embersGain, "Smelter Session Complete!");
+      triggerReward(xpGain, embersGain, "Evaluation Complete!");
       onComplete(xpGain);
     }
   };
@@ -105,8 +105,8 @@ export const QuizMode: React.FC<QuizModeProps> = ({ quizzes, onUpdate, onComplet
           <div className="w-20 h-20 bg-forge-accent/10 text-forge-accent rounded-3xl flex items-center justify-center mx-auto mb-6 rotate-3">
             <Trophy size={40} />
           </div>
-          <h2 className="text-3xl font-display font-black text-white uppercase italic tracking-tighter mb-2">Smelter Yield</h2>
-          <p className="text-stone-500 font-bold uppercase tracking-widest text-[10px] mb-8">Purity Grade: {percentage}%</p>
+          <h2 className="text-3xl font-display font-black text-white uppercase italic tracking-tighter mb-2">Study Results</h2>
+          <p className="text-stone-500 font-bold uppercase tracking-widest text-[10px] mb-8">Score Achieved: {percentage}%</p>
           
           <div className="grid grid-cols-2 gap-4 mb-8">
             <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
@@ -117,7 +117,7 @@ export const QuizMode: React.FC<QuizModeProps> = ({ quizzes, onUpdate, onComplet
                 </div>
             </div>
             <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                <p className="text-[10px] font-black text-stone-600 uppercase tracking-widest mb-1">Embers Found</p>
+                <p className="text-[10px] font-black text-stone-600 uppercase tracking-widest mb-1">Embers Earned</p>
                 <div className="flex items-center justify-center gap-1">
                     <Flame size={14} className="text-orange-500 fill-current" />
                     <p className="text-2xl font-black text-white">+{Math.round(10 * (1 + percentage / 100))}</p>
@@ -129,7 +129,7 @@ export const QuizMode: React.FC<QuizModeProps> = ({ quizzes, onUpdate, onComplet
             onClick={resetQuiz}
             className="w-full py-4 forge-gradient text-forge-dark rounded-xl font-display font-black uppercase italic tracking-tighter hover:scale-105 transition-transform"
           >
-            Return to Anvil
+            Return to Dashboard
           </button>
         </motion.div>
       );
@@ -209,7 +209,7 @@ export const QuizMode: React.FC<QuizModeProps> = ({ quizzes, onUpdate, onComplet
   return (
     <div className="max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-10">
-        <h2 className="text-3xl font-extrabold font-display uppercase italic tracking-tighter text-white">Knowledge Smelters</h2>
+        <h2 className="text-3xl font-extrabold font-display uppercase italic tracking-tighter text-white">Knowledge Lab</h2>
         <button
           onClick={() => {
             setIsCreating(true);

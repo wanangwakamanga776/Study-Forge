@@ -11,7 +11,7 @@ export const INITIAL_STATE: AppState = {
     streak: 0,
     embers: 0,
     lastActiveDate: null,
-    plan: 'Free',
+    plan: 'Premium',
     currentTheme: 'Default Ember',
     unlockedThemes: ['Default Ember'],
     aiUsage: {

@@ -7,7 +7,7 @@ import { cn } from '../lib/utils';
 import { soundService } from '../services/soundService';
 
 export const Leaderboard: React.FC = () => {
-  const [topForgers, setTopForgers] = useState<UserStats[]>([]);
+  const [topStudents, setTopStudents] = useState<UserStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -17,7 +17,7 @@ export const Leaderboard: React.FC = () => {
     
     try {
       const data = await getTopForgers(10);
-      setTopForgers(data);
+      setTopStudents(data);
     } catch (error) {
       console.error("Failed to fetch leaderboard", error);
     } finally {
@@ -52,8 +52,8 @@ export const Leaderboard: React.FC = () => {
     <div className="space-y-8">
       <div className="flex items-center justify-between px-4">
         <div>
-          <h2 className="text-3xl font-display font-black uppercase italic tracking-tighter text-white">The Elite List</h2>
-          <p className="text-stone-500 text-[10px] font-bold uppercase tracking-widest">Master Forgers of the Realm</p>
+          <h2 className="text-3xl font-display font-black uppercase italic tracking-tighter text-white">The Academy Elite</h2>
+          <p className="text-stone-500 text-[10px] font-bold uppercase tracking-widest">Top Ranking Students</p>
         </div>
         <button 
           onClick={() => {
@@ -69,10 +69,10 @@ export const Leaderboard: React.FC = () => {
 
       <div className="grid gap-4">
         <AnimatePresence mode="popLayout">
-          {topForgers.map((forger, index) => (
+          {topStudents.map((student, index) => (
             <motion.div
               layout
-              key={forger.name + index}
+              key={student.name + index}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.05 }}
@@ -94,9 +94,9 @@ export const Leaderboard: React.FC = () => {
                   "w-12 h-12 rounded-2xl overflow-hidden border p-0.5",
                   index === 0 ? "border-yellow-400/50" : "border-white/10"
                 )}>
-                  {forger.avatarUrl ? (
+                  {student.avatarUrl ? (
                     <img 
-                      src={forger.avatarUrl} 
+                      src={student.avatarUrl} 
                       alt="" 
                       className="w-full h-full rounded-xl object-cover"
                       referrerPolicy="no-referrer"
@@ -117,17 +117,17 @@ export const Leaderboard: React.FC = () => {
               {/* Info */}
               <div className="flex-1 min-w-0">
                 <h3 className="font-display font-black uppercase italic tracking-tighter text-white truncate group-hover:text-forge-accent transition-colors">
-                  {forger.name || 'Unknown Forger'}
+                  {student.name || 'Unknown Student'}
                 </h3>
                 <div className="flex items-center gap-3">
                   <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">
-                    Rank {forger.level}
+                    Level {student.level}
                   </span>
                   <div className="w-1 h-1 bg-white/10 rounded-full" />
                   <div className="flex items-center gap-1">
                     <Flame size={10} className="text-forge-accent" />
                     <span className="text-[10px] font-bold text-forge-accent uppercase tracking-widest">
-                      {forger.embers} Embers
+                      {student.embers} Embers
                     </span>
                   </div>
                 </div>
@@ -136,7 +136,7 @@ export const Leaderboard: React.FC = () => {
               {/* XP Display */}
               <div className="text-right shrink-0">
                 <p className="text-lg font-display font-black italic tracking-tighter text-white leading-none">
-                  {forger.xp.toLocaleString()}
+                  {student.xp.toLocaleString()}
                 </p>
                 <p className="text-[8px] font-black uppercase tracking-[0.2em] text-stone-600">Total XP</p>
               </div>
@@ -154,11 +154,11 @@ export const Leaderboard: React.FC = () => {
           ))}
         </AnimatePresence>
 
-        {topForgers.length === 0 && (
+        {topStudents.length === 0 && (
           <div className="py-20 text-center glass-card rounded-[2.5rem] border border-white/5">
             <Trophy size={64} className="mx-auto text-stone-700 mb-6" />
-            <h3 className="text-2xl font-display font-black uppercase italic tracking-tighter text-white mb-4">Archives are Silent</h3>
-            <p className="text-stone-500 font-bold uppercase tracking-widest text-xs">Be the first to leave your mark in the history of the Forge.</p>
+            <h3 className="text-2xl font-display font-black uppercase italic tracking-tighter text-white mb-4">No Records Found</h3>
+            <p className="text-stone-500 font-bold uppercase tracking-widest text-xs">Be the first to reach the top of the leaderboard.</p>
           </div>
         )}
       </div>

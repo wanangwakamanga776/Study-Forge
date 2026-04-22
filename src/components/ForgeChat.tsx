@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { MessageSquare, X, Send, Paperclip, Loader2, User, Hammer, FileText, Trash2 } from 'lucide-react';
-import { chatWithMasterSmith, isAIConfigured } from '../services/aiService';
+import { MessageSquare, X, Send, Paperclip, Loader2, User, BookOpen, FileText, Trash2, Zap } from 'lucide-react';
+import { chatWithAcademicAssistant, isAIConfigured } from '../services/aiService';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
 import { soundService } from '../services/soundService';
@@ -11,10 +11,16 @@ interface Message {
   content: string;
 }
 
-export function ForgeChat() {
+interface ForgeChatProps {
+  onNavigate?: (view: any) => void;
+  onOpenForge?: (topic?: string) => void;
+  onSaveData?: (type: 'flashcards' | 'quiz' | 'forgeCast', data: any) => void;
+}
+
+export function ForgeChat({ onNavigate, onOpenForge, onSaveData }: ForgeChatProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'model', content: "Greetings, apprentice. I am the Master Smith. What knowledge shall we smelt together today?" }
+    { role: 'model', content: "Academic Assistant active. I am here to help you master your curriculum. What topic should we explore today?" }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -32,7 +38,7 @@ export function ForgeChat() {
   const handleSend = async () => {
     if (!input.trim() && !fileContent) return;
     if (!isAIConfigured) {
-      alert("The Forge is cold. Please set your API Key in the settings to activate the Master Smith.");
+      alert("AI Configuration needed. Please set your API Key in the settings to activate the Academic Assistant.");
       return;
     }
 
@@ -50,10 +56,10 @@ export function ForgeChat() {
         parts: [{ text: m.content }]
       }));
 
-      const response = await chatWithMasterSmith(userMessage, history, fileContent || undefined);
+      const response = await chatWithAcademicAssistant(userMessage, history, fileContent || undefined);
       setMessages(prev => [...prev, { role: 'model', content: response }]);
     } catch (error) {
-       setMessages(prev => [...prev, { role: 'model', content: "Forgive me, apprentice. My internal fires wavered. " + (error as Error).message }]);
+       setMessages(prev => [...prev, { role: 'model', content: "I apologize, but I encountered an error processing your request. " + (error as Error).message }]);
     } finally {
       setIsLoading(false);
     }
@@ -113,24 +119,24 @@ export function ForgeChat() {
                 <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-forge-accent/10 rounded-xl flex items-center justify-center text-forge-accent shadow-[0_0_15px_rgba(251,146,60,0.2)]">
-                      <Hammer size={20} />
+                      <BookOpen size={20} />
                     </div>
                     <div>
-                      <h3 className="text-xl font-display font-black uppercase italic tracking-tighter text-white">Master Smith</h3>
+                      <h3 className="text-xl font-display font-black uppercase italic tracking-tighter text-white">Academic Assistant</h3>
                       <div className="flex items-center gap-1">
                           <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                          <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">Active at the Anvil</span>
+                          <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">Available for Lessons</span>
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <button 
                       onClick={() => {
-                        setMessages([{ role: 'model', content: "Memory smelted. The anvil is clean. What's next, apprentice?" }]);
+                        setMessages([{ role: 'model', content: "Session reset. How can I assist you with a new topic?" }]);
                         soundService.playClick();
                       }}
                       className="p-2 text-stone-500 hover:text-red-400 transition-colors"
-                      title="Clear Forge History"
+                      title="Reset Session"
                     >
                       <Trash2 size={20} />
                     </button>
@@ -159,7 +165,7 @@ export function ForgeChat() {
                       "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
                       message.role === 'user' ? "bg-white/5 text-white" : "bg-forge-accent text-forge-dark"
                     )}>
-                      {message.role === 'user' ? <User size={16} /> : <Hammer size={16} />}
+                      {message.role === 'user' ? <User size={16} /> : <BookOpen size={16} />}
                     </div>
                     <div className={cn(
                       "max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed",
@@ -168,19 +174,109 @@ export function ForgeChat() {
                         : "bg-white/[0.02] text-stone-300 border border-white/5 rounded-tl-none pr-8 relative"
                     )}>
                       <div className="prose prose-invert prose-sm">
-                        <ReactMarkdown>{message.content}</ReactMarkdown>
+                        <ReactMarkdown>{message.content.replace(/\[\[ACTION:.*?\]\]/g, '').replace(/\[\[DATA:.*?\]\]/g, '')}</ReactMarkdown>
                       </div>
+                      
+                      {/* Data & Action Triggers */}
+                      {message.role === 'model' && (
+                        <div className="mt-4 flex flex-col gap-4">
+                          {/* Data Payload Cards */}
+                          {message.content.match(/\[\[DATA:(.*?):(.*?)\]\]/g)?.map((dataRaw, idx) => {
+                            try {
+                                const match = dataRaw.match(/\[\[DATA:(.*?):(.*?)\]\]/);
+                                if (!match) return null;
+                                const [_, type, jsonStr] = match;
+                                const data = JSON.parse(jsonStr);
+                                
+                                return (
+                                  <motion.div 
+                                    key={`data-${idx}`}
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    className="p-4 bg-white/5 border border-forge-accent/20 rounded-2xl space-y-3"
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <div className="p-2 bg-forge-accent/20 text-forge-accent rounded-lg">
+                                        {type === 'FLASHCARDS' ? <Layers size={16} /> : <BrainCircuit size={16} />}
+                                      </div>
+                                      <div>
+                                        <p className="text-xs font-bold text-white uppercase tracking-tighter">{data.title || 'Untitled Forge'}</p>
+                                        <p className="text-[10px] text-stone-500 font-bold uppercase tracking-widest">
+                                          {type === 'FLASHCARDS' ? `${data.cards?.length || 0} Cards` : `${data.questions?.length || 0} Questions`}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <button
+                                      onClick={() => {
+                                        soundService.playSuccess();
+                                        if (type === 'FLASHCARDS') {
+                                          onSaveData?.('flashcards', {
+                                            id: crypto.randomUUID(),
+                                            ...data,
+                                            cards: (data.cards || []).map((c: any) => ({ ...c, id: crypto.randomUUID() })),
+                                            createdAt: Date.now()
+                                          });
+                                        } else if (type === 'QUIZ') {
+                                          onSaveData?.('quiz', {
+                                            id: crypto.randomUUID(),
+                                            ...data,
+                                            questions: (data.questions || []).map((q: any) => ({ ...q, id: crypto.randomUUID() })),
+                                            createdAt: Date.now()
+                                          });
+                                        }
+                                      }}
+                                      className="w-full py-2 bg-forge-accent text-forge-dark rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all"
+                                    >
+                                      Save to Library
+                                    </button>
+                                  </motion.div>
+                                );
+                            } catch (e) {
+                                return null;
+                            }
+                          })}
+
+                          {/* Quick Action Buttons */}
+                          {message.content.includes('[[ACTION:') && (
+                            <div className="pt-4 border-t border-white/5 flex flex-wrap gap-2">
+                                {message.content.match(/\[\[ACTION:(.*?):(.*?)\]\]/g)?.map((actionRaw, idx) => {
+                                const match = actionRaw.match(/\[\[ACTION:(.*?):(.*?)\]\]/);
+                                if (!match) return null;
+                                const [_, type, value] = match;
+
+                                return (
+                                    <button
+                                    key={`action-${idx}`}
+                                    onClick={() => {
+                                        soundService.playSuccess();
+                                        if (type === 'FLASHCARDS' || type === 'QUIZ') {
+                                        onOpenForge?.(value);
+                                        } else if (type === 'TIMER') {
+                                        onNavigate?.('timer');
+                                        }
+                                    }}
+                                    className="px-3 py-1.5 bg-white/5 text-stone-400 border border-white/5 rounded-lg text-[10px] font-black uppercase tracking-tighter hover:bg-forge-accent/20 hover:text-forge-accent hover:border-forge-accent/30 transition-all flex items-center gap-2"
+                                    >
+                                    <Zap size={12} strokeWidth={3} />
+                                    Open Lab: {value}
+                                    </button>
+                                );
+                                })}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 ))}
                 {isLoading && (
                   <div className="flex gap-3">
                     <div className="w-8 h-8 rounded-lg bg-forge-accent text-forge-dark flex items-center justify-center animate-pulse">
-                      <Hammer size={16} />
+                      <BookOpen size={16} />
                     </div>
                     <div className="bg-white/[0.02] border border-white/5 rounded-2xl rounded-tl-none px-4 py-3 flex items-center gap-2">
                       <Loader2 size={16} className="animate-spin text-forge-accent" />
-                      <span className="text-xs font-bold text-stone-500 uppercase tracking-widest">Smelting response...</span>
+                      <span className="text-xs font-bold text-stone-500 uppercase tracking-widest">Generating response...</span>
                     </div>
                   </div>
                 )}
@@ -230,7 +326,7 @@ export function ForgeChat() {
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                      placeholder="Ask the Master Smith..."
+                      placeholder="Ask the Assistant..."
                       className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder:text-stone-600 focus:outline-none focus:border-forge-accent/30 transition-colors"
                     />
                   </div>

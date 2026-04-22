@@ -12,18 +12,18 @@ import { saveUserStats } from './dataService';
  */
 export const uploadAvatar = async (file: File): Promise<string> => {
   const user = auth.currentUser;
-  if (!user) throw new Error("No apprentice logged in.");
+  if (!user) throw new Error("No user logged in.");
 
   // 1. Validate file type
   if (!['image/png', 'image/jpeg', 'image/jpg', 'image/webp'].includes(file.type)) {
-    throw new Error("Invalid material. Use PNG, JPG, or WEBP.");
+    throw new Error("Invalid file type. Use PNG, JPG, or WEBP.");
   }
 
   // 2. Prepare Storage Reference
   const storageRef = ref(storage, `avatars/${user.uid}/${Date.now()}_${file.name}`);
 
   try {
-    // 3. Upload to the Forge (Storage)
+    // 3. Upload to Storage
     const snapshot = await uploadBytes(storageRef, file);
     
     // 4. Get the URL
@@ -37,8 +37,8 @@ export const uploadAvatar = async (file: File): Promise<string> => {
 
     return photoURL;
   } catch (error) {
-    console.error("Avatar Smelting Error:", error);
-    throw new Error("The Forge failed to upload your avatar.");
+    console.error("Avatar Update Error:", error);
+    throw new Error("Failed to upload avatar.");
   }
 };
 
@@ -47,13 +47,13 @@ export const uploadAvatar = async (file: File): Promise<string> => {
  */
 export const updateDisplayName = async (name: string): Promise<void> => {
   const user = auth.currentUser;
-  if (!user) throw new Error("No apprentice logged in.");
+  if (!user) throw new Error("No user logged in.");
 
   try {
     await updateProfile(user, { displayName: name });
     await saveUserStats(user.uid, { name: name });
   } catch (error) {
-    console.error("Name Smelting Error:", error);
-    throw new Error("The Forge failed to update your name.");
+    console.error("Name Update Error:", error);
+    throw new Error("Failed to update name.");
   }
 };

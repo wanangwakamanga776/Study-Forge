@@ -15,12 +15,44 @@
         "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp of last update." }
       },
       "required": ["xp", "level", "streak", "embers"]
+    },
+    "Deck": {
+      "title": "Study Deck",
+      "description": "A collection of flashcards shared with the community or saved privately.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "category": { "type": "string", "enum": ["Educational", "Personal", "Work", "Other"] },
+        "isPublic": { "type": "boolean" },
+        "creatorId": { "type": "string" },
+        "creatorName": { "type": "string" },
+        "originalId": { "type": "string" },
+        "cards": { 
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "term": { "type": "string" },
+              "definition": { "type": "string" }
+            }
+          }
+        },
+        "createdAt": { "type": "number" }
+      }
     }
   },
   "firestore": {
     "/users/{userId}": {
       "schema": "UserStats",
       "description": "Stores individual user gamification stats."
+    },
+    "/decks/{deckId}": {
+      "schema": "Deck",
+      "description": "Public community curricula library."
+    },
+    "/users/{userId}/myDecks/{deckId}": {
+      "schema": "Deck",
+      "description": "Private copies of decks saved to user library."
     }
   }
 }

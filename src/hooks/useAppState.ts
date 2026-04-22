@@ -15,6 +15,7 @@ export function useAppState() {
           stats: {
             ...INITIAL_STATE.stats,
             ...(parsed.stats || {}),
+            plan: 'Premium', // Force premium access
             aiUsage: {
               ...INITIAL_STATE.stats.aiUsage,
               ...(parsed.stats?.aiUsage || {}),

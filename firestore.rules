@@ -16,7 +16,6 @@ service cloud.firestore {
     // Validation Blueprint for UserStats
     function isValidUserStats(data) {
       let requiredFields = ['xp', 'level', 'embers', 'streak'];
-      let optionalFields = ['lastActiveDate', 'currentTheme', 'unlockedThemes', 'updatedAt'];
       
       return data.keys().hasAll(requiredFields)
         && data.xp is number && data.xp >= 0
@@ -26,26 +25,53 @@ service cloud.firestore {
         && (!data.keys().hasAny(['updatedAt']) || data.updatedAt == request.time)
         && (!data.keys().hasAny(['unlockedThemes']) || (data.unlockedThemes is list && data.unlockedThemes.size() <= 20))
         && (!data.keys().hasAny(['currentTheme']) || (data.currentTheme is string && data.currentTheme.size() <= 50))
-        && (!data.keys().hasAny(['lastActiveDate']) || (data.lastActiveDate is string && data.lastActiveDate.size() <= 20));
+        && (!data.keys().hasAny(['lastActiveDate']) || (data.lastActiveDate is string && data.lastActiveDate.size() <= 20))
+        && (!data.keys().hasAny(['name']) || (data.name is string && data.name.size() <= 100))
+        && (!data.keys().hasAny(['avatarUrl']) || (data.avatarUrl is string && data.avatarUrl.size() <= 500));
+    }
+
+    function isValidDeck(data) {
+      return data.title is string && data.title.size() <= 100
+        && (!data.keys().hasAny(['category']) || data.category in ['Educational', 'Personal', 'Work', 'Other'])
+        && (!data.keys().hasAny(['isPublic']) || data.isPublic is bool)
+        && (!data.keys().hasAny(['cards']) || (data.cards is list && data.cards.size() <= 200))
+        && (!data.keys().hasAny(['creatorName']) || (data.creatorName is string && data.creatorName.size() <= 100));
+    }
+
+    match /test/connection {
+      allow read: if true;
     }
 
     match /users/{userId} {
-      allow get: if isOwner(userId) && isValidId(userId);
+      allow get: if isValidId(userId);
+      allow list: if true;
       
       allow create: if isOwner(userId) 
         && isValidId(userId)
         && isValidUserStats(incoming())
-        && incoming().keys().size() <= 10; // Prevent shadow fields
+        && incoming().keys().size() <= 15; // Increased to allow more session data
 
       allow update: if isOwner(userId)
         && isValidId(userId)
         && isValidUserStats(incoming())
         && incoming().updatedAt == request.time
         && incoming().diff(existing()).affectedKeys().hasOnly([
-           'xp', 'level', 'embers', 'streak', 'lastActiveDate', 'currentTheme', 'unlockedThemes', 'updatedAt'
+           'xp', 'level', 'embers', 'streak', 'lastActiveDate', 'currentTheme', 'unlockedThemes', 'updatedAt', 'name', 'avatarUrl', 'aiUsage', 'plan'
         ]);
 
-      allow delete: if false; // Progress should not be easily deleted
+      allow delete: if false;
+    }
+
+    match /decks/{deckId} {
+      allow get: if isValidId(deckId) && existing().isPublic == true;
+      allow list: if existing().isPublic == true;
+      allow create: if isSignedIn() && isValidId(deckId) && incoming().creatorId == request.auth.uid && isValidDeck(incoming());
+      allow update: if isSignedIn() && isOwner(existing().creatorId) && isValidDeck(incoming());
+      allow delete: if isSignedIn() && isOwner(existing().creatorId);
+    }
+
+    match /users/{userId}/myDecks/{deckId} {
+      allow read, write: if isOwner(userId) && isValidId(deckId) && isValidDeck(incoming() || existing());
     }
   }
 }

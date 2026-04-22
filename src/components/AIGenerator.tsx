@@ -1,9 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Upload, FileText, Sparkles, Loader2, CheckCircle2, AlertCircle, X, BrainCircuit, Layers, Video } from 'lucide-react';
-import { FREE_LIMITS } from '../constants';
+import { Upload, FileText, Sparkles, Loader2, CheckCircle2, AlertCircle, X, BrainCircuit, Layers, Video, Trash2 } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { Deck, Quiz, UserStats, ForgeCastBlueprint } from '../types';
+import { UserStats } from '../types';
 import { extractTextFromFile } from '../lib/extraction';
 import { generateStudyMaterial, generateForgeCast, isAIConfigured } from '../services/aiService';
 import { soundService } from '../services/soundService';
@@ -15,11 +14,22 @@ interface AIGeneratorProps {
   onNavigate?: (view: string) => void;
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
+  initialTopic?: string;
+  hideTrigger?: boolean;
 }
 
 type Difficulty = 'easy' | 'medium' | 'hard';
 
-export const AIGenerator: React.FC<AIGeneratorProps> = ({ stats, onGenerated, onOpenPremium, onNavigate, isOpen: controlledIsOpen, onOpenChange }) => {
+export const AIGenerator: React.FC<AIGeneratorProps> = ({ 
+  stats, 
+  onGenerated, 
+  onOpenPremium, 
+  onNavigate, 
+  isOpen: controlledIsOpen, 
+  onOpenChange,
+  initialTopic,
+  hideTrigger
+}) => {
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = controlledIsOpen ?? internalIsOpen;
   const setIsOpen = onOpenChange ?? setInternalIsOpen;
@@ -28,28 +38,28 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ stats, onGenerated, on
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [pastedText, setPastedText] = useState('');
   const [loadingMessage, setLoadingMessage] = useState('');
   const [isDragging, setIsDragging] = useState(false);
+  const [activeTab, setActiveTab] = useState<'upload' | 'paste'>('upload');
   
-  // Forge Controls
+  // Lesson Controls
   const [quantity, setQuantity] = useState(15);
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
   const [mode, setMode] = useState<'quiz' | 'flashcards' | 'both' | 'forgeCast'>('both');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Pre-fill topic if provided
+  React.useEffect(() => {
+    if (initialTopic && isOpen) {
+      setPastedText(initialTopic);
+      setActiveTab('paste');
+    }
+  }, [initialTopic, isOpen]);
+
   const isLimitReached = () => {
-    if (!stats || !stats.aiUsage) return false;
-    if (stats.plan === 'Premium') return false;
-    if (mode === 'both') {
-      return stats.aiUsage.flashcards >= FREE_LIMITS.flashcards || stats.aiUsage.quizzes >= FREE_LIMITS.quizzes;
-    }
-    if (mode === 'forgeCast') {
-      return stats.aiUsage.forgeCasts >= FREE_LIMITS.forgeCasts;
-    }
-    return mode === 'flashcards' 
-      ? stats.aiUsage.flashcards >= FREE_LIMITS.flashcards
-      : stats.aiUsage.quizzes >= FREE_LIMITS.quizzes;
+    return false;
   };
 
   const handleFileSelect = (file: File) => {
@@ -84,9 +94,9 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ stats, onGenerated, on
     if (file) handleFileSelect(file);
   };
 
-  const forgeStudyMaterial = async () => {
-    if (!selectedFile) {
-      setError('Please select a file first.');
+  const generateLessonMaterial = async () => {
+    if (!selectedFile && !pastedText.trim()) {
+      setError('Please upload a file or paste text first.');
       return;
     }
 
@@ -98,19 +108,19 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ stats, onGenerated, on
 
     setIsGenerating(true);
     setError(null);
-    setLoadingMessage('Smelting content...');
-    soundService.playSmelt();
+    setLoadingMessage('Analyzing content...');
+    soundService.playProcess();
 
     try {
-      const extractedText = await extractTextFromFile(selectedFile);
-      const title = selectedFile.name.split('.')[0];
+      const extractedText = selectedFile ? await extractTextFromFile(selectedFile) : pastedText;
+      const title = selectedFile ? selectedFile.name.split('.')[0] : (pastedText.substring(0, 20).trim() + '...');
 
       if (mode === 'forgeCast') {
-        setLoadingMessage('Architecting ForgeCast...');
+        setLoadingMessage('Designing lesson...');
         const blueprint = await generateForgeCast(extractedText, title);
         onGenerated('forgeCast', blueprint);
       } else {
-        setLoadingMessage(`Forging ${quantity} items...`);
+        setLoadingMessage(`Generating ${quantity} items...`);
         const { deck, quiz } = await generateStudyMaterial(extractedText, title, quantity, difficulty, mode);
         
         if (mode === 'flashcards' || mode === 'both') {
@@ -127,39 +137,32 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ stats, onGenerated, on
         setIsSuccess(false);
         setIsOpen(false);
         setSelectedFile(null);
+        setPastedText('');
       }, 2000);
 
     } catch (err: any) {
-      console.error('Forge error:', err);
-      setError(err.message || 'The forge has cooled. Please try again.');
+      console.error('Generation error:', err);
+      setError(err.message || 'The system was unable to generate content. Please try again.');
     } finally {
       setIsGenerating(false);
       setLoadingMessage('');
     }
   };
 
-  const remaining = stats?.aiUsage ? (
-    mode === 'both'
-      ? Math.min(FREE_LIMITS.flashcards - stats.aiUsage.flashcards, FREE_LIMITS.quizzes - stats.aiUsage.quizzes)
-      : mode === 'flashcards' 
-        ? FREE_LIMITS.flashcards - stats.aiUsage.flashcards
-        : mode === 'forgeCast'
-          ? FREE_LIMITS.forgeCasts - stats.aiUsage.forgeCasts
-          : FREE_LIMITS.quizzes - stats.aiUsage.quizzes
-  ) : 0;
-
   return (
     <>
-      <button
-        onClick={() => {
-          setIsOpen(true);
-          soundService.playClick();
-        }}
-        className="flex items-center gap-3 px-8 py-4 bg-white text-forge-dark rounded-2xl hover:scale-105 transition-all shadow-[0_0_30px_rgba(255,255,255,0.1)] font-display font-extrabold uppercase italic tracking-tighter"
-      >
-        <Sparkles size={20} className="text-forge-accent" />
-        Enter The Forge
-      </button>
+      {!hideTrigger && (
+        <button
+          onClick={() => {
+            setIsOpen(true);
+            soundService.playClick();
+          }}
+          className="flex items-center gap-3 px-8 py-4 bg-white text-forge-dark rounded-2xl hover:scale-105 transition-all shadow-[0_0_30px_rgba(255,255,255,0.1)] font-display font-extrabold uppercase italic tracking-tighter"
+        >
+          <Sparkles size={20} className="text-forge-accent" />
+          Lesson Generator
+        </button>
+      )}
 
       <AnimatePresence>
         {isOpen && (
@@ -184,8 +187,8 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ stats, onGenerated, on
                       <Sparkles size={28} />
                     </div>
                     <div>
-                      <h2 className="text-3xl font-extrabold font-display uppercase italic tracking-tighter text-white">Focus Forge</h2>
-                      <p className="text-stone-500 text-xs uppercase tracking-widest font-bold">AI Material Smelter</p>
+                      <h2 className="text-3xl font-extrabold font-display uppercase italic tracking-tighter text-white">Lesson Architect</h2>
+                      <p className="text-stone-500 text-xs uppercase tracking-widest font-bold">AI Content Assistant</p>
                     </div>
                   </div>
                   {!isGenerating && (
@@ -202,13 +205,13 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ stats, onGenerated, on
                     </div>
                     <h3 className="text-2xl font-extrabold font-display uppercase italic text-white mb-3">Setup Required</h3>
                     <p className="text-stone-400 mb-8 max-w-sm mx-auto">
-                      The Forge is cold. Please configure your <code className="text-forge-accent bg-forge-accent/10 px-2 py-1 rounded">VITE_GEMINI_API_KEY</code> in the environment secrets to start smelting.
+                      AI Configuration needed. Please set your Gemini API Key in the environment secrets to start generating lessons.
                     </p>
                     <button
                       onClick={() => setIsOpen(false)}
                       className="px-8 py-3 bg-white/5 text-white rounded-xl font-black uppercase tracking-widest hover:bg-white/10 transition-all border border-white/10"
                     >
-                      Close Forge
+                      Close
                     </button>
                   </div>
                 ) : isSuccess ? (
@@ -220,8 +223,8 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ stats, onGenerated, on
                     >
                       <CheckCircle2 size={48} />
                     </motion.div>
-                    <h3 className="text-2xl font-extrabold font-display uppercase italic text-white mb-3">Forging Complete</h3>
-                    <p className="text-stone-400 mb-8">Your materials have been added to the library.</p>
+                    <h3 className="text-2xl font-extrabold font-display uppercase italic text-white mb-3">Generation Complete</h3>
+                    <p className="text-stone-400 mb-8">Your educational materials have been added to the library.</p>
                     
                     {(mode === 'flashcards' || mode === 'both') && (
                       <button
@@ -237,7 +240,36 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ stats, onGenerated, on
                   </div>
                 ) : (
                   <div className="space-y-10">
-                    {!selectedFile ? (
+                    {!selectedFile && !pastedText.trim() && !isGenerating && (
+                      <div className="flex gap-2 p-1 bg-white/5 rounded-2xl mb-6">
+                        <button 
+                          onClick={() => {
+                            setActiveTab('upload');
+                            soundService.playClick();
+                          }}
+                          className={cn(
+                            "flex-1 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all",
+                            activeTab === 'upload' ? "bg-forge-accent text-forge-dark shadow-lg" : "text-stone-500 hover:text-white"
+                          )}
+                        >
+                          Upload File
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setActiveTab('paste');
+                            soundService.playClick();
+                          }}
+                          className={cn(
+                            "flex-1 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all",
+                            activeTab === 'paste' ? "bg-forge-accent text-forge-dark shadow-lg" : "text-stone-500 hover:text-white"
+                          )}
+                        >
+                          Paste & Explain
+                        </button>
+                      </div>
+                    )}
+
+                    {!selectedFile && !pastedText.trim() && activeTab === 'upload' ? (
                       <div 
                         onDragOver={onDragOver}
                         onDragLeave={onDragLeave}
@@ -259,31 +291,58 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ stats, onGenerated, on
                           <div className="p-5 bg-white/5 text-stone-400 rounded-3xl mb-6 group-hover:text-forge-accent transition-colors">
                             <Upload size={40} />
                           </div>
-                          <p className="text-xl font-bold text-white mb-2">Drop Document or Slides into the Forge</p>
+                          <p className="text-xl font-bold text-white mb-2">Drop Document or Slides here</p>
                           <p className="text-stone-500 text-sm">PDF, Word, PowerPoint, and more</p>
+                        </div>
+                      </div>
+                    ) : !selectedFile && !pastedText.trim() && activeTab === 'paste' ? (
+                      <div className="space-y-4">
+                        <textarea
+                          placeholder="Paste your assignment text or study material here..."
+                          value={pastedText}
+                          onChange={(e) => setPastedText(e.target.value)}
+                          className="w-full h-52 bg-white/5 border border-white/10 rounded-3xl p-6 text-white text-sm font-medium placeholder:text-stone-700 focus:outline-none focus:border-forge-accent/30 transition-all resize-none"
+                        />
+                        <div className="flex items-center gap-4 p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
+                          <BrainCircuit className="text-stone-600 shrink-0" size={20} />
+                          <p className="text-[10px] text-stone-500 uppercase font-black tracking-widest leading-relaxed">
+                            The Academic Assistant will analyze your text to forge customized study materials.
+                          </p>
                         </div>
                       </div>
                     ) : (
                       <div className="space-y-8">
-                        <div className="flex items-center justify-between p-6 bg-white/5 rounded-3xl border border-white/10">
-                          <div className="flex items-center gap-4">
+                        <div className="flex items-center justify-between p-6 bg-white/5 rounded-3xl border border-white/10 relative overflow-hidden group">
+                          <div className="absolute inset-0 bg-forge-accent/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <div className="flex items-center gap-4 relative z-10">
                             <div className="p-3 bg-forge-accent/20 text-forge-accent rounded-2xl">
                               <FileText size={24} />
                             </div>
                             <div>
-                              <p className="font-bold text-white truncate max-w-[200px]">{selectedFile.name}</p>
-                              <p className="text-xs text-stone-500">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB • Blueprint</p>
+                                <p className="font-bold text-white truncate max-w-[200px]">
+                                  {selectedFile ? selectedFile.name : 'Pasted Research Material'}
+                                </p>
+                                <p className="text-[10px] font-black text-stone-500 uppercase tracking-widest leading-none mt-1">
+                                  {selectedFile ? `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB • Ready` : `${pastedText.length} Characters • Ready`}
+                                </p>
                             </div>
                           </div>
                           <button 
-                            onClick={() => setSelectedFile(null)}
-                            className="p-2 text-stone-500 hover:text-red-400 transition-colors"
+                            onClick={() => {
+                                setSelectedFile(null);
+                                setPastedText('');
+                                soundService.playClick();
+                            }}
+                            className="p-3 text-stone-500 hover:text-red-500 transition-colors relative z-10"
                           >
-                            <X size={20} />
+                            <Trash2 size={24} />
                           </button>
                         </div>
+                      </div>
+                    )}
 
-                        <div className="grid grid-cols-4 gap-4">
+                    {(selectedFile || pastedText.trim()) && !isGenerating && (
+                        <div className="grid grid-cols-4 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                           <button
                             onClick={() => {
                               setMode('quiz');
@@ -337,82 +396,85 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ stats, onGenerated, on
                             )}
                           >
                             <Video size={20} className={mode === 'forgeCast' ? "text-forge-accent" : "text-stone-500"} />
-                            <span className={cn("font-bold uppercase tracking-tighter text-[8px]", mode === 'forgeCast' ? "text-white" : "text-stone-500")}>ForgeCast</span>
+                            <span className={cn("font-bold uppercase tracking-tighter text-[8px]", mode === 'forgeCast' ? "text-white" : "text-stone-500")}>StudyCast</span>
                           </button>
                         </div>
+                    )}
 
-                        <div className="space-y-6">
-                          <div className="flex items-center justify-between">
-                            <label className="text-xs font-bold uppercase tracking-widest text-stone-500">Quantity: {quantity}</label>
-                            <span className="text-[10px] text-stone-600 font-mono">5 - 50 Items</span>
-                          </div>
-                          <input 
-                            type="range" 
-                            min="5" 
-                            max="50" 
-                            value={quantity}
-                            onChange={(e) => setQuantity(parseInt(e.target.value))}
-                            className="forge-slider"
-                            style={{
-                              // @ts-ignore
-                              '--slider-height': `${2 + (quantity / 50) * 8}px`,
-                              '--slider-bg': `rgba(251, 146, 60, ${0.1 + (quantity / 50) * 0.4})`
-                            }}
-                          />
-                        </div>
-
-                        {(mode === 'quiz' || mode === 'both') && (
-                          <div className="space-y-4">
-                            <label className="text-xs font-bold uppercase tracking-widest text-stone-500">Difficulty Level</label>
-                            <div className="grid grid-cols-3 gap-3">
-                              {(['easy', 'medium', 'hard'] as Difficulty[]).map((d) => (
-                                <button
-                                  key={d}
-                                  onClick={() => {
-                                    setDifficulty(d);
-                                    soundService.playClick();
-                                  }}
-                                  className={cn(
-                                    "py-3 rounded-xl border-2 font-bold uppercase text-[10px] tracking-widest transition-all",
-                                    difficulty === d ? {
-                                      'easy': "border-[#22C55E] text-[#22C55E] shadow-[0_0_15px_rgba(34,197,94,0.3)] bg-[#22C55E]/5",
-                                      'medium': "border-[#EAB308] text-[#EAB308] shadow-[0_0_15px_rgba(234,179,8,0.3)] bg-[#EAB308]/5",
-                                      'hard': "border-[#EF4444] text-[#EF4444] shadow-[0_0_15px_rgba(239,68,68,0.3)] bg-[#EF4444]/5"
-                                    }[d] : "border-white/5 text-stone-600 hover:border-white/10"
-                                  )}
-                                >
-                                  {d}
-                                </button>
-                              ))}
+                    {(selectedFile || pastedText.trim()) && !isGenerating && (
+                        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                            <div className="space-y-6">
+                              <div className="flex items-center justify-between">
+                                <label className="text-xs font-bold uppercase tracking-widest text-stone-500">Quantity: {quantity}</label>
+                                <span className="text-[10px] text-stone-600 font-mono">5 - 50 Items</span>
+                              </div>
+                              <input 
+                                type="range" 
+                                min="5" 
+                                max="50" 
+                                value={quantity}
+                                onChange={(e) => setQuantity(parseInt(e.target.value))}
+                                className="forge-slider"
+                                style={{
+                                  // @ts-ignore
+                                  '--slider-height': `${2 + (quantity / 50) * 8}px`,
+                                  '--slider-bg': `rgba(251, 146, 60, ${0.1 + (quantity / 50) * 0.4})`
+                                }}
+                              />
                             </div>
-                          </div>
-                        )}
 
-                        <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest px-2">
-                          <span className="text-stone-600">Forge Capacity</span>
-                          <span className={cn(remaining <= 0 ? "text-red-500" : "text-forge-accent")}>
-                            {stats?.plan === 'Premium' ? 'Unlimited' : `${remaining} Units Left`}
-                          </span>
+                            {(mode === 'quiz' || mode === 'both') && (
+                              <div className="space-y-4">
+                                <label className="text-xs font-bold uppercase tracking-widest text-stone-500">Difficulty Level</label>
+                                <div className="grid grid-cols-3 gap-3">
+                                  {(['easy', 'medium', 'hard'] as Difficulty[]).map((d) => (
+                                    <button
+                                      key={d}
+                                      onClick={() => {
+                                        setDifficulty(d);
+                                        soundService.playClick();
+                                      }}
+                                      className={cn(
+                                        "py-3 rounded-xl border-2 font-bold uppercase text-[10px] tracking-widest transition-all",
+                                        difficulty === d ? {
+                                          'easy': "border-[#22C55E] text-[#22C55E] shadow-[0_0_15px_rgba(34,197,94,0.3)] bg-[#22C55E]/5",
+                                          'medium': "border-[#EAB308] text-[#EAB308] shadow-[0_0_15px_rgba(234,179,8,0.3)] bg-[#EAB308]/5",
+                                          'hard': "border-[#EF4444] text-[#EF4444] shadow-[0_0_15px_rgba(239,68,68,0.3)] bg-[#EF4444]/5"
+                                        }[d] : "border-white/5 text-stone-600 hover:border-white/10"
+                                      )}
+                                    >
+                                      {d}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest px-2">
+                              <span className="text-stone-600">Daily Access</span>
+                              <span className="text-forge-accent">
+                                Unlimited
+                              </span>
+                            </div>
+
+                            <button
+                              disabled={isGenerating}
+                              onClick={generateLessonMaterial}
+                              className="w-full py-5 forge-gradient text-forge-dark rounded-2xl hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all font-display font-extrabold uppercase italic tracking-tighter text-xl flex items-center justify-center gap-4 forge-glow"
+                            >
+                              {isGenerating ? (
+                                <>
+                                  <Loader2 size={24} className="animate-spin" />
+                                  {loadingMessage}
+                                </>
+                              ) : (
+                                <>
+                                  <Sparkles size={24} />
+                                  Generate Lesson
+                                </>
+                              )}
+                            </button>
                         </div>
-
-                        <button
-                          disabled={isGenerating}
-                          onClick={forgeStudyMaterial}
-                          className="w-full py-5 forge-gradient text-forge-dark rounded-2xl hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all font-display font-extrabold uppercase italic tracking-tighter text-xl flex items-center justify-center gap-4 forge-glow"
-                        >
-                          {isGenerating ? (
-                            <>
-                              <Loader2 size={24} className="animate-spin" />
-                              {loadingMessage}
-                            </>
-                          ) : (
-                            <>
-                              <Sparkles size={24} />
-                              Forge Material
-                            </>
-                          )}
-                        </button>
-                      </div>
                     )}
 
                     {error && (

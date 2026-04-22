@@ -30,7 +30,7 @@ export async function extractTextFromFile(file: File): Promise<string> {
 
   const cleaned = cleanText(text);
   if (cleaned.length < 20) {
-    throw new Error('The forge could not extract enough readable text from this file.');
+    throw new Error('The system could not extract enough readable text from this file.');
   }
 
   return cleaned.slice(0, 10000);

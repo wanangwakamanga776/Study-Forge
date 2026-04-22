@@ -10,11 +10,12 @@ import {
   collection,
   orderBy,
   limit,
+  where,
   getDocs,
   getDocFromServer
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
-import { UserStats } from '../types';
+import { UserStats, Deck } from '../types';
 
 /**
  * Validates the connection to the Forge's Archives (Firestore).
@@ -115,5 +116,74 @@ export const getTopForgers = async (limitCount: number = 10): Promise<UserStats[
   } catch (error) {
     handleFirestoreError(error as FirestoreError, 'list', 'users');
     return [];
+  }
+};
+
+// Community Library Functions
+
+export const publishDeck = async (deck: Deck) => {
+  if (!auth.currentUser) return;
+  const deckDocRef = doc(db, 'decks', deck.id);
+  try {
+    await setDoc(deckDocRef, {
+      ...deck,
+      creatorId: auth.currentUser.uid,
+      creatorName: auth.currentUser.displayName || 'Anonymous',
+      isPublic: true,
+      createdAt: Date.now(),
+      updatedAt: serverTimestamp()
+    });
+  } catch (error) {
+    handleFirestoreError(error as FirestoreError, 'write', `decks/${deck.id}`);
+  }
+};
+
+export const getPublicDecks = async (category?: string, searchTerm?: string): Promise<Deck[]> => {
+  try {
+    let q = query(
+      collection(db, 'decks'),
+      where('isPublic', '==', true),
+      orderBy('createdAt', 'desc'),
+      limit(50)
+    );
+    
+    // Note: Firestore doesn't support complex text search without external services, 
+    // so we'll fetch then filter client-side for simplicity in this demo.
+    const querySnapshot = await getDocs(q);
+    let decks = querySnapshot.docs.map(doc => doc.data() as Deck);
+    
+    if (category && category !== 'All') {
+      decks = decks.filter(d => d.category === category);
+    }
+    
+    if (searchTerm) {
+      const s = searchTerm.toLowerCase();
+      decks = decks.filter(d => d.title.toLowerCase().includes(s));
+    }
+    
+    return decks;
+  } catch (error) {
+    handleFirestoreError(error as FirestoreError, 'list', 'decks');
+    return [];
+  }
+};
+
+export const cloneDeck = async (targetUserId: string, deck: Deck) => {
+  const newId = crypto.randomUUID();
+  const deckDocRef = doc(db, 'users', targetUserId, 'myDecks', newId);
+  try {
+    await setDoc(deckDocRef, {
+      ...deck,
+      id: newId,
+      originalId: deck.id,
+      creatorId: targetUserId, // User now "owns" their copy
+      isPublic: false,
+      createdAt: Date.now(),
+      updatedAt: serverTimestamp()
+    });
+    return { ...deck, id: newId, originalId: deck.id, isPublic: false };
+  } catch (error) {
+    handleFirestoreError(error as FirestoreError, 'write', `users/${targetUserId}/myDecks/${newId}`);
+    return null;
   }
 };

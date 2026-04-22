@@ -10,9 +10,9 @@ export function ForgeShop({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
   const [error, setError] = useState<string | null>(null);
 
   const themeList = [
-    { name: 'Default Ember', color: '#FB923C', desc: 'Classic furnace heat.' },
-    { name: 'Deep Sea Blue', color: '#3B82F6', desc: 'Arcane underwater forge.' },
-    { name: 'Midnight Purple', color: '#A855F7', desc: 'High-energy plasma smithing.' }
+    { name: 'Default Ember', color: '#FB923C', desc: 'Classic academic warm.' },
+    { name: 'Deep Sea Blue', color: '#3B82F6', desc: 'Deep focus ocean.' },
+    { name: 'Midnight Purple', color: '#A855F7', desc: 'Modern plasma study.' }
   ];
 
   const handleBuy = (themeName: string) => {
@@ -28,8 +28,8 @@ export function ForgeShop({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
       soundService.playSuccess();
       setError(null);
     } else {
-      setError("Not enough Embers to ignite this theme, apprentice.");
-      soundService.playSmelt(); // sound for error
+      setError("Not enough Embers to unlock this theme.");
+      soundService.playProcess(); // sound for error
     }
   };
 
@@ -57,8 +57,8 @@ export function ForgeShop({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
                     <ShoppingBag size={28} />
                   </div>
                   <div>
-                    <h2 className="text-3xl font-display font-black uppercase italic tracking-tighter text-white">Forge Shop</h2>
-                    <p className="text-stone-500 text-xs uppercase tracking-widest font-bold">Customize Your Ascent</p>
+                    <h2 className="text-3xl font-display font-black uppercase italic tracking-tighter text-white">Theme Shop</h2>
+                    <p className="text-stone-500 text-xs uppercase tracking-widest font-bold">Customize Your Experience</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
@@ -139,7 +139,7 @@ export function ForgeShop({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
                   </div>
                   <div>
                     <h4 className="text-sm font-black text-white uppercase">More Coming Soon</h4>
-                    <p className="text-xs text-stone-500 uppercase font-bold tracking-widest">Master level blueprints are being smelted.</p>
+                    <p className="text-xs text-stone-500 uppercase font-bold tracking-widest">Additional academic themes are being designed.</p>
                   </div>
                 </div>
               </div>

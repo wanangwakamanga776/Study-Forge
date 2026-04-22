@@ -8,6 +8,7 @@ export interface Task {
   duration: number; // in minutes
   completed: boolean;
   createdAt: number;
+  section?: string; // e.g., Chemistry, Geometry
 }
 
 export interface Flashcard {
@@ -16,10 +17,18 @@ export interface Flashcard {
   definition: string;
 }
 
+export type DeckCategory = 'Educational' | 'Personal' | 'Work' | 'Other';
+
 export interface Deck {
   id: string;
   title: string;
   cards: Flashcard[];
+  isPublic?: boolean;
+  originalId?: string;
+  creatorName?: string;
+  creatorId?: string;
+  category?: DeckCategory;
+  createdAt?: number;
 }
 
 export interface QuizQuestion {
@@ -88,6 +97,7 @@ export interface AppState {
   decks: Deck[];
   quizzes: Quiz[];
   forgeCasts: ForgeCastBlueprint[];
+  communityDecks?: Deck[];
   stats: UserStats;
   matchRecords?: Record<string, number>; // deckId -> best time in seconds
 }

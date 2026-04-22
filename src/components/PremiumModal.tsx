@@ -42,19 +42,19 @@ export const PremiumModal: React.FC<PremiumModalProps> = ({ isOpen, onClose, onU
                 <div className="p-3 bg-forge-accent/10 text-forge-accent rounded-2xl forge-glow">
                   <Star size={28} fill="currentColor" />
                 </div>
-                <h2 className="text-3xl font-extrabold font-display uppercase italic tracking-tighter text-white">Forge Elite</h2>
+                <h2 className="text-3xl font-extrabold font-display uppercase italic tracking-tighter text-white">Study Pro</h2>
               </div>
 
               <p className="text-stone-400 mb-10 font-bold text-sm">
-                Unlock the full power of the Forge. Smelt unlimited knowledge and master your destiny.
+                Unlock the full power of Study Forge. Build unlimited knowledge and master your learning.
               </p>
 
               <div className="space-y-5 mb-12">
-                <FeatureItem text="Unlimited AI Quiz Smelting" />
-                <FeatureItem text="Unlimited Flashcard Blueprinting" />
+                <FeatureItem text="Unlimited AI Quiz Generation" />
+                <FeatureItem text="Unlimited Flashcard Generation" />
                 <FeatureItem text="Advanced Mastery Analytics" />
-                <FeatureItem text="Exclusive Metallic Themes" />
-                <FeatureItem text="Priority Forge Processing" />
+                <FeatureItem text="Exclusive Academic Themes" />
+                <FeatureItem text="Priority AI Processing" />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -81,7 +81,7 @@ export const PremiumModal: React.FC<PremiumModalProps> = ({ isOpen, onClose, onU
               </div>
 
               <p className="text-center text-[10px] text-stone-600 mt-10 font-bold uppercase tracking-widest">
-                Cancel anytime. The forge never sleeps.
+                Cancel anytime. Learning never stops.
               </p>
             </div>
           </motion.div>

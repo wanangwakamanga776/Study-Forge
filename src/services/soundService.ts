@@ -87,8 +87,8 @@ class SoundService {
     setTimeout(() => this.playTone(783.99, 'sine', 0.5, 0.1), 200); // G5
   }
 
-  playSmelt() {
-    // Metallic clink
+  playProcess() {
+    // Process feedback sound
     this.playTone(1200, 'square', 0.05, 0.02);
     setTimeout(() => this.playTone(400, 'sine', 0.2, 0.05), 20);
   }
@@ -114,8 +114,8 @@ class SoundService {
     this.playTone(150, 'sine', 0.05, 0.01);
   }
 
-  playAnvilClink() {
-    // Sharp metallic impact
+  playActionImpact() {
+    // Sharp feedback impact
     this.playTone(2500, 'square', 0.03, 0.03);
     setTimeout(() => this.playTone(800, 'sine', 0.15, 0.04), 10);
   }
