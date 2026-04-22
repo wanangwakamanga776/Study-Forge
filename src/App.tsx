@@ -52,7 +52,7 @@ export default function App() {
 function AppContent() {
   const { state, setState, deleteForgeCast } = useAppState();
   const { awardXP, level, xp, embers } = useForgeStore();
-  const { activateAdminCheat } = useForgeEngine();
+  const { setAdminMaxLevel, setAdminUnlimitedCurrency } = useForgeEngine();
   const { user, loading } = useAuth();
   const [isGuest, setIsGuest] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -360,7 +360,10 @@ function AppContent() {
           <AdminPanel 
             isOpen={isAdminPanelOpen} 
             onClose={() => setIsAdminPanelOpen(false)} 
-            onActivateCheat={activateAdminCheat} 
+            onSetMaxLevel={setAdminMaxLevel}
+            onSetUnlimitedCurrency={setAdminUnlimitedCurrency}
+            currentXp={state.stats.xp}
+            currentEmbers={state.stats.embers}
           />
 
       {/* Sidebar / Navigation */}

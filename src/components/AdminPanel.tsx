@@ -7,13 +7,26 @@ import { soundService } from '../services/soundService';
 interface AdminPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  onActivateCheat: () => void;
+  onSetMaxLevel: (active: boolean) => void;
+  onSetUnlimitedCurrency: (active: boolean) => void;
+  currentXp: number;
+  currentEmbers: number;
 }
 
-export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onActivateCheat }) => {
+export const AdminPanel: React.FC<AdminPanelProps> = ({ 
+  isOpen, 
+  onClose, 
+  onSetMaxLevel, 
+  onSetUnlimitedCurrency,
+  currentXp,
+  currentEmbers
+}) => {
   const [passcode, setPasscode] = useState('');
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [error, setError] = useState(false);
+
+  const isMaxLevel = currentXp >= 1000000;
+  const isUnlimitedEmbers = currentEmbers >= 999999;
 
   // Final confirmation to prevent accidental cheat
   const handleUnlock = (e: React.FormEvent) => {
@@ -96,25 +109,80 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onActiv
                  <p className="text-[9px] text-emerald-500/60 font-bold uppercase tracking-widest">Master Authority Level Active</p>
              </div>
 
-             <div className="space-y-3">
+             <div className="space-y-4">
+                 {/* Max Level Switch */}
                  <button
-                    onClick={() => {
-                        onActivateCheat();
-                        soundService.playLevelUp();
-                    }}
-                    className="w-full p-6 bg-white/[0.03] border border-white/5 rounded-3xl hover:bg-white/5 hover:border-forge-accent/50 transition-all group group/btn"
+                    onClick={() => onSetMaxLevel(!isMaxLevel)}
+                    className={cn(
+                        "w-full p-5 rounded-[2rem] border transition-all flex items-center gap-4",
+                        isMaxLevel 
+                            ? "bg-forge-accent text-forge-dark border-white/10" 
+                            : "bg-white/[0.03] border-white/5 hover:bg-white/5"
+                    )}
                  >
-                    <div className="flex items-center gap-4">
-                        <div className="p-3 bg-forge-accent/10 text-forge-accent rounded-2xl group-hover/btn:scale-110 transition-transform">
-                            <Zap size={24} />
-                        </div>
-                        <div className="text-left">
-                            <p className="text-sm font-black text-white uppercase italic tracking-tighter">Forge Transcendence</p>
-                            <p className="text-[10px] text-stone-500 font-bold uppercase tracking-widest">Max Level + Unlimited Embers</p>
-                        </div>
-                        <div className="ml-auto opacity-0 group-hover/btn:opacity-100 transition-opacity">
-                            <Check className="text-emerald-500" size={20} />
-                        </div>
+                    <div className={cn(
+                        "p-3 rounded-2xl",
+                        isMaxLevel ? "bg-forge-dark/20" : "bg-forge-accent/10 text-forge-accent"
+                    )}>
+                        <Zap size={22} />
+                    </div>
+                    <div className="text-left flex-1">
+                        <p className={cn("text-xs font-black uppercase italic tracking-tighter", isMaxLevel ? "text-forge-dark" : "text-white")}>
+                            Forge Transcendence
+                        </p>
+                        <p className={cn("text-[8px] font-bold uppercase tracking-widest", isMaxLevel ? "text-forge-dark/60" : "text-stone-500")}>
+                            Max Level Protocol
+                        </p>
+                    </div>
+                    <div className={cn(
+                        "w-10 h-6 rounded-full relative transition-colors duration-300",
+                        isMaxLevel ? "bg-forge-dark/40" : "bg-white/10"
+                    )}>
+                        <motion.div 
+                            animate={{ x: isMaxLevel ? 18 : 2 }}
+                            className={cn(
+                                "absolute top-1 left-1 w-4 h-4 rounded-full",
+                                isMaxLevel ? "bg-forge-dark" : "bg-stone-600"
+                            )}
+                        />
+                    </div>
+                 </button>
+
+                 {/* Unlimited Embers Switch */}
+                 <button
+                    onClick={() => onSetUnlimitedCurrency(!isUnlimitedEmbers)}
+                    className={cn(
+                        "w-full p-5 rounded-[2rem] border transition-all flex items-center gap-4",
+                        isUnlimitedEmbers 
+                            ? "bg-orange-500 text-white border-white/10" 
+                            : "bg-white/[0.03] border-white/5 hover:bg-white/5"
+                    )}
+                 >
+                    <div className={cn(
+                        "p-3 rounded-2xl",
+                        isUnlimitedEmbers ? "bg-white/20 text-white" : "bg-orange-500/10 text-orange-500"
+                    )}>
+                        <Flame size={22} />
+                    </div>
+                    <div className="text-left flex-1">
+                        <p className={cn("text-xs font-black uppercase italic tracking-tighter", isUnlimitedEmbers ? "text-white" : "text-white")}>
+                            Ember Infusion
+                        </p>
+                        <p className={cn("text-[8px] font-bold uppercase tracking-widest", isUnlimitedEmbers ? "text-white/60" : "text-stone-500")}>
+                            Unlimited Currency
+                        </p>
+                    </div>
+                    <div className={cn(
+                        "w-10 h-6 rounded-full relative transition-colors duration-300",
+                        isUnlimitedEmbers ? "bg-white/30" : "bg-white/10"
+                    )}>
+                        <motion.div 
+                            animate={{ x: isUnlimitedEmbers ? 18 : 2 }}
+                            className={cn(
+                                "absolute top-1 left-1 w-4 h-4 rounded-full",
+                                isUnlimitedEmbers ? "bg-white" : "bg-stone-600"
+                            )}
+                        />
                     </div>
                  </button>
 

@@ -91,19 +91,29 @@ export function useForgeEngine() {
     return { xpGain, embersGain };
   }, [setState]);
 
-  const activateAdminCheat = useCallback(() => {
+  const setAdminMaxLevel = useCallback((active: boolean) => {
     setState(prev => ({
       ...prev,
       stats: {
         ...prev.stats,
-        xp: 1000000,
-        embers: 999999,
-        level: getLevelFromXp(1000000),
-        plan: 'Premium'
+        xp: active ? 1000000 : 0,
+        level: getLevelFromXp(active ? 1000000 : 0),
+        plan: active ? 'Premium' : prev.stats.plan
       }
     }));
-    soundService.playLevelUp();
+    if (active) soundService.playLevelUp();
   }, [setState, getLevelFromXp]);
+
+  const setAdminUnlimitedCurrency = useCallback((active: boolean) => {
+    setState(prev => ({
+      ...prev,
+      stats: {
+        ...prev.stats,
+        embers: active ? 999999 : 100
+      }
+    }));
+    if (active) soundService.playSuccess();
+  }, [setState]);
 
   return {
     stats: state.stats,
@@ -111,6 +121,7 @@ export function useForgeEngine() {
     getXpThreshold,
     getLevelProgress,
     awardStudySession,
-    activateAdminCheat,
+    setAdminMaxLevel,
+    setAdminUnlimitedCurrency,
   };
 }
