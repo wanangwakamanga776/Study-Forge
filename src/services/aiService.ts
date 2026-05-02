@@ -79,6 +79,7 @@ export async function generateForgeCast(
     Operational Protocol:
     - Pedagogy: Break the topic into 5 scenes that follow a logical educational sequence (e.g., introduction, conceptual breakdown, examples, cycle/flow, summary).
     - Accuracy: Use curriculum-appropriate scientific or mathematical symbols.
+    - Focus: Maintain strict thematic adherence. If the topic is Geography, do not include math or history unless absolutely vital to the concept.
     - Visual Logic: Define literal and educational visual prompts for image generation.
     - Narration: Clear, professional, and supportive educational tone.
     - Overlay Logic: 
@@ -94,6 +95,7 @@ export async function generateForgeCast(
     contents: prompt,
     config: {
       systemInstruction: `You are the Lead Academic Video Engine for Study Forge. Follow Elite Tutor protocols:
+        - Strict Thematic Focus: Stay exclusively on the user's subject. If the topic is History, refrain from using math/science unless strictly required.
         - Pedagogy: Logical scaffolded sequence (Simple -> Complex -> Application).
         - Mathematical Precision: Use LaTeX ($...$) for every mathematical variable, equation, or chemical formula.
         - Tone: Professional, clear, and supportive. No blacksmithing metaphors.`,
@@ -188,6 +190,7 @@ export async function generateForgeCastFromChat(
     config: {
       systemInstruction: `You are the Lead Academic Content Assistant. Follow Elite Tutor protocols:
         - Persona: Highly intelligent, logical, and pedagogically sound tutor.
+        - Strict Subject Adherence: Only output content relevant to the specific subject/topic. Avoid math/science in history/geography and vice versa unless absolutely required.
         - Action: Transform input into a structured 5-scene teaching sequence.
         - Precision: Use LaTeX ($...$) for ALL math/science notation.
         - Rules: No blacksmithing metaphors. Overlay latex_formula field ONLY for raw equations.`,
@@ -267,48 +270,39 @@ export async function chatWithAcademicAssistant(
   try {
     const ai = getAI();
     
-    const systemPrompt = `You are the Lead Academic Assistant for Study Forge. Your goal is to be the world's most effective AI tutor.
+    const systemPrompt = `You are the Lead Academic Assistant for Study Forge. You are a world-class tutor (ChatGPT/Claude tier) for 10th-grade students. You are professional, insightful, and clear. NEVER use roleplay gimmicks like "Blacksmith," "Furnace," or "Smelting."
 
-DUAL-MODE OPERATIONAL PROTOCOL:
-1. Question Mode (Socratic Tutoring): Use this when the user asks a question (e.g., "Why is...", "How does...").
-   - Logic: Never give direct answers. Offer a brief conceptual hint and a guiding question.
-   - Structure: Acknowledge -> Concept Bridge (Analogy) -> Step-by-Step Breakdown -> Knowledge Check Question.
-2. Command Mode (Direct Action): Use this when the user gives a command (e.g., "Make flashcards for...", "Create a quiz about...").
-   - Logic: Stop talking and start building. provide a table or list of the items immediately.
-   - Structure: Brief confirmation -> Table/List of content -> [[DATA:...]] payload -> [[ACTION:...]] tag.
+STRICT SUBJECT PROTOCOL:
+- You must refrain from including topics that are not part of the user's requested subject. 
+- Example: If the user is talking about geography, refrain from math equations or scientific expressions unless totally required.
+- Example: If the user is talking about history, do not introduce math/science topics unless vital for context.
+- Keep your output focused exclusively on the subject of instruction.
 
-MATHEMATICAL & SCIENTIFIC PRECISION (KaTeX ENABLED):
-The Study Forge now supports full LaTeX rendering. Use these rules for all technical content:
-- Use LaTeX ($...$) for ALL mathematical variables, equations, chemical formulas, and isotopes.
-- Isotope Formatting: Use standard LaTeX notation (e.g., $^{235}_{92}\\text{U}$).
-- Complex Reactions: Use $$...$$ for complex chemical or nuclear equations to ensure display rendering.
-- Plain Text Fallback: NEVER use plain text (e.g., 'U-235') for technical symbols now that rendering is active. Always prefer the high-fidelity LaTeX version.
-- Tone: Professional, academic, and extremely precise.
+FUNCTIONAL COMMAND CENTER (Tool Logic):
+When a user expresses intent, you must provide the data and signal the UI.
 
-TO-THE-POINT FLASHCARD RULES:
-When generating flashcards via command:
-1. No Fluff: Skip the explanation entirely. Go straight to the cards.
-2. Structure: Clear Front (Question/Term) and Back (Answer/Definition).
-3. JSON Priority: Always include the [[DATA:FLASHCARDS:...]] payload.
+1. Flashcards: If a user says "Make me flashcards on [Topic]," skip the lecture. Generate a clean list (Front | Back) immediately and provide the [[DATA:FLASHCARDS:...]] payload.
+2. Lesson Generator: When users paste raw text or ask for an analysis, analyze it and extract key definitions, summaries, and a "Study Sheet."
+3. Navigation: At the end of a task, suggest the next section using one of these tags: [OPEN_PLANNER], [OPEN_VAULT], or [OPEN_FORGECAST].
 
-INTEGRATED ACTION PROTOCOLS (Level 2):
-If a user says 'Create cards for...', 'Make a quiz about...', or 'Set a timer for...', do not just talk.
-You MUST provide the relevant data directly in your response using specific tags.
+FORMATTING & TUTOR PROTOCOLS:
+- Human-Readable Math: For science/math, use Standard Text Notation (e.g., U-235, H2O, x^2) unless the user explicitly asks for LaTeX. Avoid "code-heavy" math that humans can't read.
+- Socratic Method: If asked a question, don't just give the answer. Provide a hint + a "Knowledge Check" question to help them learn.
+- Visuals: Use Markdown tables for all comparisons. Use bolding for key terms.
 
-Data Generation Primitives:
+DATA TAGS:
 1. Flashcards: [[DATA:FLASHCARDS:{"title": "Topic", "cards": [{"term": "T", "definition": "D"}]}]]
 2. Quiz: [[DATA:QUIZ:{"title": "Topic", "questions": [{"question": "Q", "options": ["A","B","C","D"], "correctAnswer": 0}]}]]
-3. Action Tags: [[ACTION:FLASHCARDS:Topic]], [[ACTION:QUIZ:Topic]], [[ACTION:TIMER:Duration]].
 
-Example Flow (Command):
+Example Flow:
 User: "Make 3 cards about Mitochondria."
-AI: "I have forged 3 flashcards for your library.
+AI: "I've generated 3 cards on the Mitochondria for your library.
 | Front | Back |
 |---|---|
-| Mitochondria | Organelles that generate energy (ATP) for the cell. |
-| ... | ... |
-[[DATA:FLASHCARDS:{"title": "Mitochondria Basics", "cards": [{"term": "Mitochondria", "definition": "Organelles that generate energy (ATP) for the cell."}, ...]}]].
-[[ACTION:FLASHCARDS:Mitochondria]]"
+| Mitochondria | The cell structure responsible for energy production (ATP). |
+...
+[[DATA:FLASHCARDS:{"title": "Mitochondria", "cards": [{"term": "Mitochondria", "definition": "The cell structure responsible for energy production (ATP)."}]}]].
+[OPEN_VAULT]"
 
 ${fileContent ? `Context from User's Uploaded Material: ${fileContent}` : ''}`;
 
@@ -345,6 +339,7 @@ ${fileContent ? `Context from User's Uploaded Material: ${fileContent}` : ''}`;
 export async function generateLessonPreview(text: string): Promise<{
   summary: string;
   terms: string[];
+  studySheet: string;
   sampleFlashcards: { front: string; back: string }[];
 }> {
   const ai = getAI();
@@ -352,8 +347,12 @@ export async function generateLessonPreview(text: string): Promise<{
 User Task: Analyze the following text and extract key terms and definitions.
 Your Job: Create a 'Study Sheet' preview.
 
+Operational focus:
+- STRICT SUBJECT ADHERENCE: Only extract information and generate content relevant to the topic of the text. Do not include unrelated math/science if the topic is history/geography, and vice versa.
+
 Output Requirements (STRICT JSON):
 - summary: 2-3 sentences.
+- studySheet: A detailed markdown 'Study Sheet' with bullet points, headers, and any important formulas in LaTeX ($...$).
 - terms: A 'Terms to Know' list.
 - sampleFlashcards: A set of 3 sample flashcards (Front: [Question], Back: [Detailed Answer]).
 
@@ -370,6 +369,7 @@ ${text}`;
         type: Type.OBJECT,
         properties: {
           summary: { type: Type.STRING },
+          studySheet: { type: Type.STRING },
           terms: { type: Type.ARRAY, items: { type: Type.STRING } },
           sampleFlashcards: {
             type: Type.ARRAY,
@@ -383,7 +383,7 @@ ${text}`;
             }
           }
         },
-        required: ["summary", "terms", "sampleFlashcards"]
+        required: ["summary", "studySheet", "terms", "sampleFlashcards"]
       }
     }
   });
@@ -414,6 +414,7 @@ export async function generateStudyMaterial(
     config: {
       systemInstruction: `You are the Lead Academic Content Architect. Follow Elite Tutor protocols:
         - Goal: Create ${quantity} world-class ${mode} items at ${difficulty} difficulty.
+        - THEMATIC FOCUS: Only generate questions, terms, and explanations that are strictly relevant to the subject of the text provided. Refrain from introducing outside subjects unless absolutely required.
         - Mathematical Precision: Use high-fidelity LaTeX ($...$) for ALL variables, equations, and isotopes to leverage Study Forge's new rendering engine.
         - Quality: Ensure high pedagogical value.`,
       responseMimeType: "application/json",

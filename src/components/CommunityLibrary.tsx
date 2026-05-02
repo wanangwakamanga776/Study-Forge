@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, BookOpen, User, Plus, Download, Loader2, BookmarkPlus } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Deck, DeckCategory } from '../types';
-import { getPublicDecks, cloneDeck } from '../services/dataService';
+import { Deck, DeckCategory, UserStats } from '../types';
+import { getPublicDecks, cloneDeck, getTopForgers } from '../services/dataService';
 import { auth } from '../lib/firebase';
 import { cn } from '../lib/utils';
 import { soundService } from '../services/soundService';
@@ -20,9 +20,11 @@ export const CommunityLibrary: React.FC<CommunityLibraryProps> = ({ onAddDeck, o
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<DeckCategory | 'All'>('All');
   const [cloningId, setCloningId] = useState<string | null>(null);
+  const [topForgerName, setTopForgerName] = useState<string | null>(null);
 
   useEffect(() => {
     loadDecks();
+    loadTopForger();
   }, [selectedCategory]);
 
   const loadDecks = async () => {
@@ -35,6 +37,15 @@ export const CommunityLibrary: React.FC<CommunityLibraryProps> = ({ onAddDeck, o
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadTopForger = async () => {
+    try {
+      const top = await getTopForgers(1);
+      if (top.length > 0) {
+        setTopForgerName(top[0].name || null);
+      }
+    } catch (e) {}
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -161,7 +172,10 @@ export const CommunityLibrary: React.FC<CommunityLibraryProps> = ({ onAddDeck, o
                         <div className="w-5 h-5 rounded-full bg-stone-800 flex items-center justify-center">
                           <User size={10} className="text-stone-600" />
                         </div>
-                        <span className="text-[10px] font-bold text-stone-600 uppercase tracking-widest">{deck.creatorName || 'Legacy Scholar'}</span>
+                        <span className="text-[10px] font-bold text-stone-600 uppercase tracking-widest flex items-center gap-1">
+                          {deck.creatorName || 'Legacy Scholar'}
+                          {deck.creatorName === topForgerName && <span title="Top Academy Scholar">👑</span>}
+                        </span>
                       </div>
                     </div>
 

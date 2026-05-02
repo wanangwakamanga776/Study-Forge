@@ -12,12 +12,8 @@ import { LevelBar } from './components/LevelBar';
 import { ForgeChat } from './components/ForgeChat';
 import { ForgeHeatIcon } from './components/ForgeHeatIcon';
 import { RewardProvider } from './components/RewardToast';
-import { ForgeTutorial } from './components/ForgeTutorial';
-import { ForgeShop } from './components/ForgeShop';
 import { LoginPage } from './components/LoginPage';
 import { ProfileHeader } from './components/ProfileHeader';
-import { AccountSettings } from './components/AccountSettings';
-import { AdminPanel } from './components/AdminPanel';
 import { ForgeStoreProvider, useForgeStore } from './contexts/ForgeStoreContext';
 import { CommunityLibrary } from './components/CommunityLibrary';
 import { cn } from './lib/utils';
@@ -36,6 +32,10 @@ const MatchGame = lazy(() => import('./components/MatchGame').then(m => ({ defau
 const AIGenerator = lazy(() => import('./components/AIGenerator').then(m => ({ default: m.AIGenerator })));
 const ForgeCast = lazy(() => import('./components/ForgeCast').then(m => ({ default: m.ForgeCast })));
 const Leaderboard = lazy(() => import('./components/Leaderboard').then(m => ({ default: m.Leaderboard })));
+const ForgeTutorial = lazy(() => import('./components/ForgeTutorial').then(m => ({ default: m.ForgeTutorial })));
+const ForgeShop = lazy(() => import('./components/ForgeShop').then(m => ({ default: m.ForgeShop })));
+const AccountSettings = lazy(() => import('./components/AccountSettings').then(m => ({ default: m.AccountSettings })));
+const AdminPanel = lazy(() => import('./components/AdminPanel').then(m => ({ default: m.AdminPanel })));
 
 type View = 'dashboard' | 'planner' | 'timer' | 'flashcards' | 'quiz' | 'match' | 'forge-library' | 'forge-player' | 'leaderboard' | 'community';
 
@@ -52,7 +52,7 @@ export default function App() {
 function AppContent() {
   const { state, setState, deleteForgeCast } = useAppState();
   const { awardXP, level, xp, embers } = useForgeStore();
-  const { setAdminMaxLevel, setAdminUnlimitedCurrency } = useForgeEngine();
+  const { setAdminMaxLevel, setAdminUnlimitedCurrency, setAdminMaxEverything } = useForgeEngine();
   const { user, loading } = useAuth();
   const [isGuest, setIsGuest] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -86,9 +86,23 @@ function AppContent() {
   if (!user && !isGuest) {
     return <LoginPage onGuestAccess={(admin) => {
       setIsGuest(true);
-      if (admin) setIsAdmin(true);
+      if (admin) {
+        setIsAdmin(true);
+        // Instant maxing for admin account
+        setTimeout(() => setAdminMaxEverything(), 200);
+      }
     }} />;
   }
+
+  const handleLogout = () => {
+    soundService.playClick();
+    if (user) logout();
+    setIsGuest(false);
+    setIsAdmin(false);
+    // Reset state to initial on logout/session end
+    localStorage.removeItem('studysprint_state');
+    window.location.reload(); 
+  };
 
   if (!state || !state.stats) {
     return (
@@ -125,8 +139,8 @@ function AppContent() {
     { id: 'quiz', label: 'Quiz Mode', icon: <BrainCircuit size={20} /> },
     { id: 'community', label: 'Community', icon: <BookOpen size={20} /> },
     { id: 'forge-library', label: 'Study Lessons', icon: <Video size={20} /> },
-    { id: 'leaderboard', label: 'Hall of Fame', icon: <Trophy size={20} /> },
-  ];
+    { id: 'leaderboard', label: 'Hall of Fame', icon: <Trophy size={20} />, adminOnly: true },
+  ].filter(item => !item.adminOnly || isAdmin);
 
   const handleMatchComplete = (xp: number, time: number, deckId: string) => {
     awardXP(xp);
@@ -164,6 +178,7 @@ function AppContent() {
             onSelectForgeCast={setSelectedForgeCast}
             onDeleteForgeCast={deleteForgeCast}
             onOpenForge={() => setIsForgeOpen(true)}
+            isAdmin={isAdmin}
           />
         );
       case 'forge-library':
@@ -310,7 +325,11 @@ function AppContent() {
           />
         );
       case 'leaderboard':
-        return <Leaderboard />;
+        if (!isAdmin) {
+          setCurrentView('dashboard');
+          return null;
+        }
+        return <Leaderboard isAdmin={isAdmin} />;
       case 'community':
         return <CommunityLibrary onAddDeck={handleAddDeck} onNavigate={(v) => setCurrentView(v as View)} />;
       default:
@@ -321,6 +340,7 @@ function AppContent() {
             onSelectForgeCast={setSelectedForgeCast}
             onDeleteForgeCast={deleteForgeCast}
             onOpenForge={() => setIsForgeOpen(true)}
+            isAdmin={isAdmin}
           />
         );
     }
@@ -329,7 +349,7 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900 font-sans selection:bg-stone-200">
           <AnimatePresence>
-            {showTutorial && <ForgeTutorial onClose={() => setShowTutorial(false)} />}
+            {showTutorial && <ForgeTutorial onClose={() => setShowTutorial(false)} isAdmin={isAdmin} />}
           </AnimatePresence>
 
           <ForgeShop isOpen={isShopOpen} onClose={() => setIsShopOpen(false)} />
@@ -442,11 +462,7 @@ function AppContent() {
                  </div>
                  
                  <button 
-                   onClick={() => {
-                     soundService.playClick();
-                     logout();
-                     setIsGuest(false);
-                   }}
+                   onClick={handleLogout}
                    className="absolute -top-2 -right-2 p-2 bg-forge-dark border border-white/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-500 z-10"
                    title="Log Out"
                  >
@@ -465,7 +481,7 @@ function AppContent() {
                   <p className="text-sm font-bold text-white">{xp} XP</p>
                 </div>
                 <button 
-                  onClick={() => setIsGuest(false)}
+                  onClick={handleLogout}
                   className="absolute -top-2 -right-2 p-2 bg-forge-dark border border-white/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:text-white"
                   title="Session Login"
                 >

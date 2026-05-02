@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { MessageSquare, X, Send, Paperclip, Loader2, User, BookOpen, FileText, Trash2, Zap, Layers, BrainCircuit } from 'lucide-react';
+import { MessageSquare, X, Send, Paperclip, Loader2, User, BookOpen, FileText, Trash2, Zap, Layers, BrainCircuit, Sparkles } from 'lucide-react';
 import { chatWithAcademicAssistant, isAIConfigured } from '../services/aiService';
+import { useForgeStore } from '../contexts/ForgeStoreContext';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
@@ -20,14 +21,16 @@ interface ForgeChatProps {
 }
 
 export function ForgeChat({ onNavigate, onOpenForge, onSaveData }: ForgeChatProps) {
+  const { unlockTheme, setTheme, currentTheme, activeAssistantSkin, addBadge, badges } = useForgeStore();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'model', content: "Academic Assistant active. I am here to help you master your curriculum. What topic should we explore today?" }
+    { role: 'model', content: `Lead Academic Assistant active. I am here to help you master your 10th-grade curriculum. ${activeAssistantSkin !== 'Default' ? `Current Persona: ${activeAssistantSkin}.` : ''} What topic should we explore today?` }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [fileContent, setFileContent] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [focusCount, setFocusCount] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -37,6 +40,18 @@ export function ForgeChat({ onNavigate, onOpenForge, onSaveData }: ForgeChatProp
     }
   }, [messages, isLoading]);
 
+  // Easter Egg Tracker
+  useEffect(() => {
+    if (focusCount >= 5) {
+      unlockTheme('Matrix Code');
+      setTheme('Matrix Code');
+      addBadge('Digital Alchemist');
+      setMessages(prev => [...prev, { role: 'model', content: "SYSTEM BREACH DETECTED... Redirecting to the Matrix. Secret 'Matrix Code' theme unlocked for free! [[ACTION:THEME:Matrix Code]]" }]);
+      setFocusCount(0);
+      soundService.playSuccess();
+    }
+  }, [focusCount, unlockTheme, setTheme, addBadge]);
+
   const handleSend = async () => {
     if (!input.trim() && !fileContent) return;
     if (!isAIConfigured) {
@@ -44,7 +59,14 @@ export function ForgeChat({ onNavigate, onOpenForge, onSaveData }: ForgeChatProp
       return;
     }
 
-    const userMessage = input.trim() || (fileContent ? `I've uploaded a file: ${fileName}. Please analyze it.` : '');
+    const trimmedInput = input.trim();
+    if (trimmedInput.toLowerCase() === 'focus') {
+      setFocusCount(prev => prev + 1);
+    } else {
+      setFocusCount(0);
+    }
+
+    const userMessage = trimmedInput || (fileContent ? `I've uploaded a file: ${fileName}. Please analyze it.` : '');
     const newMessages: Message[] = [...messages, { role: 'user', content: userMessage }];
     
     setMessages(newMessages);
@@ -58,7 +80,14 @@ export function ForgeChat({ onNavigate, onOpenForge, onSaveData }: ForgeChatProp
         parts: [{ text: m.content }]
       }));
 
-      const response = await chatWithAcademicAssistant(userMessage, history, fileContent || undefined);
+      // Inyect personality into prompt if needed
+      const personalityPrompt = activeAssistantSkin === 'Drill Sergeant' ? "You are now in Drill Sergeant mode. Be aggressive, strictly disciplined, and demand excellence. Stop procrastination." :
+                               activeAssistantSkin === 'Zen Master' ? "You are now in Zen Master mode. Be calm, use nature analogies, and focus on stress-reduction." :
+                               activeAssistantSkin === 'Rival' ? "You are now in Rival mode. Be a competitive 4.0 student who challenges the user to beat your speed." : "";
+
+      const fullMessage = personalityPrompt ? `${personalityPrompt}\n\nUser Message: ${userMessage}` : userMessage;
+
+      const response = await chatWithAcademicAssistant(fullMessage, history, fileContent || undefined);
       setMessages(prev => [...prev, { role: 'model', content: response }]);
     } catch (error) {
        setMessages(prev => [...prev, { role: 'model', content: "I apologize, but I encountered an error processing your request. " + (error as Error).message }]);
@@ -180,13 +209,46 @@ export function ForgeChat({ onNavigate, onOpenForge, onSaveData }: ForgeChatProp
                           remarkPlugins={[remarkMath]} 
                           rehypePlugins={[rehypeKatex]}
                         >
-                          {message.content.replace(/\[\[ACTION:.*?\]\]/g, '').replace(/\[\[DATA:.*?\]\]/g, '')}
+                          {message.content
+                            .replace(/\[\[ACTION:.*?\]\]/g, '')
+                            .replace(/\[\[DATA:.*?\]\]/g, '')
+                            .replace(/\[OPEN_PLANNER\]/g, '')
+                            .replace(/\[OPEN_VAULT\]/g, '')
+                            .replace(/\[OPEN_FORGECAST\]/g, '')
+                          }
                         </ReactMarkdown>
                       </div>
                       
                       {/* Data & Action Triggers */}
                       {message.role === 'model' && (
                         <div className="mt-4 flex flex-col gap-4">
+                          {/* Navigation Shortcuts */}
+                          <div className="flex flex-wrap gap-2">
+                            {message.content.includes('[OPEN_PLANNER]') && (
+                              <button 
+                                onClick={() => onNavigate?.('planner')}
+                                className="px-3 py-1.5 bg-forge-accent/20 text-forge-accent border border-forge-accent/30 rounded-lg text-[10px] font-black uppercase tracking-tighter hover:bg-forge-accent hover:text-forge-dark transition-all"
+                              >
+                                Go to Planner
+                              </button>
+                            )}
+                            {message.content.includes('[OPEN_VAULT]') && (
+                              <button 
+                                onClick={() => onNavigate?.('vault')}
+                                className="px-3 py-1.5 bg-forge-accent/20 text-forge-accent border border-forge-accent/30 rounded-lg text-[10px] font-black uppercase tracking-tighter hover:bg-forge-accent hover:text-forge-dark transition-all"
+                              >
+                                Go to Vault
+                              </button>
+                            )}
+                            {message.content.includes('[OPEN_FORGECAST]') && (
+                              <button 
+                                onClick={() => onNavigate?.('forgecast')}
+                                className="px-3 py-1.5 bg-forge-accent/20 text-forge-accent border border-forge-accent/30 rounded-lg text-[10px] font-black uppercase tracking-tighter hover:bg-forge-accent hover:text-forge-dark transition-all"
+                              >
+                                Go to ForgeCast
+                              </button>
+                            )}
+                          </div>
                           {/* Data Payload Cards */}
                           {message.content.match(/\[\[DATA:(.*?):(.*?)\]\]/g)?.map((dataRaw, idx) => {
                             try {

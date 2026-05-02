@@ -14,6 +14,11 @@ export const INITIAL_STATE: AppState = {
     plan: 'Premium',
     currentTheme: 'Default Ember',
     unlockedThemes: ['Default Ember'],
+    activeAssistantSkin: 'Default',
+    unlockedSkins: ['Default'],
+    unlockedItems: [],
+    badges: ['Beta Tester'],
+    activeBoosters: [],
     aiUsage: {
       quizzes: 0,
       flashcards: 0,
@@ -45,4 +50,17 @@ export const MOTIVATIONAL_MESSAGES = [
   "Focus is your superpower.",
   "One step closer to your goals.",
   "You're doing amazing!",
+];
+
+export const PYRA_TIPS = [
+  "Take a 5-minute break every 25 minutes. It keeps your brain sharp!",
+  "Make sure to stay hydrated while you're forging through your studies!",
+  "Explaining a concept to someone else is the best way to master it.",
+  "Check out the ForgeVault for some community-made flashcard decks!",
+  "Studies show that getting 8 hours of sleep helps with memory retention.",
+  "You've got this! Every session brings you closer to your goals.",
+  "Don't forget to organize your planner for the week ahead!",
+  "Try turning on 'Focus Mode' to get those extra Embers!",
+  "The Hall of Fame is waiting for more Elite scholars like you.",
+  "Complex topic? Build a StudyCast to visualize the logic!",
 ];

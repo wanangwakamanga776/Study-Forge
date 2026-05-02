@@ -1,8 +1,11 @@
-import { Trophy, Flame, Target, Timer, Layers, BrainCircuit, CheckCircle2, Star, Zap, Video, Play, Sparkles, Trash2 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { Trophy, Flame, Target, Timer, Layers, BrainCircuit, CheckCircle2, Star, Zap, Video, Play, Sparkles, Trash2, Quote } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { AppState, ForgeCastBlueprint } from '../types';
 import { cn } from '../lib/utils';
 import { soundService } from '../services/soundService';
+import { PYRA_TIPS } from '../constants';
+import { PyraMascot } from './PyraMascot';
+import { useState, useEffect } from 'react';
 
 interface DashboardProps {
   state: AppState;
@@ -10,18 +13,29 @@ interface DashboardProps {
   onSelectForgeCast: (fc: ForgeCastBlueprint) => void;
   onDeleteForgeCast: (id: string) => void;
   onOpenForge: () => void;
+  isAdmin?: boolean;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ state, onNavigate, onSelectForgeCast, onDeleteForgeCast, onOpenForge }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ state, onNavigate, onSelectForgeCast, onDeleteForgeCast, onOpenForge, isAdmin }) => {
   const { stats, tasks, forgeCasts } = state;
   const todayTasks = tasks.filter(t => !t.completed);
   
   const xpToNextLevel = 100 - (stats.xp % 100);
   const progress = (stats.xp % 100);
 
+  const [activeTip, setActiveTip] = useState(PYRA_TIPS[0]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const randomTip = PYRA_TIPS[Math.floor(Math.random() * PYRA_TIPS.length)];
+      setActiveTip(randomTip);
+    }, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
-      {/* ... existing premium banner ... */}
+    <div className="max-w-6xl mx-auto space-y-8 pb-20">
+      {/* ... existing hero stats ... */}
 
       {/* Hero Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -163,6 +177,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onNavigate, onSelec
                         alt={fc.metadata.title}
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                         referrerPolicy="no-referrer"
+                        loading="lazy"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent p-6 flex flex-col justify-end">
                         <div className="flex items-center gap-2 mb-2">
@@ -248,7 +263,45 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onNavigate, onSelec
         </div>
 
         <div className="space-y-8">
-          {/* Sidebar content if any */}
+          {/* Pyra Mascot Section (Admin Testing Only) */}
+          {isAdmin && (
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="glass-card rounded-[2.5rem] p-8 border border-white/5 flex flex-col items-center text-center relative overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 w-full h-1 bg-forge-accent/30" />
+              <PyraMascot 
+                expression="happy" 
+                message="I'm here to help!" 
+                className="mb-6"
+              />
+              <div className="space-y-4">
+                <div className="flex items-center justify-center gap-2 text-forge-accent">
+                  <Quote size={14} className="opacity-50" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em]">Pyra's Study Tip</span>
+                </div>
+                <AnimatePresence mode="wait">
+                  <motion.p 
+                    key={activeTip}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="text-stone-400 text-xs font-bold leading-relaxed"
+                  >
+                    "{activeTip}"
+                  </motion.p>
+                </AnimatePresence>
+              </div>
+
+              <button
+                onClick={() => onNavigate('match')}
+                className="mt-8 w-full py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-stone-400 hover:bg-white/10 hover:text-white transition-all"
+              >
+                Train Brain Today
+              </button>
+            </motion.div>
+          )}
         </div>
       </div>
     </div>

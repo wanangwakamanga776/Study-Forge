@@ -43,6 +43,7 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({
   const [previewData, setPreviewData] = useState<{
     summary: string;
     terms: string[];
+    studySheet: string;
     sampleFlashcards: { front: string; back: string }[];
   } | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -214,26 +215,26 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-2xl glass-card rounded-[2.5rem] overflow-hidden"
+              className="relative w-full max-w-2xl glass-card rounded-[2.5rem] overflow-hidden flex flex-col max-h-[90vh] sm:max-h-[85vh]"
             >
-              <div className="p-8 sm:p-12">
-                <div className="flex items-center justify-between mb-10">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-forge-accent/10 text-forge-accent rounded-2xl forge-glow">
-                      <Sparkles size={28} />
-                    </div>
-                    <div>
-                      <h2 className="text-3xl font-extrabold font-display uppercase italic tracking-tighter text-white">Lesson Architect</h2>
-                      <p className="text-stone-500 text-xs uppercase tracking-widest font-bold">AI Content Assistant</p>
-                    </div>
+              <div className="p-6 sm:p-10 border-b border-white/5 flex items-center justify-between shrink-0 bg-white/[0.02]">
+                <div className="flex items-center gap-4">
+                  <div className="p-2 sm:p-3 bg-forge-accent/10 text-forge-accent rounded-xl sm:rounded-2xl forge-glow">
+                    <Sparkles size={24} className="sm:w-7 sm:h-7" />
                   </div>
-                  {!isGenerating && (
-                    <button onClick={() => setIsOpen(false)} className="text-stone-500 hover:text-white transition-colors">
-                      <X size={28} />
-                    </button>
-                  )}
+                  <div>
+                    <h2 className="text-xl sm:text-3xl font-extrabold font-display uppercase italic tracking-tighter text-white">Lesson Architect</h2>
+                    <p className="text-stone-500 text-[10px] sm:text-xs uppercase tracking-widest font-bold">AI Content Assistant</p>
+                  </div>
                 </div>
+                {!isGenerating && (
+                  <button onClick={() => setIsOpen(false)} className="p-2 text-stone-500 hover:text-white transition-colors">
+                    <X size={24} />
+                  </button>
+                )}
+              </div>
 
+              <div className="flex-1 overflow-y-auto p-6 sm:p-12 metallic-scrollbar">
                 {!isAIConfigured ? (
                   <div className="py-16 text-center">
                     <div className="w-24 h-24 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-8 border border-red-500/20">
@@ -513,6 +514,16 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({
                                <span className="text-[10px] font-black uppercase tracking-widest">Expert Summary</span>
                             </div>
                             <p className="text-sm text-stone-300 leading-relaxed font-medium">{previewData.summary}</p>
+                          </div>
+
+                          <div className="space-y-4">
+                            <div className="flex items-center gap-2 text-forge-accent">
+                               <BookOpen size={16} />
+                               <span className="text-[10px] font-black uppercase tracking-widest">Integrated Study Sheet</span>
+                            </div>
+                            <div className="text-xs text-stone-400 bg-white/5 p-6 rounded-2xl border border-white/10 markdown-body prose prose-invert max-h-60 overflow-y-auto">
+                               <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{previewData.studySheet}</ReactMarkdown>
+                            </div>
                           </div>
 
                           <div className="space-y-3">

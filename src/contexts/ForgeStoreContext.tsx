@@ -19,6 +19,15 @@ interface ForgeStoreContextType {
   setTheme: (theme: string) => void;
   unlockedThemes: string[];
   unlockTheme: (theme: string) => void;
+  unlockSkin: (skin: string) => void;
+  setSkin: (skin: string) => void;
+  unlockItem: (id: string) => void;
+  addBadge: (badge: string) => void;
+  activateBooster: (type: 'Power Hour') => void;
+  activeAssistantSkin: string;
+  unlockedSkins: string[];
+  unlockedItems: string[];
+  badges: string[];
   isSyncing: boolean;
   syncError: boolean;
 }
@@ -29,6 +38,7 @@ export const THEMES = {
   'Default Ember': '#FB923C',
   'Deep Sea Blue': '#3B82F6',
   'Midnight Purple': '#A855F7',
+  'Matrix Code': '#22C55E',
 };
 
 function hexToRgb(hex: string) {
@@ -46,7 +56,25 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
   const [syncError, setSyncError] = useState(false);
   const isInitialLoad = useRef(true);
 
-  const { xp, level, embers, currentTheme, unlockedThemes } = state.stats;
+  const { xp, level, embers, currentTheme, unlockedThemes, activeAssistantSkin = 'Default', unlockedSkins = ['Default'], unlockedItems = [], badges = [], activeBoosters = [] } = state.stats;
+
+  // Level Up logic to credit Embers
+  const [lastLevelCredit, setLastLevelCredit] = useState(level);
+
+  useEffect(() => {
+    if (level > lastLevelCredit) {
+      const diff = level - lastLevelCredit;
+      const creditAmount = diff * 100;
+      setState(prev => ({
+        ...prev,
+        stats: {
+          ...prev.stats,
+          embers: (prev.stats.embers || 0) + creditAmount
+        }
+      }));
+      setLastLevelCredit(level);
+    }
+  }, [level, lastLevelCredit, setState]);
 
   // Cloud Sync: Load stats on login
   useEffect(() => {
@@ -119,11 +147,19 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
   }, [currentTheme]);
 
   const awardXP = useCallback((amount: number) => {
+    let newLevelVal = 1;
+    let leveledUp = false;
+    let embersGain = 0;
+
     setState(prev => {
       const today = new Date().toISOString().split('T')[0];
       const newXP = prev.stats.xp + amount;
       const newLevel = Math.floor(newXP / 1000) + 1;
-      const newEmbers = (prev.stats.embers || 0) + Math.round(amount / 5);
+      const earned = Math.round(amount / 5);
+      const newEmbers = (prev.stats.embers || 0) + earned;
+      
+      newLevelVal = newLevel;
+      embersGain = earned;
 
       let newStreak = prev.stats.streak;
       if (prev.stats.lastActiveDate !== today) {
@@ -142,13 +178,8 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
       }
 
       if (newLevel > prev.stats.level) {
-        setLeveledTo(newLevel);
-        setShowLevelUp(true);
-        soundService.playLevelUp();
+        leveledUp = true;
       }
-
-      // Trigger standard reward toast
-      triggerReward(amount, Math.round(amount/5), "Session Complete!");
 
       return {
         ...prev,
@@ -162,7 +193,20 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
         }
       };
     });
-  }, [setState]);
+
+    // Side effects outside state updater
+    if (leveledUp) {
+      setLeveledTo(newLevelVal);
+      setShowLevelUp(true);
+      soundService.playLevelUp();
+    } else if (amount > 0) {
+      soundService.playSuccess();
+    }
+
+    if (amount > 0 || embersGain > 0) {
+      triggerReward(amount, embersGain, "Session Complete!");
+    }
+  }, [setState, triggerReward]);
 
   const spendEmbers = useCallback((amount: number) => {
     let success = false;
@@ -202,23 +246,83 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
     }));
   }, [setState]);
 
+  const unlockSkin = useCallback((skin: string) => {
+    setState(prev => ({
+      ...prev,
+      stats: {
+        ...prev.stats,
+        unlockedSkins: [...new Set([...(prev.stats.unlockedSkins || ['Default']), skin])]
+      }
+    }));
+  }, [setState]);
+
+  const setSkin = useCallback((skin: string) => {
+    setState(prev => ({
+      ...prev,
+      stats: {
+        ...prev.stats,
+        activeAssistantSkin: skin as any
+      }
+    }));
+  }, [setState]);
+
+  const unlockItem = useCallback((id: string) => {
+    setState(prev => ({
+      ...prev,
+      stats: {
+        ...prev.stats,
+        unlockedItems: [...new Set([...(prev.stats.unlockedItems || []), id])]
+      }
+    }));
+  }, [setState]);
+
+  const addBadge = useCallback((badge: string) => {
+    setState(prev => ({
+      ...prev,
+      stats: {
+        ...prev.stats,
+        badges: [...new Set([...(prev.stats.badges || []), badge])]
+      }
+    }));
+  }, [setState]);
+
+  const activateBooster = useCallback((type: 'Power Hour') => {
+    const expiresAt = Date.now() + (60 * 60 * 1000); // 1 hour
+    setState(prev => ({
+      ...prev,
+      stats: {
+        ...prev.stats,
+        activeBoosters: [...(prev.stats.activeBoosters || []), { type, expiresAt }]
+      }
+    }));
+  }, [setState]);
+
   const completeFocusSession = useCallback(async (xpAmount: number, embersAmount: number) => {
+    // Check for Early Bird Achievement (before 7:00 AM)
+    const hour = new Date().getHours();
+    let bonusEmbers = 0;
+    if (hour < 7) {
+      bonusEmbers = 50;
+      addBadge('Early Bird');
+    }
+
+    const finalXP = xpAmount;
+    const finalEmbers = embersAmount + bonusEmbers;
+
     if (user) {
       setIsSyncing(true);
       try {
-        await incrementUserStats(user.uid, xpAmount, embersAmount);
-        awardXP(xpAmount); // This handles the local XP/Level/Streak and also fires a standard Reward Toast
-        // Embers are also updated locally via awardXP logic, but we've already done the cloud update atomically.
-        // The standard reward toast is handled by awardXP.
+        await incrementUserStats(user.uid, finalXP, finalEmbers);
+        awardXP(finalXP); 
       } catch (error) {
         setSyncError(true);
       } finally {
         setTimeout(() => setIsSyncing(false), 2000);
       }
     } else {
-      awardXP(xpAmount);
+      awardXP(finalXP);
     }
-  }, [user, awardXP]);
+  }, [user, awardXP, addBadge]);
 
   return (
     <ForgeStoreContext.Provider value={{
@@ -232,6 +336,15 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
       setTheme,
       unlockedThemes,
       unlockTheme,
+      unlockSkin,
+      setSkin,
+      unlockItem,
+      addBadge,
+      activateBooster,
+      activeAssistantSkin,
+      unlockedSkins,
+      unlockedItems,
+      badges,
       isSyncing,
       syncError
     }}>

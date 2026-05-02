@@ -41,6 +41,7 @@ export function useForgeEngine() {
     const multiplier = 1 + score / 100;
     const xpGain = Math.round(baseXP * multiplier);
     const embersGain = Math.round(baseEmbers * multiplier);
+    let leveledUp = false;
 
     setState(prev => {
       const newXp = prev.stats.xp + xpGain;
@@ -69,9 +70,7 @@ export function useForgeEngine() {
       }
 
       if (newLevel > prev.stats.level) {
-        soundService.playLevelUp();
-      } else {
-        soundService.playSuccess();
+        leveledUp = true;
       }
 
       return {
@@ -86,6 +85,12 @@ export function useForgeEngine() {
         }
       };
     });
+
+    if (leveledUp) {
+      soundService.playLevelUp();
+    } else {
+      soundService.playSuccess();
+    }
 
     // We can also trigger notifications here if we had a notification context
     return { xpGain, embersGain };
@@ -115,6 +120,21 @@ export function useForgeEngine() {
     if (active) soundService.playSuccess();
   }, [setState]);
 
+  const setAdminMaxEverything = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      stats: {
+        ...prev.stats,
+        xp: 1000000,
+        level: getLevelFromXp(1000000),
+        embers: 999999,
+        plan: 'Premium',
+        streak: 999
+      }
+    }));
+    soundService.playLevelUp();
+  }, [setState, getLevelFromXp]);
+
   return {
     stats: state.stats,
     getLevelFromXp,
@@ -123,5 +143,6 @@ export function useForgeEngine() {
     awardStudySession,
     setAdminMaxLevel,
     setAdminUnlimitedCurrency,
+    setAdminMaxEverything,
   };
 }

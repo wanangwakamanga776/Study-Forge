@@ -84,6 +84,11 @@ export interface UserStats {
   plan: 'Free' | 'Premium';
   currentTheme: string;
   unlockedThemes: string[];
+  activeAssistantSkin?: 'Default' | 'Drill Sergeant' | 'Zen Master' | 'Rival';
+  unlockedSkins?: string[];
+  unlockedItems?: string[];
+  badges?: string[];
+  activeBoosters?: { type: 'Power Hour'; expiresAt: number }[];
   aiUsage: {
     quizzes: number;
     flashcards: number;

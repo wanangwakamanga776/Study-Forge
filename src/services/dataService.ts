@@ -119,6 +119,17 @@ export const getTopForgers = async (limitCount: number = 10): Promise<UserStats[
   }
 };
 
+export const getTotalUserCount = async (): Promise<number> => {
+  try {
+    const q = query(collection(db, 'users'));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.size;
+  } catch (error) {
+    console.error("Error getting user count:", error);
+    return 0;
+  }
+};
+
 // Community Library Functions
 
 export const publishDeck = async (deck: Deck) => {

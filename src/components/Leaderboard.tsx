@@ -1,13 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Trophy, Medal, User, Crown, Flame, Loader2, RefreshCw } from 'lucide-react';
-import { getTopForgers } from '../services/dataService';
+import { Trophy, Medal, User, Crown, Flame, Loader2, RefreshCw, Users } from 'lucide-react';
+import { getTopForgers, getTotalUserCount } from '../services/dataService';
 import { UserStats } from '../types';
 import { cn } from '../lib/utils';
 import { soundService } from '../services/soundService';
 
-export const Leaderboard: React.FC = () => {
+interface LeaderboardProps {
+  isAdmin?: boolean;
+}
+
+export const Leaderboard: React.FC<LeaderboardProps> = ({ isAdmin }) => {
   const [topStudents, setTopStudents] = useState<UserStats[]>([]);
+  const [totalUsers, setTotalUsers] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -16,8 +21,12 @@ export const Leaderboard: React.FC = () => {
     else setLoading(true);
     
     try {
-      const data = await getTopForgers(10);
+      const [data, count] = await Promise.all([
+        getTopForgers(10),
+        isAdmin ? getTotalUserCount() : Promise.resolve(null)
+      ]);
       setTopStudents(data);
+      if (isAdmin) setTotalUsers(count);
     } catch (error) {
       console.error("Failed to fetch leaderboard", error);
     } finally {
@@ -55,16 +64,33 @@ export const Leaderboard: React.FC = () => {
           <h2 className="text-3xl font-display font-black uppercase italic tracking-tighter text-white">The Academy Elite</h2>
           <p className="text-stone-500 text-[10px] font-bold uppercase tracking-widest">Top Ranking Students</p>
         </div>
-        <button 
-          onClick={() => {
-            soundService.playClick();
-            fetchLearderboard(true);
-          }}
-          disabled={refreshing}
-          className="p-3 bg-white/5 text-stone-500 rounded-2xl hover:text-white transition-all border border-white/5"
-        >
-          <RefreshCw size={20} className={cn(refreshing && "animate-spin")} />
-        </button>
+        <div className="flex items-center gap-4">
+          {isAdmin && totalUsers !== null && (
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="px-4 py-2 bg-white/5 border border-white/5 rounded-2xl flex items-center gap-3"
+            >
+              <div className="p-1.5 bg-blue-500/10 text-blue-400 rounded-lg">
+                <Users size={16} />
+              </div>
+              <div className="text-left">
+                <p className="text-[8px] font-black uppercase tracking-widest text-stone-500 leading-none mb-1">Total Students</p>
+                <p className="text-sm font-display font-black italic tracking-tighter text-white leading-none">{totalUsers.toLocaleString()}</p>
+              </div>
+            </motion.div>
+          )}
+          <button 
+            onClick={() => {
+              soundService.playClick();
+              fetchLearderboard(true);
+            }}
+            disabled={refreshing}
+            className="p-3 bg-white/5 text-stone-500 rounded-2xl hover:text-white transition-all border border-white/5"
+          >
+            <RefreshCw size={20} className={cn(refreshing && "animate-spin")} />
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-4">
@@ -116,9 +142,12 @@ export const Leaderboard: React.FC = () => {
 
               {/* Info */}
               <div className="flex-1 min-w-0">
-                <h3 className="font-display font-black uppercase italic tracking-tighter text-white truncate group-hover:text-forge-accent transition-colors">
-                  {student.name || 'Unknown Student'}
-                </h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-display font-black uppercase italic tracking-tighter text-white truncate group-hover:text-forge-accent transition-colors">
+                    {student.name || 'Unknown Student'}
+                  </h3>
+                  {index === 0 && <span className="text-xl" title="Hall of Fame Crown">👑</span>}
+                </div>
                 <div className="flex items-center gap-3">
                   <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">
                     Level {student.level}
