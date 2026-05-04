@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, lazy, Suspense, useEffect } from 'react';
+import React, { useState, lazy, Suspense, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Layout, Timer, ListTodo, Layers, BrainCircuit, Menu, X, Star, Sparkles, Zap, Loader2, Video, Play, SkipBack, Monitor, RotateCcw, Trash2, Flame, LogOut, Trophy, BookOpen } from 'lucide-react';
 import { useAppState } from './hooks/useAppState';
@@ -23,6 +23,8 @@ import { useAuth, logout } from './services/authService';
 import { useForgeEngine } from './hooks/useForgeEngine';
 import { testArchivesConnection } from './services/dataService';
 import { HelpCircle, Store, Shield } from 'lucide-react';
+import { ThemeVisuals } from './components/ThemeVisuals';
+import { AboutMePopup } from './components/AboutMeSection';
 
 const TaskPlanner = lazy(() => import('./components/TaskPlanner').then(m => ({ default: m.TaskPlanner })));
 const FocusTimer = lazy(() => import('./components/FocusTimer').then(m => ({ default: m.FocusTimer })));
@@ -39,18 +41,33 @@ const AdminPanel = lazy(() => import('./components/AdminPanel').then(m => ({ def
 
 type View = 'dashboard' | 'planner' | 'timer' | 'flashcards' | 'quiz' | 'match' | 'forge-library' | 'forge-player' | 'leaderboard' | 'community';
 
+const AdminOnlyView: React.FC<{ children: React.ReactNode; isAdmin: boolean; onRedirect: () => void }> = ({ children, isAdmin, onRedirect }) => {
+  React.useEffect(() => {
+    if (!isAdmin) {
+      onRedirect();
+    }
+  }, [isAdmin, onRedirect]);
+
+  if (!isAdmin) return null;
+  return <>{children}</>;
+};
+
+import { AppStateProvider } from './contexts/AppStateContext';
+
 export default function App() {
   return (
-    <RewardProvider>
-        <ForgeStoreProvider>
-            <AppContent />
-        </ForgeStoreProvider>
-    </RewardProvider>
+    <AppStateProvider>
+      <RewardProvider>
+          <ForgeStoreProvider>
+              <AppContent />
+          </ForgeStoreProvider>
+      </RewardProvider>
+    </AppStateProvider>
   );
 }
 
 function AppContent() {
-  const { state, setState, deleteForgeCast } = useAppState();
+  const { state, setState, deleteForgeCast, resetToDefault } = useAppState();
   const { awardXP, level, xp, embers } = useForgeStore();
   const { setAdminMaxLevel, setAdminUnlimitedCurrency, setAdminMaxEverything } = useForgeEngine();
   const { user, loading } = useAuth();
@@ -69,6 +86,25 @@ function AppContent() {
   useEffect(() => {
     testArchivesConnection();
   }, []);
+
+  // Auto-set isAdmin for the specific admin email
+  useEffect(() => {
+    if (user && user.email === 'wanangwakamanga776@gmail.com') {
+      setIsAdmin(true);
+    }
+  }, [user]);
+
+  // Auto-reset visuals when logged out and on home screen (LoginPage)
+  useEffect(() => {
+    if (!loading && !user && !isGuest) {
+      const isDefaultTheme = state.stats.currentTheme === 'Default Ember';
+      const isLowLevel = state.stats.level === 1;
+      
+      if (!isDefaultTheme || !isLowLevel) {
+        resetToDefault();
+      }
+    }
+  }, [user, isGuest, loading, state.stats.currentTheme, state.stats.level, resetToDefault]);
 
   const handleCloseTutorial = () => {
     localStorage.setItem('forge_tutorial_seen', 'true');
@@ -99,9 +135,8 @@ function AppContent() {
     if (user) logout();
     setIsGuest(false);
     setIsAdmin(false);
-    // Reset state to initial on logout/session end
-    localStorage.removeItem('studysprint_state');
-    window.location.reload(); 
+    resetToDefault();
+    setTimeout(() => window.location.reload(), 100);
   };
 
   if (!state || !state.stats) {
@@ -115,19 +150,96 @@ function AppContent() {
   const handleAIGenerated = (type: 'flashcards' | 'quiz' | 'forgeCast', data: any) => {
     setState(prev => {
       const newState = { ...prev };
+      // Ensure data has ID
+      const dataWithId = { ...data, id: data.id || crypto.randomUUID(), createdAt: data.createdAt || Date.now() };
+
       if (type === 'flashcards') {
-        newState.decks = [...prev.decks, data as Deck];
+        const deck = dataWithId as Deck;
+        // Ensure cards have IDs
+        if (deck.cards) {
+          deck.cards = deck.cards.map(c => ({ ...c, id: c.id || crypto.randomUUID() }));
+        }
+        newState.decks = [...prev.decks, deck];
         newState.stats.aiUsage.flashcards += 1;
       } else if (type === 'quiz') {
-        newState.quizzes = [...prev.quizzes, data as Quiz];
+        const quiz = dataWithId as Quiz;
+        // Ensure questions have IDs
+        if (quiz.questions) {
+          quiz.questions = quiz.questions.map(q => ({ ...q, id: q.id || crypto.randomUUID() }));
+        }
+        newState.quizzes = [...prev.quizzes, quiz];
         newState.stats.aiUsage.quizzes += 1;
       } else if (type === 'forgeCast') {
-        newState.forgeCasts = [...prev.forgeCasts, data as ForgeCastBlueprint];
+        newState.forgeCasts = [...prev.forgeCasts, dataWithId as ForgeCastBlueprint];
         newState.stats.aiUsage.forgeCasts += 1;
       }
       return newState;
     });
     awardXP(50);
+  };
+
+  const handleEditData = (type: 'flashcards' | 'quiz', data: any) => {
+    setState(prev => {
+      const newState = { ...prev };
+      if (type === 'flashcards') {
+        // Update the deck with matching ID or Title
+        newState.decks = prev.decks.map(d => 
+          (d.id === data.id || d.title.toLowerCase() === data.title.toLowerCase()) ? { 
+            ...d, 
+            ...data,
+            cards: (data.cards || d.cards).map((c: any) => ({ ...c, id: c.id || crypto.randomUUID() }))
+          } : d
+        );
+      } else if (type === 'quiz') {
+        // Update the quiz with matching ID or Title
+        newState.quizzes = prev.quizzes.map(q => 
+          (q.id === data.id || q.title.toLowerCase() === data.title.toLowerCase()) ? { 
+            ...q, 
+            ...data,
+            questions: (data.questions || q.questions).map((ques: any) => ({ ...ques, id: ques.id || crypto.randomUUID() }))
+          } : q
+        );
+      }
+      return newState;
+    });
+    soundService.playSuccess();
+  };
+
+  const handleAddData = (type: 'flashcards' | 'quiz', data: any) => {
+    setState(prev => {
+      const newState = { ...prev };
+      if (type === 'flashcards') {
+        newState.decks = prev.decks.map(d => {
+          if (d.id === data.id || d.title.toLowerCase() === data.title.toLowerCase()) {
+            const newCards = (data.cards || []).map((c: any) => ({
+              ...c,
+              id: c.id || crypto.randomUUID()
+            }));
+            return {
+              ...d,
+              cards: [...d.cards, ...newCards]
+            };
+          }
+          return d;
+        });
+      } else if (type === 'quiz') {
+        newState.quizzes = prev.quizzes.map(q => {
+          if (q.id === data.id || q.title.toLowerCase() === data.title.toLowerCase()) {
+            const newQuestions = (data.questions || []).map((ques: any) => ({
+              ...ques,
+              id: ques.id || crypto.randomUUID()
+            }));
+            return {
+              ...q,
+              questions: [...q.questions, ...newQuestions]
+            };
+          }
+          return q;
+        });
+      }
+      return newState;
+    });
+    soundService.playSuccess();
   };
 
   const navItems = [
@@ -325,11 +437,11 @@ function AppContent() {
           />
         );
       case 'leaderboard':
-        if (!isAdmin) {
-          setCurrentView('dashboard');
-          return null;
-        }
-        return <Leaderboard isAdmin={isAdmin} />;
+        return (
+          <AdminOnlyView isAdmin={isAdmin} onRedirect={() => setCurrentView('dashboard')}>
+            <Leaderboard isAdmin={isAdmin} />
+          </AdminOnlyView>
+        );
       case 'community':
         return <CommunityLibrary onAddDeck={handleAddDeck} onNavigate={(v) => setCurrentView(v as View)} />;
       default:
@@ -348,6 +460,8 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900 font-sans selection:bg-stone-200">
+          <ThemeVisuals />
+          <AboutMePopup />
           <AnimatePresence>
             {showTutorial && <ForgeTutorial onClose={() => setShowTutorial(false)} isAdmin={isAdmin} />}
           </AnimatePresence>
@@ -361,6 +475,8 @@ function AppContent() {
               setIsForgeOpen(true);
             }}
             onSaveData={handleAIGenerated}
+            onEditData={handleEditData}
+            onAddData={handleAddData}
           />
 
           <Suspense fallback={null}>

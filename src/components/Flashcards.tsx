@@ -194,9 +194,15 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
                   className="absolute inset-0 backface-hidden flex flex-col items-center justify-center p-12 bg-stone-900 rounded-3xl border border-black/5 shadow-sm text-center rotate-y-180"
                 >
                   <span className="text-xs font-bold text-stone-500 uppercase tracking-widest mb-4">Definition</span>
-                  <div className="text-xl text-white leading-relaxed markdown-content prose prose-invert">
+                  <div className="text-xl text-white leading-relaxed markdown-content prose prose-invert mb-4">
                     <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{currentCard.definition}</ReactMarkdown>
                   </div>
+                  {currentCard.explanation && (
+                    <div className="mt-4 p-4 rounded-xl bg-white/5 border border-white/5 text-xs text-stone-400 text-left w-full">
+                      <p className="font-bold text-forge-accent uppercase tracking-widest text-[8px] mb-1">Rationale (The Why)</p>
+                      <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{currentCard.explanation}</ReactMarkdown>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             </div>

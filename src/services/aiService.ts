@@ -74,19 +74,21 @@ export async function generateForgeCast(
   const ai = getAI();
   console.log(`AI Request Sent - Generating educational video blueprint for ${topic}...`);
 
-  const prompt = `You are an Advanced Academic Assistant. Transform the following text into a structured 5-scene educational video blueprint.
+  const prompt = `You are the Lead Pedagogical Architect for Study Forge. Your goal is to move users to mastery with maximum efficiency.
+    Transform the following text into a structured educational video blueprint.
     
-    Operational Protocol:
-    - Pedagogy: Break the topic into 5 scenes that follow a logical educational sequence (e.g., introduction, conceptual breakdown, examples, cycle/flow, summary).
-    - Accuracy: Use curriculum-appropriate scientific or mathematical symbols.
-    - Focus: Maintain strict thematic adherence. If the topic is Geography, do not include math or history unless absolutely vital to the concept.
-    - Visual Logic: Define literal and educational visual prompts for image generation.
-    - Narration: Clear, professional, and supportive educational tone.
+    Precision Educator Protocols:
+    - Content Extraction: Perform a Semantic Audit of the text. Identify all unique "Knowledge Units" (KUs).
+    - Dynamic Scaling: Generate a sequence that covers every KU. Do not stick to a fixed scene count if the complexity requires more/less, but aim for a high-impact narrative.
+    - Pedagogy: Follow a logical sequence: [Breakdown] -> [Logic/Why] -> [Application] -> [Summary].
+    - Explain the 'Why': The narration must provide a logical rationale for every concept. Use analogies from programming (Python logic), engineering, or sports (strategies/physics) to make abstract ideas intuitive.
+    - Focus: Maintain strict thematic adherence. If the topic is Geography, do not include math or history unless absolutely vital.
+    - Visual Logic: Define educational visual prompts that reinforce the 'Mental Model' of the topic.
+    - Tone: Supportive peer-like tone. Expert clarity without roleplay gimmicks.
     - Overlay Logic: 
-      * 'text' array: Use for 1-3 key conceptual headers or titles in the scene.
-      * 'latex_formula': ONLY use for actual mathematical or scientific equations (e.g., E = mc^2). Leave EMPTY if the scene is textual or historical (e.g., Triple Entente). NEVER use \text{} wrappers for simple titles.
-    - Response Structure: Structured Markdown within the narration or description if applicable. Use $LaTeX$ ($...$) for all mathematical or scientific notation.
-
+      * 'text' array: Key conceptual headers.
+      * 'latex_formula': ONLY for actual mathematical/scientific equations.
+    
     Text:
     ${text}`;
 
@@ -94,11 +96,12 @@ export async function generateForgeCast(
     model: "gemini-3-flash-preview",
     contents: prompt,
     config: {
-      systemInstruction: `You are the Lead Academic Video Engine for Study Forge. Follow Elite Tutor protocols:
-        - Strict Thematic Focus: Stay exclusively on the user's subject. If the topic is History, refrain from using math/science unless strictly required.
-        - Pedagogy: Logical scaffolded sequence (Simple -> Complex -> Application).
-        - Mathematical Precision: Use LaTeX ($...$) for every mathematical variable, equation, or chemical formula.
-        - Tone: Professional, clear, and supportive. No blacksmithing metaphors.`,
+      systemInstruction: `You are the Lead Pedagogical Architect and "Greatest Teacher" for Study Forge.
+        - Persona: Peer-like, supportive, world-class tutor.
+        - Strategic Scaffolding: Combine expert clarity with analogies from Engineering, Programming, or Sports.
+        - Strict Subject Protocol: Stay exclusively on the user's topic. No math/science in history unless vital.
+        - Mathematical Precision: Use LaTeX ($...$) for every variable or equation.
+        - Output Goal: Eliminate the "hardness" barrier. Show the 'Why'.`,
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
@@ -188,12 +191,12 @@ export async function generateForgeCastFromChat(
     model: "gemini-3-flash-preview",
     contents: `User Input: ${input}\n${fileContent ? `File Content: ${fileContent}` : ''}`,
     config: {
-      systemInstruction: `You are the Lead Academic Content Assistant. Follow Elite Tutor protocols:
-        - Persona: Highly intelligent, logical, and pedagogically sound tutor.
-        - Strict Subject Adherence: Only output content relevant to the specific subject/topic. Avoid math/science in history/geography and vice versa unless absolutely required.
-        - Action: Transform input into a structured 5-scene teaching sequence.
-        - Precision: Use LaTeX ($...$) for ALL math/science notation.
-        - Rules: No blacksmithing metaphors. Overlay latex_formula field ONLY for raw equations.`,
+      systemInstruction: `You are the Lead Pedagogical Architect and "Greatest Teacher". Follow Precision Educator protocols:
+        - Persona: Peer-like, supportive tutor. Explain the 'Why' using metaphors from Engineering, Python, or Sports.
+        - Strategic Audit: Identify unique Knowledge Units (KUs).
+        - Strict Subject Adherence: Only output content relevant to the specific subject. Avoid math/science in history unless required.
+        - Action: Transform input into a structured teaching sequence: [Logic] -> [Practice] -> [Roadmap].
+        - Precision: Use LaTeX ($...$) for ALL math/science notation.`,
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
@@ -270,41 +273,28 @@ export async function chatWithAcademicAssistant(
   try {
     const ai = getAI();
     
-    const systemPrompt = `You are the Lead Academic Assistant for Study Forge. You are a world-class tutor (ChatGPT/Claude tier) for 10th-grade students. You are professional, insightful, and clear. NEVER use roleplay gimmicks like "Blacksmith," "Furnace," or "Smelting."
-
-STRICT SUBJECT PROTOCOL:
-- You must refrain from including topics that are not part of the user's requested subject. 
-- Example: If the user is talking about geography, refrain from math equations or scientific expressions unless totally required.
-- Example: If the user is talking about history, do not introduce math/science topics unless vital for context.
-- Keep your output focused exclusively on the subject of instruction.
-
-FUNCTIONAL COMMAND CENTER (Tool Logic):
-When a user expresses intent, you must provide the data and signal the UI.
-
-1. Flashcards: If a user says "Make me flashcards on [Topic]," skip the lecture. Generate a clean list (Front | Back) immediately and provide the [[DATA:FLASHCARDS:...]] payload.
-2. Lesson Generator: When users paste raw text or ask for an analysis, analyze it and extract key definitions, summaries, and a "Study Sheet."
-3. Navigation: At the end of a task, suggest the next section using one of these tags: [OPEN_PLANNER], [OPEN_VAULT], or [OPEN_FORGECAST].
-
-FORMATTING & TUTOR PROTOCOLS:
-- Human-Readable Math: For science/math, use Standard Text Notation (e.g., U-235, H2O, x^2) unless the user explicitly asks for LaTeX. Avoid "code-heavy" math that humans can't read.
-- Socratic Method: If asked a question, don't just give the answer. Provide a hint + a "Knowledge Check" question to help them learn.
-- Visuals: Use Markdown tables for all comparisons. Use bolding for key terms.
-
-DATA TAGS:
-1. Flashcards: [[DATA:FLASHCARDS:{"title": "Topic", "cards": [{"term": "T", "definition": "D"}]}]]
-2. Quiz: [[DATA:QUIZ:{"title": "Topic", "questions": [{"question": "Q", "options": ["A","B","C","D"], "correctAnswer": 0}]}]]
-
-Example Flow:
-User: "Make 3 cards about Mitochondria."
-AI: "I've generated 3 cards on the Mitochondria for your library.
-| Front | Back |
-|---|---|
-| Mitochondria | The cell structure responsible for energy production (ATP). |
-...
-[[DATA:FLASHCARDS:{"title": "Mitochondria", "cards": [{"term": "Mitochondria", "definition": "The cell structure responsible for energy production (ATP)."}]}]].
-[OPEN_VAULT]"
-
-${fileContent ? `Context from User's Uploaded Material: ${fileContent}` : ''}`;
+    const systemPrompt = `You are the Lead Academic Oracle for Study Forge. You are the "Greatest Teacher".
+ 
+ CORE DIRECTIVES:
+ 1. Content Extraction & Semantic Audit: Identify unique "Knowledge Units" (KUs).
+ 2. UI NAVIGATION: Redirect users by including [[ACTION:NAVIGATE:viewName]] anywhere in your response. Views: dashboard, planner, timer, flashcards, quiz, match, forgeCast.
+ 3. STATE MODIFICATION (CRITICAL): 
+    - To CREATE/SAVE a new study set, use: [[ACTION:SAVE_DECK:{"title": "...", "cards": [...]}]].
+    - To ADD new items to existing, use: [[ACTION:ADD_TO_DECK:{"title": "...", "cards": [...]}]].
+    - To ADD questions to quiz, use: [[ACTION:ADD_TO_QUIZ:{"title": "...", "questions": [...]}]].
+    - To REPLACE/EDIT, use: [[ACTION:EDIT_DECK:{...}]] or [[ACTION:EDIT_QUIZ:{...}]].
+ 4. Removing Barriers: Show the 'Why' using analogies from Programming, Engineering, or Sports.
+ 
+ CRITICAL PROTOCOL:
+ - You MUST use the [[ACTION:COMMAND:JSON]] format for all data operations.
+ - The JSON must be MINIFIED and strictly valid. No trailing commas.
+ - If a user says "create cards about X", you should:
+   1. Explain the concepts.
+   2. Use [[ACTION:SAVE_DECK:{"title": "X", "cards": [...]}]].
+   3. Use [[ACTION:NAVIGATE:flashcards]].
+ - NEVER use "Open Lab:" or other arbitrary text for commands. Use the [[ACTION:...]] tags.
+ 
+ ${fileContent ? `Context: ${fileContent}` : ''}`;
 
     // Map history to the required format
     const contents = history.map(m => ({
@@ -363,7 +353,11 @@ ${text}`;
     model: "gemini-3-flash-preview",
     contents: prompt,
     config: {
-      systemInstruction: "You are an Academic Content Parser. Output ONLY valid JSON. Use high-fidelity LaTeX ($...$) for ALL scientific terms, isotopes, and equations now that Study Forge has full KaTeX rendering enabled.",
+      systemInstruction: `You are the Lead Pedagogical Architect. Your goal is to move users to mastery.
+        - Persona: Peer-like, supportive tutor. Explain the 'Why' using analogies from Programming, Engineering, or Sports.
+        - Strategic Scaffolding: Perform a Semantic Audit of the input to identify unique Knowledge Units (KUs).
+        - Strict Subject Adherence: Only output content relevant to the specific subject/topic. 
+        - Multi-Modal Structure: Every lesson must follow: [Logic/Mental Model] -> [Active Practice] -> [Roadmap].`,
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
@@ -399,24 +393,31 @@ ${text}`;
 export async function generateStudyMaterial(
   text: string, 
   title: string, 
+  instructions: string = '',
   quantity: number = 10, 
   difficulty: string = 'medium',
   mode: 'quiz' | 'flashcards' | 'both' = 'quiz'
 ): Promise<{ deck: Deck; quiz: Quiz }> {
   const ai = getAI();
-  console.log(`AI Request Sent - Generating ${quantity} educational ${mode} items at ${difficulty} difficulty...`);
+  console.log(`AI Request Sent - Generating educational material at ${difficulty} difficulty...`);
   
-  const isBoth = mode === 'both';
-  
+  const isBoth = mode === 'both' || instructions.toLowerCase().includes('both');
+  const finalMode = isBoth ? 'both' : (instructions.toLowerCase().includes('quiz') ? 'quiz' : (instructions.toLowerCase().includes('flashcard') ? 'flashcards' : mode));
+
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: `Text: ${text}`,
+    contents: `Source Material: ${text}\n\nUser Instructions: ${instructions}`,
     config: {
-      systemInstruction: `You are the Lead Academic Content Architect. Follow Elite Tutor protocols:
-        - Goal: Create ${quantity} world-class ${mode} items at ${difficulty} difficulty.
-        - THEMATIC FOCUS: Only generate questions, terms, and explanations that are strictly relevant to the subject of the text provided. Refrain from introducing outside subjects unless absolutely required.
-        - Mathematical Precision: Use high-fidelity LaTeX ($...$) for ALL variables, equations, and isotopes to leverage Study Forge's new rendering engine.
-        - Quality: Ensure high pedagogical value.`,
+      systemInstruction: `You are the Lead Pedagogical Architect and "Greatest Teacher".
+        - The Semantic Audit Protocol: Analyze the source material and instructions. Identify every unique, standalone "Knowledge Unit" (KU) that must be mastered.
+        - Comprehensive Coverage: You MUST ensure total mastery. Generate at least 15 high-quality interactions (Cards or Questions) to cover all essential sub-topics. If the material is dense or expansion is requested, exceed 15-20 items as needed.
+        - Expansion Protocol: If the input contains "Previous Context", do not repeat old items. Generate NEW content that expands understanding or dives deeper.
+        - Optimal Density (1:1 Ratio): Generate exactly one interaction for every unique KU identified. 
+        - Instructions Adherence: Prioritize difficulty requests or specific topic focus.
+        - Efficiency & Effectiveness: Eliminate the "hardness" barrier. Show the 'Why'. Provide a logical rationale (explanation field) for every answer.
+        - Strategic Scaffolding: Use analogies from Programming (Python logic), Engineering, or Sports to make abstract ideas intuitive.
+        - Subject Mastery: Stay strictly focused on the core subject. No outside fluff.
+        - Precision: Use LaTeX ($...$) for all math/science variables, formulas, and equations.`,
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
@@ -428,9 +429,10 @@ export async function generateStudyMaterial(
               properties: {
                 question: { type: Type.STRING },
                 options: { type: Type.ARRAY, items: { type: Type.STRING }, minItems: 4, maxItems: 4 },
-                answer: { type: Type.INTEGER }
+                answer: { type: Type.INTEGER },
+                explanation: { type: Type.STRING }
               },
-              required: ["question", "options", "answer"]
+              required: ["question", "options", "answer", "explanation"]
             }
           },
           flashcard_items: {
@@ -439,13 +441,14 @@ export async function generateStudyMaterial(
               type: Type.OBJECT,
               properties: {
                 front: { type: Type.STRING },
-                back: { type: Type.STRING }
+                back: { type: Type.STRING },
+                explanation: { type: Type.STRING }
               },
-              required: ["front", "back"]
+              required: ["front", "back", "explanation"]
             }
           }
         },
-        required: isBoth ? ["quiz_items", "flashcard_items"] : (mode === 'quiz' ? ["quiz_items"] : ["flashcard_items"])
+        required: finalMode === 'both' ? ["quiz_items", "flashcard_items"] : (finalMode === 'quiz' ? ["quiz_items"] : ["flashcard_items"])
       }
     }
   });
@@ -459,7 +462,8 @@ export async function generateStudyMaterial(
       cards: (data.flashcard_items || []).map((f: any) => ({
         id: crypto.randomUUID(),
         term: f.front,
-        definition: f.back
+        definition: f.back,
+        explanation: f.explanation
       }))
     };
 
@@ -470,7 +474,8 @@ export async function generateStudyMaterial(
         id: crypto.randomUUID(),
         question: q.question,
         options: q.options,
-        correctAnswer: q.answer
+        correctAnswer: q.answer,
+        explanation: q.explanation
       }))
     };
 
@@ -482,11 +487,11 @@ export async function generateStudyMaterial(
 }
 
 export async function generateFlashcardsFromText(text: string, title: string): Promise<Deck> {
-  const { deck } = await generateStudyMaterial(text, title, 10, 'medium', 'flashcards');
+  const { deck } = await generateStudyMaterial(text, title, 'Generate flashcards', 10, 'medium', 'flashcards');
   return deck;
 }
 
 export async function generateQuizFromText(text: string, title: string): Promise<Quiz> {
-  const { quiz } = await generateStudyMaterial(text, title, 10, 'medium', 'quiz');
+  const { quiz } = await generateStudyMaterial(text, title, 'Generate quiz', 10, 'medium', 'quiz');
   return quiz;
 }

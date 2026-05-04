@@ -12,7 +12,8 @@ import {
   limit,
   where,
   getDocs,
-  getDocFromServer
+  getDocFromServer,
+  onSnapshot
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { UserStats, Deck } from '../types';
@@ -197,4 +198,58 @@ export const cloneDeck = async (targetUserId: string, deck: Deck) => {
     handleFirestoreError(error as FirestoreError, 'write', `users/${targetUserId}/myDecks/${newId}`);
     return null;
   }
+};
+
+export interface AboutMeData {
+  message: string;
+  images: string[];
+  updatedAt?: any;
+  updatedBy?: string;
+}
+
+export const getAboutMe = async (): Promise<AboutMeData | null> => {
+  const docRef = doc(db, 'global', 'aboutMe');
+  try {
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return docSnap.data() as AboutMeData;
+    }
+    return null;
+  } catch (error) {
+    // If not found, don't throw error just return null
+    if ((error as FirestoreError).code === 'not-found') return null;
+    handleFirestoreError(error as FirestoreError, 'get', 'global/aboutMe');
+    return null;
+  }
+};
+
+export const updateAboutMe = async (data: AboutMeData) => {
+  const docRef = doc(db, 'global', 'aboutMe');
+  try {
+    await setDoc(docRef, {
+      ...data,
+      updatedAt: serverTimestamp(),
+      updatedBy: auth.currentUser?.email || 'Admin'
+    });
+  } catch (error) {
+    handleFirestoreError(error as FirestoreError, 'write', 'global/aboutMe');
+  }
+};
+
+export const subscribeAboutMe = (callback: (data: AboutMeData | null) => void) => {
+  const docRef = doc(db, 'global', 'aboutMe');
+  return onSnapshot(docRef, (docSnap) => {
+    if (docSnap.exists()) {
+      callback(docSnap.data() as AboutMeData);
+    } else {
+      callback(null);
+    }
+  }, (error) => {
+    // If not found, don't throw error
+    if (error.code === 'not-found') {
+      callback(null);
+      return;
+    }
+    handleFirestoreError(error, 'get', 'global/aboutMe');
+  });
 };

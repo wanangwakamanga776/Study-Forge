@@ -6,6 +6,7 @@ import { soundService } from '../services/soundService';
 import { PYRA_TIPS } from '../constants';
 import { PyraMascot } from './PyraMascot';
 import { useState, useEffect } from 'react';
+import { AboutMeSection } from './AboutMeSection';
 
 interface DashboardProps {
   state: AppState;
@@ -303,6 +304,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onNavigate, onSelec
             </motion.div>
           )}
         </div>
+      </div>
+
+      <div className="pt-12 border-t border-white/5">
+        <AboutMeSection />
       </div>
     </div>
   );

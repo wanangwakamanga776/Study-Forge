@@ -39,6 +39,7 @@ export const THEMES = {
   'Deep Sea Blue': '#3B82F6',
   'Midnight Purple': '#A855F7',
   'Matrix Code': '#22C55E',
+  'Inferno': '#EF4444',
 };
 
 function hexToRgb(hex: string) {
@@ -209,22 +210,18 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
   }, [setState, triggerReward]);
 
   const spendEmbers = useCallback((amount: number) => {
-    let success = false;
-    setState(prev => {
-      if (prev.stats.embers >= amount) {
-        success = true;
-        return {
-          ...prev,
-          stats: {
-            ...prev.stats,
-            embers: prev.stats.embers - amount
-          }
-        };
-      }
-      return prev;
-    });
-    return success;
-  }, [setState]);
+    if (embers >= amount) {
+      setState(prev => ({
+        ...prev,
+        stats: {
+          ...prev.stats,
+          embers: prev.stats.embers - amount
+        }
+      }));
+      return true;
+    }
+    return false;
+  }, [embers, setState]);
 
   const setTheme = useCallback((theme: string) => {
     setState(prev => ({

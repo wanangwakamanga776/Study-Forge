@@ -39,9 +39,25 @@
         },
         "createdAt": { "type": "number" }
       }
+    },
+    "AboutMe": {
+      "title": "About Me Page",
+      "description": "Global information about the application or creator, editable by admins.",
+      "type": "object",
+      "properties": {
+        "message": { "type": "string" },
+        "images": { "type": "array", "items": { "type": "string" } },
+        "updatedBy": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["message", "images"]
     }
   },
   "firestore": {
+    "/global/aboutMe": {
+      "schema": "AboutMe",
+      "description": "Single global configuration for the About Me section."
+    },
     "/users/{userId}": {
       "schema": "UserStats",
       "description": "Stores individual user gamification stats."

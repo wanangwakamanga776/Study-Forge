@@ -30,9 +30,11 @@ export function ForgeShop({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
   const [error, setError] = useState<string | null>(null);
 
   const themeList = [
-    { name: 'Default Ember', color: '#FB923C', desc: 'Classic academic warm.', price: 0 },
-    { name: 'Deep Sea Blue', color: '#3B82F6', desc: 'Deep focus ocean.', price: 500 },
-    { name: 'Midnight Purple', color: '#A855F7', desc: 'Modern plasma study.', price: 500 }
+    { name: 'Default Ember', color: '#FB923C', desc: 'Classic academic warm. Focus-driven.', price: 0 },
+    { name: 'Deep Sea Blue', color: '#3B82F6', desc: 'Sub-aquatic immersion with rising bubbles and ocean depth.', price: 500 },
+    { name: 'Midnight Purple', color: '#A855F7', desc: 'Cosmic plasma field with pulsing interstellar orbs.', price: 500 },
+    { name: 'Matrix Code', color: '#22C55E', desc: 'Digital archive stream with falling Katakana data rain.', price: 750 },
+    { name: 'Inferno', color: '#EF4444', desc: 'Live atmospheric flames and kinetic heat ripples on interaction.', price: 1000 }
   ];
 
   const itemsList = [

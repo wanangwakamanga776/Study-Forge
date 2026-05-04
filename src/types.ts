@@ -15,6 +15,7 @@ export interface Flashcard {
   id: string;
   term: string;
   definition: string;
+  explanation?: string;
 }
 
 export type DeckCategory = 'Educational' | 'Personal' | 'Work' | 'Other';
@@ -36,6 +37,7 @@ export interface QuizQuestion {
   question: string;
   options: string[];
   correctAnswer: number;
+  explanation?: string;
 }
 
 export interface Quiz {

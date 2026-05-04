@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { MessageSquare, X, Send, Paperclip, Loader2, User, BookOpen, FileText, Trash2, Zap, Layers, BrainCircuit, Sparkles } from 'lucide-react';
 import { chatWithAcademicAssistant, isAIConfigured } from '../services/aiService';
 import { useForgeStore } from '../contexts/ForgeStoreContext';
+import { extractTextFromFile } from '../lib/extraction';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
@@ -18,13 +19,15 @@ interface ForgeChatProps {
   onNavigate?: (view: any) => void;
   onOpenForge?: (topic?: string) => void;
   onSaveData?: (type: 'flashcards' | 'quiz' | 'forgeCast', data: any) => void;
+  onEditData?: (type: 'flashcards' | 'quiz', data: any) => void;
+  onAddData?: (type: 'flashcards' | 'quiz', data: any) => void;
 }
 
-export function ForgeChat({ onNavigate, onOpenForge, onSaveData }: ForgeChatProps) {
+export function ForgeChat({ onNavigate, onOpenForge, onSaveData, onEditData, onAddData }: ForgeChatProps) {
   const { unlockTheme, setTheme, currentTheme, activeAssistantSkin, addBadge, badges } = useForgeStore();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'model', content: `Lead Academic Assistant active. I am here to help you master your 10th-grade curriculum. ${activeAssistantSkin !== 'Default' ? `Current Persona: ${activeAssistantSkin}.` : ''} What topic should we explore today?` }
+    { role: 'model', content: `Lead Academic Assistant active. I am here to help you master your curriculum with precision. ${activeAssistantSkin !== 'Default' ? `Current Persona: ${activeAssistantSkin}.` : ''} What topic should we explore today?` }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -89,6 +92,11 @@ export function ForgeChat({ onNavigate, onOpenForge, onSaveData }: ForgeChatProp
 
       const response = await chatWithAcademicAssistant(fullMessage, history, fileContent || undefined);
       setMessages(prev => [...prev, { role: 'model', content: response }]);
+      
+      // Process Actions
+      if (response.includes('[[ACTION:')) {
+        setTimeout(() => handleAction(response), 500);
+      }
     } catch (error) {
        setMessages(prev => [...prev, { role: 'model', content: "I apologize, but I encountered an error processing your request. " + (error as Error).message }]);
     } finally {
@@ -96,18 +104,157 @@ export function ForgeChat({ onNavigate, onOpenForge, onSaveData }: ForgeChatProp
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAction = useCallback((content: string) => {
+    // 1. Fallback for "Open Lab" format if AI ignores protocol
+    if (content.includes('Open Lab:')) {
+      const openLabMatches = content.match(/Open Lab:\s*({[\s\S]+?})(?=\s*Open Lab:|$|\[\[)/g);
+      if (openLabMatches) {
+        openLabMatches.forEach(match => {
+           try {
+             const jsonMatch = match.match(/{[\s\S]+?}/);
+             if (jsonMatch) {
+                const data = JSON.parse(jsonMatch[0].trim());
+                if (data.cards) {
+                  onSaveData?.('flashcards', data);
+                  soundService.playSuccess();
+                } else if (data.questions) {
+                  onSaveData?.('quiz', data);
+                  soundService.playSuccess();
+                } else if (data.addCards && onAddData) {
+                  onAddData('flashcards', { ...data, cards: data.addCards });
+                  soundService.playSuccess();
+                } else if (data.addQuestions && onAddData) {
+                  onAddData('quiz', { ...data, questions: data.addQuestions });
+                  soundService.playSuccess();
+                }
+             }
+           } catch (e) {
+             console.log("Open Lab fallback parse failed");
+           }
+        });
+      }
+      
+      if (content.toLowerCase().includes('open lab: flashcards') && onNavigate) {
+        onNavigate('flashcards');
+        soundService.playSuccess();
+      }
+      if (content.toLowerCase().includes('open lab: quiz') && onNavigate) {
+        onNavigate('quiz');
+        soundService.playSuccess();
+      }
+    }
+
+    // 2. Protocol Actions: SAVE_DECK
+    const saveDeckMatches = content.match(/\[\[ACTION:SAVE_DECK:([\s\S]+?)\]\]/g);
+    if (saveDeckMatches && onSaveData) {
+      saveDeckMatches.forEach(match => {
+        try {
+          const jsonStr = match.match(/SAVE_DECK:([\s\S]+?)$/)?.[1]?.replace(/\]\]$/, '');
+          if (jsonStr) {
+            const data = JSON.parse(jsonStr.trim());
+            onSaveData('flashcards', data);
+            soundService.playSuccess();
+          }
+        } catch (e) {
+          console.error("Failed to parse SAVE_DECK action", e);
+        }
+      });
+    }
+
+    // 3. Protocol Actions: ADD_TO_DECK / ADD_TO_QUIZ
+    const addDeckMatches = content.match(/\[\[ACTION:ADD_TO_DECK:([\s\S]+?)\]\]/g);
+    if (addDeckMatches && onAddData) {
+      addDeckMatches.forEach(match => {
+        try {
+          const jsonStr = match.match(/ADD_TO_DECK:([\s\S]+?)$/)?.[1]?.replace(/\]\]$/, '');
+          if (jsonStr) {
+            const data = JSON.parse(jsonStr.trim());
+            onAddData('flashcards', data);
+            soundService.playSuccess();
+          }
+        } catch (e) {
+          console.error("Failed to parse ADD_TO_DECK action", e);
+        }
+      });
+    }
+
+    const addQuizMatches = content.match(/\[\[ACTION:ADD_TO_QUIZ:([\s\S]+?)\]\]/g);
+    if (addQuizMatches && onAddData) {
+      addQuizMatches.forEach(match => {
+        try {
+          const jsonStr = match.match(/ADD_TO_QUIZ:([\s\S]+?)$/)?.[1]?.replace(/\]\]$/, '');
+          if (jsonStr) {
+            const data = JSON.parse(jsonStr.trim());
+            onAddData('quiz', data);
+            soundService.playSuccess();
+          }
+        } catch (e) {
+          console.error("Failed to parse ADD_TO_QUIZ action", e);
+        }
+      });
+    }
+
+    // 4. Edit Actions
+    const editDeckMatches = content.match(/\[\[ACTION:EDIT_DECK:([\s\S]+?)\]\]/g);
+    if (editDeckMatches && onEditData) {
+      editDeckMatches.forEach(match => {
+        try {
+          const jsonStr = match.match(/EDIT_DECK:([\s\S]+?)$/)?.[1]?.replace(/\]\]$/, '');
+          if (jsonStr) {
+            const data = JSON.parse(jsonStr.trim());
+            onEditData('flashcards', data);
+            soundService.playSuccess();
+          }
+        } catch (e) {
+          console.error("Failed to parse EDIT_DECK action", e);
+        }
+      });
+    }
+
+    const editQuizMatches = content.match(/\[\[ACTION:EDIT_QUIZ:([\s\S]+?)\]\]/g);
+    if (editQuizMatches && onEditData) {
+      editQuizMatches.forEach(match => {
+        try {
+          const jsonStr = match.match(/EDIT_QUIZ:([\s\S]+?)$/)?.[1]?.replace(/\]\]$/, '');
+          if (jsonStr) {
+            const data = JSON.parse(jsonStr.trim());
+            onEditData('quiz', data);
+            soundService.playSuccess();
+          }
+        } catch (e) {
+          console.error("Failed to parse EDIT_QUIZ action", e);
+        }
+      });
+    }
+
+    // 5. Navigation Action (Process LAST)
+    const navMatches = content.match(/\[\[ACTION:NAVIGATE:\w+\]\]/g);
+    if (navMatches && onNavigate) {
+      navMatches.forEach(match => {
+        const view = match.match(/NAVIGATE:(\w+)/)?.[1];
+        if (view) onNavigate(view);
+      });
+      soundService.playSuccess();
+    }
+  }, [onNavigate, onEditData, onAddData, onSaveData]);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setIsLoading(true);
     setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const content = event.target?.result as string;
-      setFileContent(content);
+    try {
+      const text = await extractTextFromFile(file);
+      setFileContent(text);
       soundService.playSuccess();
-    };
-    reader.readAsText(file);
+    } catch (error) {
+      alert("Error reading file: " + (error as Error).message);
+      setFileName(null);
+      setFileContent(null);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -118,7 +265,7 @@ export function ForgeChat({ onNavigate, onOpenForge, onSaveData }: ForgeChatProp
           setIsOpen(true);
           soundService.playClick();
         }}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-forge-accent text-forge-dark rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(251,146,60,0.4)] hover:scale-110 transition-transform z-50 group"
+        className="fixed bottom-6 left-6 w-14 h-14 bg-forge-accent text-forge-dark rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(251,146,60,0.4)] hover:scale-110 transition-transform z-50 group"
       >
         <MessageSquare size={24} className="group-hover:rotate-12 transition-transform" />
         <motion.div 
@@ -150,13 +297,13 @@ export function ForgeChat({ onNavigate, onOpenForge, onSaveData }: ForgeChatProp
                 <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-forge-accent/10 rounded-xl flex items-center justify-center text-forge-accent shadow-[0_0_15px_rgba(251,146,60,0.2)]">
-                      <BookOpen size={20} />
+                      <Sparkles size={20} />
                     </div>
                     <div>
-                      <h3 className="text-xl font-display font-black uppercase italic tracking-tighter text-white">Academic Assistant</h3>
+                      <h3 className="text-xl font-display font-black uppercase italic tracking-tighter text-white">Academic Oracle</h3>
                       <div className="flex items-center gap-1">
                           <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                          <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">Available for Lessons</span>
+                          <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">Active & Ready</span>
                       </div>
                     </div>
                   </div>
@@ -181,7 +328,7 @@ export function ForgeChat({ onNavigate, onOpenForge, onSaveData }: ForgeChatProp
                 </div>
 
                 {/* Messages */}
-                <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 metallic-scrollbar">
+                <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 metallic-scrollbar pb-24">
                 {messages.map((message, i) => (
                   <motion.div
                     key={i}
@@ -199,10 +346,10 @@ export function ForgeChat({ onNavigate, onOpenForge, onSaveData }: ForgeChatProp
                       {message.role === 'user' ? <User size={16} /> : <BookOpen size={16} />}
                     </div>
                     <div className={cn(
-                      "max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed",
+                      "max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed",
                       message.role === 'user' 
                         ? "bg-white/5 text-white rounded-tr-none" 
-                        : "bg-white/[0.02] text-stone-300 border border-white/5 rounded-tl-none pr-8 relative"
+                        : "bg-white/[0.03] text-stone-300 border border-white/5 rounded-tl-none pr-8 relative"
                     )}>
                       <div className="prose prose-invert prose-sm overflow-x-auto">
                         <ReactMarkdown 
@@ -294,7 +441,7 @@ export function ForgeChat({ onNavigate, onOpenForge, onSaveData }: ForgeChatProp
                                           });
                                         }
                                       }}
-                                      className="w-full py-2 bg-forge-accent text-forge-dark rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all"
+                                      className="w-full py-2 bg-forge-accent text-forge-dark rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-[0_0_10px_rgba(251,146,60,0.2)]"
                                     >
                                       Save to Library
                                     </button>
@@ -341,71 +488,79 @@ export function ForgeChat({ onNavigate, onOpenForge, onSaveData }: ForgeChatProp
                 {isLoading && (
                   <div className="flex gap-3">
                     <div className="w-8 h-8 rounded-lg bg-forge-accent text-forge-dark flex items-center justify-center animate-pulse">
-                      <BookOpen size={16} />
+                      <Sparkles size={16} />
                     </div>
                     <div className="bg-white/[0.02] border border-white/5 rounded-2xl rounded-tl-none px-4 py-3 flex items-center gap-2">
                       <Loader2 size={16} className="animate-spin text-forge-accent" />
-                      <span className="text-xs font-bold text-stone-500 uppercase tracking-widest">Generating response...</span>
+                      <span className="text-xs font-bold text-stone-500 uppercase tracking-widest">Oracle computing...</span>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Input */}
-              <div className="p-6 bg-white/[0.02] border-t border-white/5 space-y-4">
-                {fileContent && (
-                  <motion.div 
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-forge-accent/20"
-                  >
-                    <div className="flex items-center gap-2">
-                        <FileText size={16} className="text-forge-accent" />
-                        <span className="text-xs font-bold text-white truncate max-w-[200px]">{fileName}</span>
-                    </div>
-                    <button 
-                        onClick={() => {
-                            setFileContent(null);
-                            setFileName(null);
-                        }}
-                        className="text-stone-500 hover:text-red-500"
+              {/* Input Area */}
+              <div className="p-6 bg-white/[0.02] border-t border-white/5 relative">
+                <div className="max-w-2xl mx-auto space-y-4">
+                  {fileContent && (
+                    <motion.div 
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="flex items-center justify-between p-3 bg-forge-accent/10 rounded-xl border border-forge-accent/20"
                     >
-                        <Trash2 size={16} />
-                    </button>
-                  </motion.div>
-                )}
-                
-                <div className="relative flex items-center gap-2">
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileUpload}
-                    className="hidden"
-                    accept=".txt,.md,.pdf"
-                  />
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="p-3 bg-white/5 text-stone-400 rounded-xl hover:text-white hover:bg-white/10 transition-all border border-white/5"
-                  >
-                    <Paperclip size={20} />
-                  </button>
-                  <div className="relative flex-1">
+                      <div className="flex items-center gap-2">
+                          <FileText size={16} className="text-forge-accent" />
+                          <span className="text-xs font-bold text-white truncate max-w-[200px]">{fileName}</span>
+                      </div>
+                      <button 
+                          onClick={() => {
+                              setFileContent(null);
+                              setFileName(null);
+                          }}
+                          className="text-stone-500 hover:text-red-500"
+                      >
+                          <Trash2 size={16} />
+                      </button>
+                    </motion.div>
+                  )}
+                  
+                  <div className="relative flex items-end gap-2 bg-white/[0.05] border border-white/10 rounded-[1.5rem] p-2 focus-within:border-forge-accent/30 transition-all">
                     <input
-                      type="text"
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileUpload}
+                      className="hidden"
+                      accept=".pdf,.docx,.doc,.txt,.pptx,.rtf,.odt"
+                    />
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="p-3 text-stone-400 hover:text-white transition-all rounded-xl"
+                      title="Upload Document"
+                    >
+                      <Paperclip size={22} />
+                    </button>
+                    <textarea
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                      placeholder="Ask the Assistant..."
-                      className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder:text-stone-600 focus:outline-none focus:border-forge-accent/30 transition-colors"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSend();
+                        }
+                      }}
+                      placeholder="Message Academic Oracle..."
+                      rows={1}
+                      className="flex-1 bg-transparent border-none px-2 py-3 text-sm text-white placeholder:text-stone-600 focus:outline-none focus:ring-0 resize-none max-h-32"
+                      style={{ height: 'auto' }}
                     />
+                    <button
+                      onClick={handleSend}
+                      disabled={isLoading || (!input.trim() && !fileContent)}
+                      className="p-3 bg-white text-forge-dark rounded-[1.25rem] hover:scale-105 active:scale-95 transition-all disabled:opacity-20 disabled:scale-100 shadow-xl"
+                    >
+                      <Send size={20} />
+                    </button>
                   </div>
-                  <button
-                    onClick={handleSend}
-                    disabled={isLoading || (!input.trim() && !fileContent)}
-                    className="p-3 bg-forge-accent text-forge-dark rounded-xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 forge-glow"
-                  >
-                    <Send size={20} />
-                  </button>
+                  <p className="text-[9px] text-center text-stone-600 font-bold uppercase tracking-[0.2em]">Oracle uses Semantic Audit Protocols for Maximum Precision</p>
                 </div>
               </div>
             </motion.div>

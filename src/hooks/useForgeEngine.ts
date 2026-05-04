@@ -10,29 +10,27 @@ export interface Reward {
 }
 
 export function useForgeEngine() {
-  const { state, setState } = useAppState();
+  const { 
+    state, 
+    setState, 
+    setAdminMaxLevel, 
+    setAdminUnlimitedCurrency, 
+    setAdminMaxEverything 
+  } = useAppState();
 
   const getLevelFromXp = (xp: number) => {
-    // n=1: 500
-    // n=2: 1500
-    // n=3: 3000
-    // Formula: 500 * (n * (n + 1)) / 2
-    // Let 500 * (n * (n + 1)) / 2 = xp
-    // n^2 + n - (2*xp/500) = 0
-    // n = (-1 + sqrt(1 + 8*xp/500)) / 2
-    if (xp <= 0) return 1;
-    const n = Math.floor((-1 + Math.sqrt(1 + (8 * xp) / 500)) / 2);
-    return n + 1;
+    // Sync with ForgeStoreContext: 1000 XP per level
+    return Math.floor(xp / 1000) + 1;
   };
 
   const getXpThreshold = (level: number) => {
-    return (500 * level * (level + 1)) / 2;
+    return (level - 1) * 1000;
   };
 
   const getLevelProgress = (xp: number) => {
-    const level = getLevelFromXp(xp);
-    const currentThreshold = level === 1 ? 0 : getXpThreshold(level - 1);
-    const nextThreshold = getXpThreshold(level);
+    const currentLvl = getLevelFromXp(xp);
+    const currentThreshold = (currentLvl - 1) * 1000;
+    const nextThreshold = currentLvl * 1000;
     const progress = ((xp - currentThreshold) / (nextThreshold - currentThreshold)) * 100;
     return Math.min(Math.max(progress, 0), 100);
   };
@@ -92,48 +90,8 @@ export function useForgeEngine() {
       soundService.playSuccess();
     }
 
-    // We can also trigger notifications here if we had a notification context
     return { xpGain, embersGain };
   }, [setState]);
-
-  const setAdminMaxLevel = useCallback((active: boolean) => {
-    setState(prev => ({
-      ...prev,
-      stats: {
-        ...prev.stats,
-        xp: active ? 1000000 : 0,
-        level: getLevelFromXp(active ? 1000000 : 0),
-        plan: active ? 'Premium' : prev.stats.plan
-      }
-    }));
-    if (active) soundService.playLevelUp();
-  }, [setState, getLevelFromXp]);
-
-  const setAdminUnlimitedCurrency = useCallback((active: boolean) => {
-    setState(prev => ({
-      ...prev,
-      stats: {
-        ...prev.stats,
-        embers: active ? 999999 : 100
-      }
-    }));
-    if (active) soundService.playSuccess();
-  }, [setState]);
-
-  const setAdminMaxEverything = useCallback(() => {
-    setState(prev => ({
-      ...prev,
-      stats: {
-        ...prev.stats,
-        xp: 1000000,
-        level: getLevelFromXp(1000000),
-        embers: 999999,
-        plan: 'Premium',
-        streak: 999
-      }
-    }));
-    soundService.playLevelUp();
-  }, [setState, getLevelFromXp]);
 
   return {
     stats: state.stats,

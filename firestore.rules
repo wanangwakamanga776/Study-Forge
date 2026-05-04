@@ -9,6 +9,11 @@ service cloud.firestore {
     // Primitives
     function isSignedIn() { return request.auth != null; }
     function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isAdmin() { 
+      return isSignedIn() 
+        && request.auth.token.email == 'wanangwakamanga776@gmail.com' 
+        && request.auth.token.email_verified == true; 
+    }
     function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
@@ -38,8 +43,19 @@ service cloud.firestore {
         && (!data.keys().hasAny(['creatorName']) || (data.creatorName is string && data.creatorName.size() <= 100));
     }
 
+    function isValidAboutMe(data) {
+      return data.message is string && data.message.size() <= 5000
+        && data.images is list && data.images.size() <= 10
+        && (!data.keys().hasAny(['updatedAt']) || data.updatedAt == request.time);
+    }
+
     match /test/connection {
       allow read: if true;
+    }
+
+    match /global/aboutMe {
+      allow get: if true;
+      allow write: if isAdmin() && isValidAboutMe(incoming() || (request.method == 'update' ? existing() : {}));
     }
 
     match /users/{userId} {

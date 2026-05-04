@@ -195,14 +195,26 @@ export const QuizMode: React.FC<QuizModeProps> = ({ quizzes, onUpdate, onComplet
         </div>
 
         {isAnswered && (
-          <motion.button
+          <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            onClick={nextQuestion}
-            className="w-full py-4 bg-stone-900 text-white rounded-2xl hover:bg-stone-800 transition-colors font-medium"
+            className="space-y-4"
           >
-            {currentQuestionIndex === questions.length - 1 ? 'Finish Quiz' : 'Next Question'}
-          </motion.button>
+            {currentQ.explanation && (
+              <div className="p-6 bg-forge-dark/50 border border-forge-accent/20 rounded-2xl">
+                <p className="text-[10px] font-black text-forge-accent uppercase tracking-widest mb-2">Rationale (The Why)</p>
+                <div className="text-sm text-stone-300 leading-relaxed markdown-content">
+                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{currentQ.explanation}</ReactMarkdown>
+                </div>
+              </div>
+            )}
+            <button
+              onClick={nextQuestion}
+              className="w-full py-4 bg-white text-stone-900 rounded-2xl hover:bg-stone-100 transition-colors font-bold uppercase tracking-widest text-xs"
+            >
+              {currentQuestionIndex === questions.length - 1 ? 'Finish Quiz' : 'Next Question'}
+            </button>
+          </motion.div>
         )}
 
         <div className="mt-12">

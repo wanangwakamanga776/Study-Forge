@@ -5,6 +5,7 @@ import { signInWithGoogle, loginWithEmail, signUpWithEmail, resetPassword } from
 import { saveUserStats } from '../services/dataService';
 import { soundService } from '../services/soundService';
 import { cn } from '../lib/utils';
+import { AboutMeSection } from './AboutMeSection';
 
 interface LoginPageProps {
   onGuestAccess: (isAdmin?: boolean) => void;
@@ -136,7 +137,7 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-forge-dark flex flex-col items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-forge-dark flex flex-col items-center justify-start py-20 px-6 relative overflow-y-auto overflow-x-hidden metallic-scrollbar">
       {/* Background Ambience */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(251,146,60,0.1)_0%,transparent_70%)]" />
       
@@ -332,13 +333,16 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1 }}
-        className="mt-12 flex items-center gap-3 px-6 py-3 bg-white/[0.02] border border-white/5 rounded-full backdrop-blur-sm"
+        className="mt-12 mb-24 flex items-center gap-3 px-6 py-3 bg-white/[0.02] border border-white/5 rounded-full backdrop-blur-sm"
       >
         <Shield size={12} className="text-forge-accent/50" />
         <span className="text-[10px] font-bold text-stone-600 uppercase tracking-widest">
           End-to-End Encryption • Academy Verified
         </span>
       </motion.div>
+
+      {/* Global Information Section */}
+      <AboutMeSection />
     </div>
   );
 }
