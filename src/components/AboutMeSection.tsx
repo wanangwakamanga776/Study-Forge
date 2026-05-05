@@ -163,9 +163,9 @@ export function AboutMePopup() {
         whileHover={{ scale: 1.1, rotate: 5 }}
         whileTap={{ scale: 0.9 }}
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-stone-900 text-white rounded-full shadow-[0_0_30px_rgba(0,0,0,0.3)] flex items-center justify-center z-[100] border-4 border-white group"
+        className="fixed bottom-10 right-6 w-16 h-16 bg-stone-900 text-white rounded-full shadow-[0_0_40px_rgba(0,0,0,0.4)] flex items-center justify-center z-[10000] border-4 border-white group"
       >
-        <HelpCircle size={24} className="group-hover:scale-110 transition-transform" />
+        <HelpCircle size={28} className="group-hover:scale-110 transition-transform" />
         <div className="absolute -top-1 -right-1 flex items-center justify-center">
             <motion.div 
               animate={{ scale: [1, 1.4, 1], opacity: [0.5, 0.2, 0.5] }}

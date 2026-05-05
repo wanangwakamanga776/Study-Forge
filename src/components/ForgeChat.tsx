@@ -265,9 +265,9 @@ export function ForgeChat({ onNavigate, onOpenForge, onSaveData, onEditData, onA
           setIsOpen(true);
           soundService.playClick();
         }}
-        className="fixed bottom-6 left-6 w-14 h-14 bg-forge-accent text-forge-dark rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(251,146,60,0.4)] hover:scale-110 transition-transform z-50 group"
+        className="fixed bottom-32 right-6 w-16 h-16 bg-forge-accent text-forge-dark rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(251,146,60,0.4)] hover:scale-110 active:scale-95 transition-all z-[10000] group"
       >
-        <MessageSquare size={24} className="group-hover:rotate-12 transition-transform" />
+        <MessageSquare size={28} className="group-hover:rotate-12 transition-transform" />
         <motion.div 
             animate={{ scale: [1, 1.2, 1], opacity: [0, 0.3, 0] }}
             transition={{ duration: 2, repeat: Infinity }}
