@@ -213,17 +213,6 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
                 <div className="absolute inset-0 backface-hidden flex flex-col items-center justify-center p-12 bg-white rounded-3xl border border-black/5 shadow-sm text-center">
                   <span className="text-xs font-bold text-stone-300 uppercase tracking-widest mb-4">Term</span>
                   
-                  {currentCard.imageUrl && (
-                    <div className="w-full h-32 mb-6 overflow-hidden rounded-2xl border border-black/5 group-hover:scale-105 transition-transform duration-500">
-                      <img 
-                        src={currentCard.imageUrl} 
-                        alt={currentCard.term} 
-                        className="w-full h-full object-cover"
-                        referrerPolicy="no-referrer"
-                      />
-                    </div>
-                  )}
-
                   <div className="text-2xl font-medium text-stone-800 markdown-content">
                     <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{currentCard.term}</ReactMarkdown>
                   </div>
@@ -237,6 +226,18 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
                   className="absolute inset-0 backface-hidden flex flex-col items-center justify-center p-12 bg-stone-900 rounded-3xl border border-black/5 shadow-sm text-center rotate-y-180"
                 >
                   <span className="text-xs font-bold text-stone-500 uppercase tracking-widest mb-4">Definition</span>
+                  
+                  {currentCard.imageUrl && (
+                    <div className="w-full h-32 mb-6 overflow-hidden rounded-2xl border border-white/10">
+                      <img 
+                        src={currentCard.imageUrl} 
+                        alt={currentCard.term} 
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                  )}
+
                   <div className="text-xl text-white leading-relaxed markdown-content prose prose-invert mb-4">
                     <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{currentCard.definition}</ReactMarkdown>
                   </div>

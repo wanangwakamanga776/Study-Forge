@@ -281,7 +281,10 @@ export async function chatWithAcademicAssistant(
  3. STATE MODIFICATION (CRITICAL): 
     - To CREATE/SAVE a new study set, use: [[ACTION:SAVE_DECK:{"title": "...", "cards": [{"term": "...", "definition": "...", "explanation": "...", "imagePrompt": "..."}]}]].
     - To ADD new items to existing, use: [[ACTION:ADD_TO_DECK:{"title": "...", "cards": [{"term": "...", "definition": "...", "explanation": "...", "imagePrompt": "..."}]}]].
-    - The "imagePrompt" should be a detailed visual description for an educational AI image that explains the concept.
+    - Universal Visual Fidelity Protocol: The 'imagePrompt' MUST be a specific, high-fidelity description for an educational image.
+       * NO EXCEPTIONS: This applies to ANY subject imaginable (Science, Literature, Medicine, Coding, etc.).
+       * CONTENT MIRRORING: The image must be a direct visual representation of the specific term/KU.
+       * Prompt Quality: Be explicit. e.g., 'A clear, detailed scientific diagram of [Process]' or 'A cinematic historical portrait of [Figure]'. Avoid generic descriptions.
     - To ADD questions to quiz, use: [[ACTION:ADD_TO_QUIZ:{"title": "...", "questions": [...]}]].
     - To REPLACE/EDIT, use: [[ACTION:EDIT_DECK:{...}]] or [[ACTION:EDIT_QUIZ:{...}]].
  4. Removing Barriers: Show the 'Why' using analogies from Programming, Engineering, or Sports.
@@ -407,18 +410,25 @@ export async function generateStudyMaterial(
 
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: `Source Material: ${text}\n\nUser Instructions: ${instructions}`,
+    contents: `Source Material: ${text}\n\nUser Instructions: ${instructions}\nDesired Quantity: ${quantity}`,
     config: {
       systemInstruction: `You are the Lead Pedagogical Architect and "Greatest Teacher".
         - The Semantic Audit Protocol: Analyze the source material and instructions. Identify every unique, standalone "Knowledge Unit" (KU) that must be mastered.
-        - Comprehensive Coverage: You MUST ensure total mastery. Generate at least 15 high-quality interactions (Cards or Questions) to cover all essential sub-topics. If the material is dense or expansion is requested, exceed 15-20 items as needed.
-        - Expansion Protocol: If the input contains "Previous Context", do not repeat old items. Generate NEW content that expands understanding or dives deeper.
+        - Flexible Coverage (Max 50): You MUST ensure total mastery. 
+          * If the user specifies a quantity in their prompt (e.g., "30 cards"), honor that EXACTLY (up to 50).
+          * If no quantity is specified, generate at least 15 interactions, but scale up to 50 if the material is dense or complexity requires it.
+          * Expansion Protocol: If the input contains "Previous Context", do not repeat old items. Generate NEW content.
         - Optimal Density (1:1 Ratio): Generate exactly one interaction for every unique KU identified. 
         - Instructions Adherence: Prioritize difficulty requests or specific topic focus.
         - Efficiency & Effectiveness: Eliminate the "hardness" barrier. Show the 'Why'. Provide a logical rationale (explanation field) for every answer.
         - Strategic Scaffolding: Use analogies from Programming (Python logic), Engineering, or Sports to make abstract ideas intuitive.
         - Subject Mastery: Stay strictly focused on the core subject. No outside fluff.
-        - Precision: Use LaTeX ($...$) for all math/science variables, formulas, and equations.`,
+        - Precision: Use LaTeX ($...$) for all math/science variables, formulas, and equations.
+        - Universal Visual Fidelity Protocol: For every single card, you MUST generate a HIGH-FIDELITY, TOPIC-SPECIFIC visual prompt. 
+          * NO EXCEPTIONS: This applies to ANY subject matter imaginable (Science, Literature, Medicine, Law, Coding, Art, Sports, etc.).
+          * CONTENT MIRRORING: The image MUST be a direct, literal visual representation of the core concept, entity, or process mentioned on that specific card.
+          * Specificity Guarantee: If the card names a specific person, molecule, historical event, line of code, theorem, or artifact, the prompt MUST describe exactly that item in detail.
+          * Image Style: Be descriptive and explicit. Use styles like 'Scientific schematic', 'Cinematic historical portrait', 'Detailed realistic photograph', or '3D technical model'. Avoid vague 'abstract' images.`,
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
@@ -434,7 +444,8 @@ export async function generateStudyMaterial(
                 explanation: { type: Type.STRING }
               },
               required: ["question", "options", "answer", "explanation"]
-            }
+            },
+            maxItems: 50
           },
           flashcard_items: {
             type: Type.ARRAY,
@@ -446,11 +457,12 @@ export async function generateStudyMaterial(
                 explanation: { type: Type.STRING },
                 visual_prompt: { 
                   type: Type.STRING, 
-                  description: "A detailed prompt for an educational illustration that visually explains this card's concept. High-quality, clear, academic style." 
+                  description: "A high-fidelity prompt for an educational image. MUST be specific to the term. Format: 'A clear, high-quality [style] of [Specific Concept/Entity] showing [Specific Details]'." 
                 }
               },
               required: ["front", "back", "explanation", "visual_prompt"]
-            }
+            },
+            maxItems: 50
           }
         },
         required: finalMode === 'both' ? ["quiz_items", "flashcard_items"] : (finalMode === 'quiz' ? ["quiz_items"] : ["flashcard_items"])
@@ -461,13 +473,13 @@ export async function generateStudyMaterial(
   try {
     const data = JSON.parse(response.text || '{}');
 
-    // Generate images for flashcards in parallel (limited to first 10 for performance/cost)
+    // Generate images for flashcards in parallel (limited to first 15 for premium-like speed/stability)
     const flashcardItems = data.flashcard_items || [];
     const flashcardsWithImages = await Promise.all(
       flashcardItems.map(async (f: any, index: number) => {
         let imageUrl = undefined;
-        // Only generate images for the first 10 cards to keep it snappy and respect limits
-        if (index < 10 && f.visual_prompt) {
+        // Generating for first 15 cards now
+        if (index < 15 && f.visual_prompt) {
           imageUrl = await generateImage(f.visual_prompt);
         }
         return {

@@ -92,6 +92,9 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({
       const extractedText = selectedFile ? await extractTextFromFile(selectedFile) : '';
       const title = selectedFile ? selectedFile.name.split('.')[0] : (pastedText.substring(0, 20).trim() || 'Custom Study Set');
 
+      const quantityMatch = pastedText.match(/(\d+)\s+(cards|flashcards|questions|items)/i);
+      const requestedQuantity = quantityMatch ? Math.min(50, parseInt(quantityMatch[1])) : (pastedText.length > 1000 ? 25 : 15);
+
       const lowerText = pastedText.toLowerCase();
       const isForgeCastRequest = lowerText.includes('video') || lowerText.includes('cast') || lowerText.includes('animation');
 
@@ -100,12 +103,12 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({
         const blueprint = await generateForgeCast(extractedText || pastedText, title);
         onGenerated('forgeCast', blueprint);
       } else {
-        // Use updated service with instructions
+        // Use updated service with dynamically detected quantity
         const { deck, quiz } = await generateStudyMaterial(
           extractedText || pastedText, 
           title, 
           pastedText, // Pass entire text as instructions/content
-          15, 
+          requestedQuantity, 
           'medium', 
           'both'
         );
