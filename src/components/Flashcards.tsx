@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, ChevronLeft, ChevronRight, Layers, RotateCw, Globe, Lock, Check, Edit2, Save, X as CloseIcon } from 'lucide-react';
+import { Plus, Trash2, ChevronLeft, ChevronRight, Layers, RotateCw, Globe, Lock, Check, Edit2, Save, X as CloseIcon, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
@@ -55,28 +55,52 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
     setActiveDeckId(newDeck.id);
   };
 
-  const addCard = (term: string, definition: string) => {
+  const addCard = async (term: string, definition: string, imagePrompt?: string) => {
     if (!activeDeck) return;
+    
+    let imageUrl: string | undefined;
+    if (imagePrompt?.trim()) {
+      const { generateImage } = await import('../services/aiService');
+      imageUrl = await generateImage(imagePrompt) || undefined;
+    }
+
     const newCard: Flashcard = {
       id: crypto.randomUUID(),
       term,
       definition,
+      imagePrompt: imagePrompt || undefined,
+      imageUrl
     };
     const updatedDecks = decks.map(d => 
       d.id === activeDeckId ? { ...d, cards: [...d.cards, newCard] } : d
     );
     onUpdate(updatedDecks);
+    soundService.playSuccess();
   };
 
-  const updateCard = (cardId: string, term: string, definition: string) => {
+  const updateCard = (cardId: string, term: string, definition: string, imagePrompt?: string, imageUrl?: string) => {
     if (!activeDeck) return;
     const updatedDecks = decks.map(d => 
       d.id === activeDeckId ? {
         ...d,
-        cards: d.cards.map(c => c.id === cardId ? { ...c, term, definition } : c)
+        cards: d.cards.map(c => c.id === cardId ? { ...c, term, definition, imagePrompt, imageUrl: imageUrl ?? c.imageUrl } : c)
       } : d
     );
     onUpdate(updatedDecks);
+  };
+
+  const regenerateCardImage = async (cardId: string) => {
+    if (!activeDeck) return;
+    const card = activeDeck.cards.find(c => c.id === cardId);
+    if (!card || !card.imagePrompt) return;
+
+    const { generateImage } = await import('../services/aiService');
+    const imageUrl = await generateImage(card.imagePrompt);
+    
+    if (imageUrl) {
+      updateCard(cardId, card.term, card.definition, card.imagePrompt, imageUrl);
+      soundService.playSuccess();
+    }
   };
 
   const removeCard = (cardId: string) => {
@@ -188,6 +212,18 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
                 {/* Front */}
                 <div className="absolute inset-0 backface-hidden flex flex-col items-center justify-center p-12 bg-white rounded-3xl border border-black/5 shadow-sm text-center">
                   <span className="text-xs font-bold text-stone-300 uppercase tracking-widest mb-4">Term</span>
+                  
+                  {currentCard.imageUrl && (
+                    <div className="w-full h-32 mb-6 overflow-hidden rounded-2xl border border-black/5 group-hover:scale-105 transition-transform duration-500">
+                      <img 
+                        src={currentCard.imageUrl} 
+                        alt={currentCard.term} 
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                  )}
+
                   <div className="text-2xl font-medium text-stone-800 markdown-content">
                     <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{currentCard.term}</ReactMarkdown>
                   </div>
@@ -252,27 +288,48 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
                <h3 className="text-sm font-semibold text-stone-400 uppercase tracking-widest mb-4">Manage Blueprints</h3>
                <div className="space-y-3">
                  {cards.map((card, i) => (
-                   <div key={card.id} className="group p-4 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-between gap-4">
-                     <div className="flex-1 grid grid-cols-2 gap-4">
-                       <input
-                        type="text"
-                        value={card.term}
-                        onChange={(e) => updateCard(card.id, e.target.value, card.definition)}
-                        className="bg-transparent text-sm font-bold text-white focus:outline-none focus:ring-1 focus:ring-forge-accent/30 rounded px-1"
-                       />
-                       <input
-                        type="text"
-                        value={card.definition}
-                        onChange={(e) => updateCard(card.id, card.term, e.target.value)}
-                        className="bg-transparent text-sm text-stone-400 focus:outline-none focus:ring-1 focus:ring-forge-accent/30 rounded px-1"
-                       />
+                   <div key={card.id} className="group p-4 bg-white/5 border border-white/10 rounded-2xl flex flex-col gap-4">
+                     <div className="flex items-center justify-between gap-4">
+                        <div className="flex-1 grid grid-cols-2 gap-4">
+                          <input
+                            type="text"
+                            value={card.term}
+                            onChange={(e) => updateCard(card.id, e.target.value, card.definition, card.imagePrompt)}
+                            className="bg-transparent text-sm font-bold text-white focus:outline-none focus:ring-1 focus:ring-forge-accent/30 rounded px-1"
+                          />
+                          <input
+                            type="text"
+                            value={card.definition}
+                            onChange={(e) => updateCard(card.id, card.term, e.target.value, card.imagePrompt)}
+                            className="bg-transparent text-sm text-stone-400 focus:outline-none focus:ring-1 focus:ring-forge-accent/30 rounded px-1"
+                          />
+                        </div>
+                        <button
+                          onClick={() => removeCard(card.id)}
+                          className="p-2 text-stone-600 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                        >
+                          <Trash2 size={16} />
+                        </button>
                      </div>
-                     <button
-                       onClick={() => removeCard(card.id)}
-                       className="p-2 text-stone-600 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
-                     >
-                       <Trash2 size={16} />
-                     </button>
+                     <div className="flex items-center gap-2">
+                        <Sparkles size={12} className="text-forge-accent shrink-0" />
+                        <input
+                          type="text"
+                          placeholder="Image Prompt (Empty for no image)"
+                          value={card.imagePrompt || ''}
+                          onChange={(e) => updateCard(card.id, card.term, card.definition, e.target.value)}
+                          className="flex-1 bg-transparent text-[10px] text-stone-500 font-medium placeholder:text-stone-700 focus:outline-none focus:ring-1 focus:ring-forge-accent/20 rounded px-1"
+                        />
+                        <button
+                          onClick={() => regenerateCardImage(card.id)}
+                          disabled={!card.imagePrompt}
+                          className="p-1 hover:text-forge-accent transition-colors disabled:opacity-30"
+                          title="Generate/Refresh Image"
+                        >
+                          <RotateCw size={10} />
+                        </button>
+                        {card.imageUrl && <Check size={10} className="text-emerald-500" />}
+                     </div>
                    </div>
                  ))}
                </div>
@@ -408,16 +465,18 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
   );
 };
 
-const AddCardForm: React.FC<{ onAdd: (t: string, d: string) => void }> = ({ onAdd }) => {
+const AddCardForm: React.FC<{ onAdd: (t: string, d: string, p?: string) => void }> = ({ onAdd }) => {
   const [term, setTerm] = useState('');
   const [definition, setDefinition] = useState('');
+  const [imagePrompt, setImagePrompt] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!term.trim() || !definition.trim()) return;
-    onAdd(term, definition);
+    onAdd(term, definition, imagePrompt || undefined);
     setTerm('');
     setDefinition('');
+    setImagePrompt('');
   };
 
   return (
@@ -438,11 +497,23 @@ const AddCardForm: React.FC<{ onAdd: (t: string, d: string) => void }> = ({ onAd
           className="px-4 py-3 rounded-xl bg-stone-50 border-none focus:ring-2 focus:ring-stone-200 text-sm"
         />
       </div>
+      <div className="relative group/input">
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300">
+          <Sparkles size={14} />
+        </div>
+        <input
+          type="text"
+          placeholder="Optional: Visual Image Prompt (e.g., A vintage diagram of a steam engine)"
+          value={imagePrompt}
+          onChange={(e) => setImagePrompt(e.target.value)}
+          className="w-full px-10 py-3 rounded-xl bg-stone-50 border-none focus:ring-2 focus:ring-forge-accent/20 text-xs text-stone-600 placeholder:text-stone-300 transition-all shadow-inner"
+        />
+      </div>
       <button
         type="submit"
-        className="w-full py-3 bg-stone-900 text-white rounded-xl hover:bg-stone-800 transition-colors font-medium text-sm"
+        className="w-full py-3 bg-stone-900 text-white rounded-xl hover:bg-stone-800 hover:scale-[1.01] active:scale-[0.99] transition-all font-display font-black uppercase italic tracking-tighter text-sm"
       >
-        Add Card
+        Add Blueprint Card
       </button>
     </form>
   );

@@ -279,8 +279,9 @@ export async function chatWithAcademicAssistant(
  1. Content Extraction & Semantic Audit: Identify unique "Knowledge Units" (KUs).
  2. UI NAVIGATION: Redirect users by including [[ACTION:NAVIGATE:viewName]] anywhere in your response. Views: dashboard, planner, timer, flashcards, quiz, match, forgeCast.
  3. STATE MODIFICATION (CRITICAL): 
-    - To CREATE/SAVE a new study set, use: [[ACTION:SAVE_DECK:{"title": "...", "cards": [...]}]].
-    - To ADD new items to existing, use: [[ACTION:ADD_TO_DECK:{"title": "...", "cards": [...]}]].
+    - To CREATE/SAVE a new study set, use: [[ACTION:SAVE_DECK:{"title": "...", "cards": [{"term": "...", "definition": "...", "explanation": "...", "imagePrompt": "..."}]}]].
+    - To ADD new items to existing, use: [[ACTION:ADD_TO_DECK:{"title": "...", "cards": [{"term": "...", "definition": "...", "explanation": "...", "imagePrompt": "..."}]}]].
+    - The "imagePrompt" should be a detailed visual description for an educational AI image that explains the concept.
     - To ADD questions to quiz, use: [[ACTION:ADD_TO_QUIZ:{"title": "...", "questions": [...]}]].
     - To REPLACE/EDIT, use: [[ACTION:EDIT_DECK:{...}]] or [[ACTION:EDIT_QUIZ:{...}]].
  4. Removing Barriers: Show the 'Why' using analogies from Programming, Engineering, or Sports.
@@ -344,7 +345,7 @@ Output Requirements (STRICT JSON):
 - summary: 2-3 sentences.
 - studySheet: A detailed markdown 'Study Sheet' with bullet points, headers, and any important formulas in LaTeX ($...$).
 - terms: A 'Terms to Know' list.
-- sampleFlashcards: A set of 3 sample flashcards (Front: [Question], Back: [Detailed Answer]).
+- sampleFlashcards: A set of 3 sample flashcards (Front: [Question], Back: [Detailed Answer], visual_prompt: [Detailed image prompt]).
 
 Text to analyze:
 ${text}`;
@@ -442,9 +443,13 @@ export async function generateStudyMaterial(
               properties: {
                 front: { type: Type.STRING },
                 back: { type: Type.STRING },
-                explanation: { type: Type.STRING }
+                explanation: { type: Type.STRING },
+                visual_prompt: { 
+                  type: Type.STRING, 
+                  description: "A detailed prompt for an educational illustration that visually explains this card's concept. High-quality, clear, academic style." 
+                }
               },
-              required: ["front", "back", "explanation"]
+              required: ["front", "back", "explanation", "visual_prompt"]
             }
           }
         },
@@ -456,15 +461,30 @@ export async function generateStudyMaterial(
   try {
     const data = JSON.parse(response.text || '{}');
 
+    // Generate images for flashcards in parallel (limited to first 10 for performance/cost)
+    const flashcardItems = data.flashcard_items || [];
+    const flashcardsWithImages = await Promise.all(
+      flashcardItems.map(async (f: any, index: number) => {
+        let imageUrl = undefined;
+        // Only generate images for the first 10 cards to keep it snappy and respect limits
+        if (index < 10 && f.visual_prompt) {
+          imageUrl = await generateImage(f.visual_prompt);
+        }
+        return {
+          id: crypto.randomUUID(),
+          term: f.front,
+          definition: f.back,
+          explanation: f.explanation,
+          imagePrompt: f.visual_prompt,
+          imageUrl: imageUrl || undefined
+        };
+      })
+    );
+
     const deck: Deck = {
       id: crypto.randomUUID(),
       title: `Deck: ${title}`,
-      cards: (data.flashcard_items || []).map((f: any) => ({
-        id: crypto.randomUUID(),
-        term: f.front,
-        definition: f.back,
-        explanation: f.explanation
-      }))
+      cards: flashcardsWithImages
     };
 
     const quiz: Quiz = {
@@ -489,6 +509,23 @@ export async function generateStudyMaterial(
 export async function generateFlashcardsFromText(text: string, title: string): Promise<Deck> {
   const { deck } = await generateStudyMaterial(text, title, 'Generate flashcards', 10, 'medium', 'flashcards');
   return deck;
+}
+
+/**
+ * Enriches a deck with images based on card imagePrompts if they don't have imageUrls yet.
+ */
+export async function enrichDeckWithImages(deck: Deck): Promise<Deck> {
+  const enrichedCards = await Promise.all(
+    deck.cards.map(async (card, index) => {
+      // Limit to first 10 cards to prevent huge delays
+      if (!card.imageUrl && card.imagePrompt && index < 10) {
+        const imageUrl = await generateImage(card.imagePrompt);
+        return { ...card, imageUrl: imageUrl || undefined };
+      }
+      return card;
+    })
+  );
+  return { ...deck, cards: enrichedCards };
 }
 
 export async function generateQuizFromText(text: string, title: string): Promise<Quiz> {

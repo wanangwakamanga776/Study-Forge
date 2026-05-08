@@ -152,11 +152,18 @@ function AppContent() {
     );
   }
 
-  const handleAIGenerated = (type: 'flashcards' | 'quiz' | 'forgeCast', data: any) => {
+  const handleAIGenerated = async (type: 'flashcards' | 'quiz' | 'forgeCast', data: any) => {
+    let finalData = { ...data, id: data.id || crypto.randomUUID(), createdAt: data.createdAt || Date.now() };
+
+    // If cards have prompts but no images (usually from chat), enrich them
+    if (type === 'flashcards' && finalData.cards) {
+      const { enrichDeckWithImages } = await import('./services/aiService');
+      finalData = await enrichDeckWithImages(finalData as Deck);
+    }
+
     setState(prev => {
       const newState = { ...prev };
-      // Ensure data has ID
-      const dataWithId = { ...data, id: data.id || crypto.randomUUID(), createdAt: data.createdAt || Date.now() };
+      const dataWithId = finalData;
 
       if (type === 'flashcards') {
         const deck = dataWithId as Deck;
@@ -210,13 +217,19 @@ function AppContent() {
     soundService.playSuccess();
   };
 
-  const handleAddData = (type: 'flashcards' | 'quiz', data: any) => {
+  const handleAddData = async (type: 'flashcards' | 'quiz', data: any) => {
+    let finalData = { ...data };
+    if (type === 'flashcards' && finalData.cards) {
+      const { enrichDeckWithImages } = await import('./services/aiService');
+      finalData = await enrichDeckWithImages(finalData as Deck);
+    }
+
     setState(prev => {
       const newState = { ...prev };
       if (type === 'flashcards') {
         newState.decks = prev.decks.map(d => {
-          if (d.id === data.id || d.title.toLowerCase() === data.title.toLowerCase()) {
-            const newCards = (data.cards || []).map((c: any) => ({
+          if (d.id === finalData.id || d.title.toLowerCase() === finalData.title.toLowerCase()) {
+            const newCards = (finalData.cards || []).map((c: any) => ({
               ...c,
               id: c.id || crypto.randomUUID()
             }));

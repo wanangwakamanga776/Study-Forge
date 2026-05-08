@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Timer, Trophy, RotateCcw, ArrowLeft, Zap, CheckCircle2, AlertCircle, Flame, Star } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 import { Deck, Flashcard } from '../types';
 import { cn } from '../lib/utils';
 import { useForgeEngine } from '../hooks/useForgeEngine';
@@ -275,9 +279,14 @@ export function MatchGame({ decks, onComplete, bestRecords }: MatchGameProps) {
                     : "bg-white/5 border-white/10 text-stone-300 hover:bg-white/10 hover:border-white/20"
                 )}
               >
-                <span className="text-sm font-bold leading-tight line-clamp-4">
-                  {tile.text}
-                </span>
+                <div className={cn(
+                  "text-sm font-bold leading-tight line-clamp-4 markdown-content",
+                  selectedTiles.includes(tile.id) && !wrongMatchIds.includes(tile.id) ? "text-inherit" : ""
+                )}>
+                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                    {tile.text}
+                  </ReactMarkdown>
+                </div>
                 
                 {/* Subtle indicator for type */}
                 <div className="absolute bottom-2 right-2 opacity-20">

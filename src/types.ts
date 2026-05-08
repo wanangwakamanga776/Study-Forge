@@ -16,6 +16,8 @@ export interface Flashcard {
   term: string;
   definition: string;
   explanation?: string;
+  imageUrl?: string;
+  imagePrompt?: string;
 }
 
 export type DeckCategory = 'Educational' | 'Personal' | 'Work' | 'Other';
