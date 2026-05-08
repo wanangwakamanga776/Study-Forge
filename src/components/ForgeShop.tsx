@@ -30,30 +30,30 @@ export function ForgeShop({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
   const [error, setError] = useState<string | null>(null);
 
   const themeList = [
-    { name: 'Default Ember', color: '#FB923C', desc: 'Classic academic warm. Focus-driven.', price: 0 },
-    { name: 'Deep Sea Blue', color: '#3B82F6', desc: 'Sub-aquatic immersion with rising bubbles and ocean depth.', price: 500 },
-    { name: 'Midnight Purple', color: '#A855F7', desc: 'Cosmic plasma field with pulsing interstellar orbs.', price: 500 },
-    { name: 'Matrix Code', color: '#22C55E', desc: 'Digital archive stream with falling Katakana data rain.', price: 750 },
-    { name: 'Inferno', color: '#EF4444', desc: 'Live atmospheric flames and kinetic heat ripples on interaction.', price: 1000 }
+    { name: 'Default Ember', color: '#FB923C', desc: 'Classic academic warm. Standard focus atmosphere.', price: 0 },
+    { name: 'Abyssal Current', color: '#3B82F6', desc: 'Deep-sea immersion with reactive caustics and high-pressure depth shaders.', price: 2000 },
+    { name: 'Nebula Pulse', color: '#A855F7', desc: 'Cosmic plasma field with pulsing interstellar singularities and stardust layers.', price: 3500 },
+    { name: 'Matrix Code', color: '#22C55E', desc: 'Digital archive stream with Katakana data rain, CRT scanline glitch, and static noise.', price: 5000 },
+    { name: 'Inferno', color: '#EF4444', desc: 'Intense atmospheric heat with rising embers and reactive kinetic fire ripples.', price: 7500 }
   ];
 
   const itemsList = [
-    { id: 'streak_freeze', name: 'The Final Shield', price: 500, desc: 'Protects your streak if you miss a day.', icon: <Shield size={24} /> },
-    { id: 'focus_shield', name: 'The All-Nighter', price: 300, desc: 'Prevents XP loss for 12 hours if focus fails.', icon: <Shield size={24} /> },
-    { id: 'verified_badge', name: 'Verified Scholar', price: 2000, desc: 'A blue checkmark for public deck creators.', icon: <Star size={24} />, isBadge: true },
-    { id: 'gilded_cover', name: 'Golden Gilded Cover', price: 750, desc: 'Makes your deck glow in results.', icon: <Sparkles size={24} /> },
-    { id: 'ghost_mode', name: 'The Ghost', price: 150, desc: 'Study in Incognito mode.', icon: <UserCircle size={24} /> },
+    { id: 'streak_freeze', name: 'Cryo-Shield', price: 500, desc: 'Preserves your Streak Multiplier if you miss a 24h window.', icon: <Shield size={24} className="text-blue-400" /> },
+    { id: 'focus_shield', name: 'Mental Fortitude', price: 700, desc: 'Protects your Rank from dropping if a session is aborted.', icon: <Shield size={24} className="text-forge-accent" /> },
+    { id: 'verified_badge', name: 'Certified Savant', price: 5000, desc: 'A holographic blue badge for top-tier curriculum creators.', icon: <Star size={24} className="text-blue-500 animate-pulse" />, isBadge: true },
+    { id: 'gilded_cover', name: 'Stellar Aura', price: 1500, desc: 'Your decks emit a permanent golden particle field in the Vault.', icon: <Sparkles size={24} className="text-yellow-400" /> },
+    { id: 'ghost_mode', name: 'Shadow Protocol', price: 300, desc: 'Participate in the Hall of Fame without revealing your identity.', icon: <UserCircle size={24} className="text-stone-400" /> },
   ];
 
   const skinsList = [
-    { id: 'sergeant', name: 'The Drill Sergeant', price: 600, desc: 'Strict discipline persona.', skin: 'Drill Sergeant' },
-    { id: 'zen', name: 'The Zen Master', price: 600, desc: 'Calm nature analogies.', skin: 'Zen Master' },
-    { id: 'rival', name: 'The Rival', price: 600, desc: 'Competitive student persona.', skin: 'Rival' },
+    { id: 'sergeant', name: 'Elite Sergeant', price: 1200, desc: 'Aggressive discipline persona with red combat visuals for Pyra.', skin: 'Drill Sergeant' },
+    { id: 'zen', name: 'Zen Architect', price: 1200, desc: 'Nature-driven calm analogies with emerald aura visuals for Pyra.', skin: 'Zen Master' },
+    { id: 'rival', name: 'The Prodigy', price: 1200, desc: 'Competitive high-stakes persona with purple lightning visuals for Pyra.', skin: 'Rival' },
   ];
 
   const upgradesList = [
-    { id: 'xray', name: 'X-Ray Vision', price: 400, desc: 'Deep scan token for assignments.', icon: <Zap size={24} /> },
-    { id: 'power_hour', name: 'Power Hour', price: 1000, desc: '2x Embers for the next 60 minutes.', icon: <FastForward size={24} />, isBooster: true },
+    { id: 'xray', name: 'Neural Link', price: 600, desc: 'One-time instant concept breakdown for complex assignments.', icon: <Zap size={24} className="text-yellow-500" /> },
+    { id: 'power_hour', name: 'Overdrive', price: 1500, desc: '2x Ember extraction rate for the next 60 minutes of study.', icon: <FastForward size={24} className="text-forge-accent" />, isBooster: true },
   ];
 
   const handlePurchase = (item: any, type: ShopTab) => {

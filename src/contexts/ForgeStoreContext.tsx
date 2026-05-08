@@ -24,6 +24,7 @@ interface ForgeStoreContextType {
   unlockItem: (id: string) => void;
   addBadge: (badge: string) => void;
   activateBooster: (type: 'Power Hour') => void;
+  trackQuestProgress: (id: string, amount?: number) => void;
   activeAssistantSkin: string;
   unlockedSkins: string[];
   unlockedItems: string[];
@@ -36,8 +37,8 @@ const ForgeStoreContext = createContext<ForgeStoreContextType | undefined>(undef
 
 export const THEMES = {
   'Default Ember': '#FB923C',
-  'Deep Sea Blue': '#3B82F6',
-  'Midnight Purple': '#A855F7',
+  'Abyssal Current': '#3B82F6',
+  'Nebula Pulse': '#A855F7',
   'Matrix Code': '#22C55E',
   'Inferno': '#EF4444',
 };
@@ -84,21 +85,28 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
         if (cloudStats) {
           setState(prev => ({
             ...prev,
-            stats: { ...prev.stats, ...cloudStats }
+            stats: { 
+              ...prev.stats, 
+              ...cloudStats,
+              unlockedThemes: Array.from(new Set([...(prev.stats.unlockedThemes || []), ...(cloudStats.unlockedThemes || [])])),
+              unlockedSkins: Array.from(new Set([...(prev.stats.unlockedSkins || []), ...(cloudStats.unlockedSkins || [])])),
+              unlockedItems: Array.from(new Set([...(prev.stats.unlockedItems || []), ...(cloudStats.unlockedItems || [])])),
+              badges: Array.from(new Set([...(prev.stats.badges || []), ...(cloudStats.badges || [])])),
+            }
           }));
-          triggerReward(0, 0, "Session Initialized");
+          triggerReward(0, 0, "Session Sync Complete");
         } else {
-          // Initialize New User
+          // Initialize New User with defaults
           const initialStats: UserStats = {
-            xp: 0,
-            level: 1,
-            streak: 0,
-            embers: 100,
+            ...state.stats,
+            xp: state.stats.xp || 0,
+            level: state.stats.level || 1,
+            embers: state.stats.embers || 100,
             name: user.displayName || 'Student',
             avatarUrl: user.photoURL,
             lastActiveDate: new Date().toISOString().split('T')[0],
-            currentTheme: 'Default Ember',
-            unlockedThemes: ['Default Ember'],
+            unlockedThemes: state.stats.unlockedThemes || ['Default Ember'],
+            unlockedSkins: state.stats.unlockedSkins || ['Default'],
             aiUsage: {
               quizzes: 0,
               flashcards: 0,
@@ -119,7 +127,7 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
     } else if (!user) {
       isInitialLoad.current = true;
     }
-  }, [user, setState, triggerReward]);
+  }, [user]); // Removed setState, triggerReward from deps to avoid re-runs
 
   // Cloud Sync: Save stats on change
   useEffect(() => {
@@ -156,7 +164,12 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
       const today = new Date().toISOString().split('T')[0];
       const newXP = prev.stats.xp + amount;
       const newLevel = Math.floor(newXP / 1000) + 1;
-      const earned = Math.round(amount / 5);
+      
+      // Calculate Embers with Booster
+      const isPowerHourActive = prev.stats.activeBoosters?.some(b => b.type === 'Power Hour' && b.expiresAt > Date.now());
+      const baseEmbers = Math.round(amount / 5);
+      const earned = isPowerHourActive ? baseEmbers * 2 : baseEmbers;
+      
       const newEmbers = (prev.stats.embers || 0) + earned;
       
       newLevelVal = newLevel;
@@ -171,6 +184,21 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
           if (diffInDays <= 1.5) {
             newStreak += 1;
           } else {
+            // CHECK FOR STREAK FREEZE
+            const hasStreakFreeze = prev.stats.unlockedItems?.includes('streak_freeze');
+            if (hasStreakFreeze) {
+              // Consume streak freeze
+              const updatedItems = prev.stats.unlockedItems.filter(id => id !== 'streak_freeze');
+              return {
+                ...prev,
+                stats: {
+                  ...prev.stats,
+                  unlockedItems: updatedItems,
+                  lastActiveDate: today, // "Save" it
+                  streak: (prev.stats.streak || 0) + 1
+                }
+              };
+            }
             newStreak = 1;
           }
         } else {
@@ -234,23 +262,31 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
   }, [setState]);
 
   const unlockTheme = useCallback((theme: string) => {
-    setState(prev => ({
-      ...prev,
-      stats: {
-        ...prev.stats,
-        unlockedThemes: [...new Set([...prev.stats.unlockedThemes, theme])]
-      }
-    }));
+    setState(prev => {
+      const newUnlocked = [...new Set([...prev.stats.unlockedThemes, theme])];
+      return {
+        ...prev,
+        stats: {
+          ...prev.stats,
+          unlockedThemes: newUnlocked,
+          currentTheme: theme // Auto-apply on purchase/unlock
+        }
+      };
+    });
   }, [setState]);
 
   const unlockSkin = useCallback((skin: string) => {
-    setState(prev => ({
-      ...prev,
-      stats: {
-        ...prev.stats,
-        unlockedSkins: [...new Set([...(prev.stats.unlockedSkins || ['Default']), skin])]
-      }
-    }));
+    setState(prev => {
+      const newUnlocked = [...new Set([...(prev.stats.unlockedSkins || ['Default']), skin])];
+      return {
+        ...prev,
+        stats: {
+          ...prev.stats,
+          unlockedSkins: newUnlocked,
+          activeAssistantSkin: skin as any
+        }
+      };
+    });
   }, [setState]);
 
   const setSkin = useCallback((skin: string) => {
@@ -294,6 +330,36 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
     }));
   }, [setState]);
 
+  const trackQuestProgress = useCallback((id: string, amount: number = 1) => {
+    const saved = localStorage.getItem('forge_quests_data');
+    if (saved) {
+      const quests = JSON.parse(saved);
+      let awarded = false;
+      let xpAward = 0;
+
+      const newQuests = quests.map((q: any) => {
+        if (q.id === id && !q.completed) {
+          const nextCurrent = Math.min(q.target, q.current + amount);
+          const isNowCompleted = nextCurrent >= q.target;
+          if (isNowCompleted) {
+            awarded = true;
+            xpAward = q.rewardXP;
+          }
+          return { ...q, current: nextCurrent, completed: isNowCompleted };
+        }
+        return q;
+      });
+
+      localStorage.setItem('forge_quests_data', JSON.stringify(newQuests));
+      if (awarded) {
+        awardXP(xpAward);
+      }
+      
+      // Dispatch custom event so components can refresh
+      window.dispatchEvent(new CustomEvent('forge_quests_updated'));
+    }
+  }, [awardXP]);
+
   const completeFocusSession = useCallback(async (xpAmount: number, embersAmount: number) => {
     // Check for Early Bird Achievement (before 7:00 AM)
     const hour = new Date().getHours();
@@ -302,6 +368,8 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
       bonusEmbers = 50;
       addBadge('Early Bird');
     }
+
+    trackQuestProgress('focus_session', 1);
 
     const finalXP = xpAmount;
     const finalEmbers = embersAmount + bonusEmbers;
@@ -338,6 +406,7 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
       unlockItem,
       addBadge,
       activateBooster,
+      trackQuestProgress,
       activeAssistantSkin,
       unlockedSkins,
       unlockedItems,

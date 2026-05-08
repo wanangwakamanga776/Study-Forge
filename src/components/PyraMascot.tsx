@@ -1,7 +1,8 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Flame, Sparkles, MessageCircle, Info } from 'lucide-react';
+import { Flame, Sparkles, MessageCircle, Info, Zap } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useForgeStore } from '../contexts/ForgeStoreContext';
 
 export type PyraExpression = 'happy' | 'thinking' | 'excited' | 'tutorial';
 
@@ -12,6 +13,8 @@ interface PyraMascotProps {
 }
 
 export function PyraMascot({ expression = 'happy', message, className }: PyraMascotProps) {
+  const { activeAssistantSkin } = useForgeStore();
+
   const getIcon = () => {
     switch (expression) {
       case 'excited': return <Sparkles className="text-forge-accent" size={24} />;
@@ -20,6 +23,41 @@ export function PyraMascot({ expression = 'happy', message, className }: PyraMas
       default: return <Flame className="text-forge-accent" size={24} />;
     }
   };
+
+  const getSkinStyles = () => {
+    switch (activeAssistantSkin) {
+      case 'Drill Sergeant':
+        return {
+          body: "border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.4)]",
+          glow: "bg-red-500/20",
+          eyes: "bg-red-500",
+          accents: <div className="absolute top-0 w-full h-4 bg-red-600/40 z-20 flex items-center justify-center font-black text-[6px] text-white tracking-widest">ELITE</div>
+        };
+      case 'Zen Master':
+        return {
+          body: "border-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.4)]",
+          glow: "bg-emerald-400/20",
+          eyes: "bg-emerald-400",
+          accents: <div className="absolute inset-0 border border-emerald-400/20 rounded-full animate-ping" />
+        };
+      case 'Rival':
+        return {
+          body: "border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.4)]",
+          glow: "bg-purple-500/20",
+          eyes: "bg-purple-500",
+          accents: <div className="absolute -top-2 w-full flex justify-center"><Zap size={16} className="text-purple-400 fill-current" /></div>
+        };
+      default:
+        return {
+          body: "border-forge-accent/30 shadow-[0_0_20px_rgba(251,146,60,0.2)]",
+          glow: "bg-forge-accent/5",
+          eyes: "bg-forge-accent",
+          accents: null
+        };
+    }
+  };
+
+  const skin = getSkinStyles();
 
   return (
     <div className={cn("flex flex-col items-center gap-4", className)}>
@@ -30,21 +68,27 @@ export function PyraMascot({ expression = 'happy', message, className }: PyraMas
         className="relative"
       >
         {/* Mascot Body */}
-        <div className="w-20 h-20 bg-forge-dark border-2 border-forge-accent/30 rounded-full flex items-center justify-center relative shadow-[0_0_20px_rgba(251,146,60,0.2)] overflow-hidden">
+        <div className={cn(
+          "w-20 h-20 bg-forge-dark border-2 rounded-full flex items-center justify-center relative overflow-hidden transition-all duration-500",
+          skin.body
+        )}>
           {/* Internal Glow */}
-          <div className="absolute inset-0 bg-forge-accent/5" />
+          <div className={cn("absolute inset-0 transition-colors duration-500", skin.glow)} />
+          
+          {/* Skin Accents */}
+          {skin.accents}
           
           {/* Eyes */}
           <div className="flex gap-4 mb-2 relative z-10">
             <motion.div 
                animate={{ scaleY: [1, 1, 0.1, 1] }} 
                transition={{ duration: 4, repeat: Infinity, times: [0, 0.8, 0.9, 1] }}
-               className="w-2 h-3 bg-forge-accent rounded-full" 
+               className={cn("w-2 h-3 rounded-full transition-colors duration-500", skin.eyes)} 
             />
             <motion.div 
                animate={{ scaleY: [1, 1, 0.1, 1] }} 
                transition={{ duration: 4, repeat: Infinity, times: [0, 0.8, 0.9, 1] }}
-               className="w-2 h-3 bg-forge-accent rounded-full" 
+               className={cn("w-2 h-3 rounded-full transition-colors duration-500", skin.eyes)} 
             />
           </div>
 
@@ -56,14 +100,24 @@ export function PyraMascot({ expression = 'happy', message, className }: PyraMas
 
         {/* Small Flame Wings */}
         <motion.div 
-          animate={{ rotate: [0, 10, 0] }}
+          animate={{ rotate: [0, 10, 0], scale: [1, 1.1, 1] }}
           transition={{ duration: 0.5, repeat: Infinity }}
-          className="absolute -left-4 top-1/2 -translate-y-1/2 w-6 h-10 bg-forge-accent/20 blur-sm rounded-full -rotate-12" 
+          className={cn(
+            "absolute -left-4 top-1/2 -translate-y-1/2 w-6 h-10 blur-sm rounded-full -rotate-12 transition-colors duration-500",
+            activeAssistantSkin === 'Drill Sergeant' ? "bg-red-500/40" : 
+            activeAssistantSkin === 'Zen Master' ? "bg-emerald-400/40" :
+            activeAssistantSkin === 'Rival' ? "bg-purple-500/40" : "bg-forge-accent/20"
+          )} 
         />
         <motion.div 
-          animate={{ rotate: [0, -10, 0] }}
+          animate={{ rotate: [0, -10, 0], scale: [1, 1.1, 1] }}
           transition={{ duration: 0.5, repeat: Infinity }}
-          className="absolute -right-4 top-1/2 -translate-y-1/2 w-6 h-10 bg-forge-accent/20 blur-sm rounded-full rotate-12" 
+          className={cn(
+            "absolute -right-4 top-1/2 -translate-y-1/2 w-6 h-10 blur-sm rounded-full rotate-12 transition-colors duration-500",
+            activeAssistantSkin === 'Drill Sergeant' ? "bg-red-500/40" : 
+            activeAssistantSkin === 'Zen Master' ? "bg-emerald-400/40" :
+            activeAssistantSkin === 'Rival' ? "bg-purple-500/40" : "bg-forge-accent/20"
+          )} 
         />
       </motion.div>
 

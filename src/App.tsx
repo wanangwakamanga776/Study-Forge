@@ -94,6 +94,13 @@ function AppContent() {
     }
   }, [user]);
 
+  // Apply admin privileges when status is active (handles both real user and guest admin)
+  useEffect(() => {
+    if (isAdmin && state.stats.embers < 500000) {
+      setAdminMaxEverything();
+    }
+  }, [isAdmin, state.stats.embers, setAdminMaxEverything]);
+
   // Auto-reset visuals when logged out and on home screen (LoginPage)
   useEffect(() => {
     if (!loading && !user && !isGuest) {
@@ -124,8 +131,6 @@ function AppContent() {
       setIsGuest(true);
       if (admin) {
         setIsAdmin(true);
-        // Instant maxing for admin account
-        setTimeout(() => setAdminMaxEverything(), 200);
       }
     }} />;
   }
@@ -291,6 +296,7 @@ function AppContent() {
             onDeleteForgeCast={deleteForgeCast}
             onOpenForge={() => setIsForgeOpen(true)}
             isAdmin={isAdmin}
+            isGuest={isGuest}
           />
         );
       case 'forge-library':
@@ -453,6 +459,7 @@ function AppContent() {
             onDeleteForgeCast={deleteForgeCast}
             onOpenForge={() => setIsForgeOpen(true)}
             isAdmin={isAdmin}
+            isGuest={isGuest}
           />
         );
     }
@@ -513,7 +520,7 @@ function AppContent() {
                 <BrainCircuit size={28} strokeWidth={2.5} />
               </div>
               <h1 className="text-3xl font-extrabold tracking-tighter font-display text-white uppercase italic drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]">
-                Study Forge
+                Study Forge <span className="text-[10px] bg-forge-accent text-forge-dark px-2 py-0.5 rounded-sm not-italic align-middle ml-1">BETA</span>
               </h1>
             </div>
 
@@ -618,7 +625,7 @@ function AppContent() {
               <div className="w-8 h-8 bg-forge-accent rounded-lg flex items-center justify-center text-forge-dark forge-glow">
                 <BrainCircuit size={18} strokeWidth={2.5} />
               </div>
-              <span className="font-black tracking-tighter font-display uppercase italic text-white text-lg">Study Forge</span>
+              <span className="font-black tracking-tighter font-display uppercase italic text-white text-lg">Study Forge <span className="text-[8px] bg-forge-accent text-forge-dark px-1.5 py-0.5 rounded-xs not-italic align-middle ml-1">BETA</span></span>
             </div>
             <div className="flex items-center gap-2">
               {user && <ProfileHeader onOpenSettings={() => setIsSettingsOpen(true)} />}

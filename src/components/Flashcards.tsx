@@ -9,6 +9,8 @@ import { cn } from '../lib/utils';
 import { soundService } from '../services/soundService';
 import { publishDeck } from '../services/dataService';
 
+import { useForgeStore } from '../contexts/ForgeStoreContext';
+
 interface FlashcardsProps {
   decks: Deck[];
   onUpdate: (decks: Deck[]) => void;
@@ -26,6 +28,8 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
   const [category, setCategory] = useState<DeckCategory>('Educational');
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
+
+  const { trackQuestProgress } = useForgeStore();
 
   const activeDeck = decks.find(d => d.id === activeDeckId);
 
@@ -171,6 +175,9 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
               onClick={() => {
                 setIsFlipped(!isFlipped);
                 soundService.playClick();
+                if (!isFlipped) {
+                  trackQuestProgress('card_flip', 1);
+                }
               }}
             >
               <motion.div

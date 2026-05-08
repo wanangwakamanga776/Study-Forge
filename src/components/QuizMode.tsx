@@ -11,6 +11,8 @@ import { soundService } from '../services/soundService';
 import { useForgeEngine } from '../hooks/useForgeEngine';
 import { useRewards } from './RewardToast';
 
+import { useForgeStore } from '../contexts/ForgeStoreContext';
+
 interface QuizModeProps {
   quizzes: Quiz[];
   onUpdate: (quizzes: Quiz[]) => void;
@@ -18,6 +20,7 @@ interface QuizModeProps {
 }
 
 export const QuizMode: React.FC<QuizModeProps> = ({ quizzes, onUpdate, onComplete }) => {
+  const { trackQuestProgress } = useForgeStore();
   const [activeQuizId, setActiveQuizId] = useState<string | null>(null);
   const { awardStudySession } = useForgeEngine();
   const { triggerReward } = useRewards();
@@ -79,6 +82,11 @@ export const QuizMode: React.FC<QuizModeProps> = ({ quizzes, onUpdate, onComplet
     } else {
       setShowResults(true);
       const finalScore = Math.round((score / activeQuiz!.questions.length) * 100);
+      
+      if (finalScore === 100) {
+        trackQuestProgress('quiz_master', 1);
+      }
+
       const { xpGain, embersGain } = awardStudySession(finalScore, 100, 10);
       triggerReward(xpGain, embersGain, "Evaluation Complete!");
       onComplete(xpGain);

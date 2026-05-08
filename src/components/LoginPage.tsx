@@ -170,7 +170,7 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
           <Flame size={48} className="text-forge-accent" />
         </div>
         <h1 className="text-6xl sm:text-7xl font-display font-black uppercase italic tracking-tighter text-white drop-shadow-[0_0_30px_rgba(251,146,60,0.4)]">
-          Study Forge
+          Study Forge <span className="text-[14px] bg-forge-accent text-forge-dark px-2 py-0.5 rounded-sm not-italic align-middle ml-2">BETA</span>
         </h1>
         <p className="text-forge-accent/60 font-black uppercase tracking-[0.4em] text-[8px] mt-3">
           Deep Learning • Academic Excellence
@@ -312,13 +312,18 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
               </button>
             </motion.form>
 
-            <button
-              onClick={() => { soundService.playClick(); onGuestAccess(); }}
-              className="w-full py-4 mt-6 bg-white/[0.01] text-stone-600 border border-white/5 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] hover:bg-white/5 hover:text-stone-400 transition-all flex items-center justify-center gap-2"
-            >
-              <RefreshCw size={12} />
-              Continue as Guest
-            </button>
+            <div className="mt-6 space-y-2">
+              <button
+                onClick={() => { soundService.playClick(); onGuestAccess(); }}
+                className="w-full py-4 bg-white/[0.01] text-stone-600 border border-white/5 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] hover:bg-white/5 hover:text-stone-400 transition-all flex items-center justify-center gap-2"
+              >
+                <RefreshCw size={12} />
+                Continue as Guest
+              </button>
+              <p className="text-center text-[8px] font-bold text-stone-700 uppercase tracking-widest">
+                Progress will not save to the cloud unless logged in
+              </p>
+            </div>
           </div>
 
           {/* Corner Branding */}

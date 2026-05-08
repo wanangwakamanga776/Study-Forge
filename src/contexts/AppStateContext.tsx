@@ -27,7 +27,6 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
           stats: {
             ...INITIAL_STATE.stats,
             ...(parsed.stats || {}),
-            plan: 'Premium', // Force premium access
             aiUsage: {
               ...INITIAL_STATE.stats.aiUsage,
               ...(parsed.stats?.aiUsage || {}),
@@ -89,9 +88,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       ...prev,
       stats: {
         ...prev.stats,
-        xp: active ? 99999999 : 0,
-        level: active ? 99999 : 1,
-        plan: active ? 'Premium' : prev.stats.plan
+        xp: active ? 1000000 : 0,
+        level: active ? 100 : 1
       }
     }));
     if (active) soundService.playSuccess();
@@ -102,7 +100,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       ...prev,
       stats: {
         ...prev.stats,
-        embers: active ? 99999999 : 100
+        embers: active ? 1000000 : 100
       }
     }));
     if (active) soundService.playSuccess();
@@ -113,13 +111,12 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       ...prev,
       stats: {
         ...prev.stats,
-        xp: 99999999,
-        level: 99999,
-        embers: 99999999,
-        plan: 'Premium',
-        streak: 999,
+        xp: 1000000,
+        level: 100,
+        embers: 1000000,
+        streak: 99,
         currentTheme: 'Inferno',
-        unlockedThemes: [...new Set([...prev.stats.unlockedThemes, 'Inferno', 'Midnight Purple', 'Matrix Code', 'Deep Sea Blue'])]
+        unlockedThemes: [...new Set([...prev.stats.unlockedThemes, 'Inferno', 'Nebula Pulse', 'Matrix Code', 'Abyssal Current'])]
       }
     }));
     soundService.playSuccess();

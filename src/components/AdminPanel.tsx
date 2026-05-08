@@ -27,8 +27,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [error, setError] = useState(false);
   const [activeTab, setActiveTab] = useState<'cheats' | 'aboutme'>('cheats');
 
-  const isMaxLevel = currentXp >= 10000000;
-  const isUnlimitedEmbers = currentEmbers >= 10000000;
+  const isMaxLevel = currentXp >= 1000000;
+  const isUnlimitedEmbers = currentEmbers >= 1000000;
 
   // About Me State
   const [aboutMeMessage, setAboutMeMessage] = useState('');
