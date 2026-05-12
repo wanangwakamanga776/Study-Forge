@@ -375,9 +375,11 @@ ${text}`;
               type: Type.OBJECT,
               properties: {
                 front: { type: Type.STRING },
-                back: { type: Type.STRING }
+                back: { type: Type.STRING },
+                explanation: { type: Type.STRING },
+                visual_prompt: { type: Type.STRING }
               },
-              required: ["front", "back"]
+              required: ["front", "back", "explanation", "visual_prompt"]
             }
           }
         },
@@ -410,7 +412,7 @@ export async function generateStudyMaterial(
 
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: `Source Material: ${text}\n\nUser Instructions: ${instructions}\nDesired Quantity: ${quantity}`,
+    contents: `Source Material: ${text}\n\nUser Instructions: ${instructions}\nDesired Quantity: ${quantity || 15}`,
     config: {
       systemInstruction: `You are the Lead Pedagogical Architect and "Greatest Teacher".
         - The Semantic Audit Protocol: Analyze the source material and instructions. Identify every unique, standalone "Knowledge Unit" (KU) that must be mastered.
@@ -444,8 +446,7 @@ export async function generateStudyMaterial(
                 explanation: { type: Type.STRING }
               },
               required: ["question", "options", "answer", "explanation"]
-            },
-            maxItems: 50
+            }
           },
           flashcard_items: {
             type: Type.ARRAY,
@@ -461,8 +462,7 @@ export async function generateStudyMaterial(
                 }
               },
               required: ["front", "back", "explanation", "visual_prompt"]
-            },
-            maxItems: 50
+            }
           }
         },
         required: finalMode === 'both' ? ["quiz_items", "flashcard_items"] : (finalMode === 'quiz' ? ["quiz_items"] : ["flashcard_items"])

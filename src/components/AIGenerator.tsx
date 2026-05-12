@@ -93,7 +93,7 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({
       const title = selectedFile ? selectedFile.name.split('.')[0] : (pastedText.substring(0, 20).trim() || 'Custom Study Set');
 
       const quantityMatch = pastedText.match(/(\d+)\s+(cards|flashcards|questions|items)/i);
-      const requestedQuantity = quantityMatch ? Math.min(50, parseInt(quantityMatch[1])) : (pastedText.length > 1000 ? 25 : 15);
+      const requestedQuantity = quantityMatch ? Math.min(50, parseInt(quantityMatch[1])) || 15 : (pastedText.length > 1000 ? 25 : 15);
 
       const lowerText = pastedText.toLowerCase();
       const isForgeCastRequest = lowerText.includes('video') || lowerText.includes('cast') || lowerText.includes('animation');
