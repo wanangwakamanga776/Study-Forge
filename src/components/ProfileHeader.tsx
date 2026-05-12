@@ -96,9 +96,10 @@ export function ProfileHeader({ onOpenSettings }: ProfileHeaderProps) {
           <input 
             type="file" 
             ref={fileInputRef} 
-            className="hidden" 
+            className="sr-only" 
             accept="image/*" 
             onChange={handleFileChange} 
+            onClick={(e) => { (e.target as any).value = null; }}
           />
         </div>
 

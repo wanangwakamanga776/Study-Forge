@@ -33,6 +33,43 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
 
   const activeDeck = decks.find(d => d.id === activeDeckId);
 
+  // Keyboard Navigation
+  React.useEffect(() => {
+    if (!activeDeck) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't interfere with inputs
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return;
+      }
+
+      if (e.key === 'ArrowLeft') {
+        if (currentCardIndex > 0) {
+          setCurrentCardIndex(prev => prev - 1);
+          setIsFlipped(false);
+          soundService.playClick();
+        }
+      } else if (e.key === 'ArrowRight') {
+        if (currentCardIndex < activeDeck.cards.length - 1) {
+          setCurrentCardIndex(prev => prev + 1);
+          setIsFlipped(false);
+          soundService.playClick();
+        }
+      } else if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault(); // Prevent scroll
+        setIsFlipped(prev => !prev);
+        soundService.playClick();
+        if (!isFlipped) {
+          trackQuestProgress('card_flip', 1);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeDeck, currentCardIndex, isFlipped, trackQuestProgress]);
+
   const createDeck = async () => {
     if (!newDeckTitle.trim()) return;
     const newDeck: Deck = {

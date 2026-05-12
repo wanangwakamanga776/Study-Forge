@@ -1,93 +1,62 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 0. Default Deny
+    // -------------------------------------------------------------------------
+    // GLOBAL HELPERS
+    // -------------------------------------------------------------------------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Default deny
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // Primitives
-    function isSignedIn() { return request.auth != null; }
-    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
-    function isAdmin() { 
-      return isSignedIn() 
-        && request.auth.token.email == 'wanangwakamanga776@gmail.com' 
-        && request.auth.token.email_verified == true; 
-    }
-    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
-    function incoming() { return request.resource.data; }
-    function existing() { return resource.data; }
+    // -------------------------------------------------------------------------
+    // USER STATS
+    // -------------------------------------------------------------------------
+    match /users/{userId}/stats/main {
+      function isValidUserStats(data) {
+        return data.xp is number && data.level is number && data.streak is number && data.embers is number;
+      }
 
-    // Validation Blueprint for UserStats
-    function isValidUserStats(data) {
-      let requiredFields = ['xp', 'level', 'embers', 'streak'];
-      
-      return data.keys().hasAll(requiredFields)
-        && data.xp is number && data.xp >= 0
-        && data.level is number && data.level >= 1
-        && data.embers is number && data.embers >= 0
-        && data.streak is number && data.streak >= 0
-        && (!data.keys().hasAny(['updatedAt']) || data.updatedAt == request.time)
-        && (!data.keys().hasAny(['unlockedThemes']) || (data.unlockedThemes is list && data.unlockedThemes.size() <= 20))
-        && (!data.keys().hasAny(['currentTheme']) || (data.currentTheme is string && data.currentTheme.size() <= 50))
-        && (!data.keys().hasAny(['lastActiveDate']) || (data.lastActiveDate is string && data.lastActiveDate.size() <= 20))
-        && (!data.keys().hasAny(['name']) || (data.name is string && data.name.size() <= 100))
-        && (!data.keys().hasAny(['avatarUrl']) || (data.avatarUrl is string && data.avatarUrl.size() <= 500));
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserStats(incoming());
+      allow update: if isOwner(userId) && isValidUserStats(incoming());
     }
 
-    function isValidDeck(data) {
-      return data.title is string && data.title.size() <= 100
-        && (!data.keys().hasAny(['category']) || data.category in ['Educational', 'Personal', 'Work', 'Other'])
-        && (!data.keys().hasAny(['isPublic']) || data.isPublic is bool)
-        && (!data.keys().hasAny(['cards']) || (data.cards is list && data.cards.size() <= 200))
-        && (!data.keys().hasAny(['creatorName']) || (data.creatorName is string && data.creatorName.size() <= 100));
+    // -------------------------------------------------------------------------
+    // PRIVATE CONTENT (Decks, Quizzes, Tasks, ForgeCasts)
+    // -------------------------------------------------------------------------
+    match /users/{userId}/{collectionName}/{docId} {
+      allow read, write: if isOwner(userId) && collectionName in ['decks', 'quizzes', 'tasks', 'forgeCasts'];
     }
 
-    function isValidAboutMe(data) {
-      return data.message is string && data.message.size() <= 5000
-        && data.images is list && data.images.size() <= 10
-        && (!data.keys().hasAny(['updatedAt']) || data.updatedAt == request.time);
-    }
-
-    match /test/connection {
-      allow read: if true;
-    }
-
-    match /global/aboutMe {
-      allow get: if true;
-      allow write: if isAdmin() && isValidAboutMe(incoming() || (request.method == 'update' ? existing() : {}));
-    }
-
-    match /users/{userId} {
-      allow get: if isValidId(userId);
-      allow list: if true;
-      
-      allow create: if isOwner(userId) 
-        && isValidId(userId)
-        && isValidUserStats(incoming())
-        && incoming().keys().size() <= 15; // Increased to allow more session data
-
-      allow update: if isOwner(userId)
-        && isValidId(userId)
-        && isValidUserStats(incoming())
-        && incoming().updatedAt == request.time
-        && incoming().diff(existing()).affectedKeys().hasOnly([
-           'xp', 'level', 'embers', 'streak', 'lastActiveDate', 'currentTheme', 'unlockedThemes', 'updatedAt', 'name', 'avatarUrl', 'aiUsage', 'plan'
-        ]);
-
-      allow delete: if false;
-    }
-
-    match /decks/{deckId} {
-      allow get: if isValidId(deckId) && existing().isPublic == true;
-      allow list: if existing().isPublic == true;
-      allow create: if isSignedIn() && isValidId(deckId) && incoming().creatorId == request.auth.uid && isValidDeck(incoming());
-      allow update: if isSignedIn() && isOwner(existing().creatorId) && isValidDeck(incoming());
-      allow delete: if isSignedIn() && isOwner(existing().creatorId);
-    }
-
-    match /users/{userId}/myDecks/{deckId} {
-      allow read, write: if isOwner(userId) && isValidId(deckId) && isValidDeck(incoming() || existing());
+    // -------------------------------------------------------------------------
+    // PUBLIC DECKS
+    // -------------------------------------------------------------------------
+    match /publicDecks/{deckId} {
+      allow read: if true; // Public library is readable by all
+      allow create: if isSignedIn() && incoming().creatorId == request.auth.uid;
+      allow update: if isSignedIn() && existing().creatorId == request.auth.uid;
+      allow delete: if isSignedIn() && existing().creatorId == request.auth.uid;
     }
   }
 }

@@ -1,74 +1,134 @@
 {
   "entities": {
     "UserStats": {
-      "title": "User Statistics",
-      "description": "Gamification and state data for a specific user.",
+      "title": "User Statistics and Settings",
+      "description": "Gamification, settings, and progress data for a specific user.",
       "type": "object",
       "properties": {
-        "xp": { "type": "number", "description": "Total experience points earned." },
-        "level": { "type": "number", "description": "Current rank/level." },
-        "streak": { "type": "number", "description": "Consecutive days active." },
-        "embers": { "type": "number", "description": "Currency spent in the shop." },
-        "lastActiveDate": { "type": "string", "description": "ISO date of last xp gain." },
-        "currentTheme": { "type": "string", "description": "The active visual theme name." },
-        "unlockedThemes": { "type": "array", "items": { "type": "string" }, "description": "List of theme names the user has bought." },
-        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp of last update." }
+        "xp": { "type": "number" },
+        "level": { "type": "number" },
+        "streak": { "type": "number" },
+        "embers": { "type": "number" },
+        "lastActiveDate": { "type": "string", "description": "ISO date" },
+        "currentTheme": { "type": "string" },
+        "unlockedThemes": { "type": "array", "items": { "type": "string" } },
+        "matchRecords": { "type": "object", "description": "deckId -> bestTime" },
+        "aiUsage": {
+          "type": "object",
+          "properties": {
+            "quizzes": { "type": "number" },
+            "flashcards": { "type": "number" },
+            "forgeCasts": { "type": "number" },
+            "lastResetDate": { "type": "string" }
+          }
+        },
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["xp", "level", "streak", "embers"]
     },
-    "Deck": {
-      "title": "Study Deck",
-      "description": "A collection of flashcards shared with the community or saved privately.",
+    "Flashcard": {
+      "title": "Flashcard",
       "type": "object",
       "properties": {
+        "id": { "type": "string" },
+        "term": { "type": "string" },
+        "definition": { "type": "string" },
+        "explanation": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "imagePrompt": { "type": "string" }
+      },
+      "required": ["id", "term", "definition"]
+    },
+    "Deck": {
+      "title": "Study Deck",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
         "title": { "type": "string" },
-        "category": { "type": "string", "enum": ["Educational", "Personal", "Work", "Other"] },
+        "cards": { "type": "array", "items": { "$ref": "#/entities/Flashcard" } },
         "isPublic": { "type": "boolean" },
-        "creatorId": { "type": "string" },
-        "creatorName": { "type": "string" },
         "originalId": { "type": "string" },
-        "cards": { 
+        "creatorName": { "type": "string" },
+        "creatorId": { "type": "string" },
+        "category": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "title", "cards"]
+    },
+    "Quiz": {
+      "title": "Quiz",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "questions": {
           "type": "array",
           "items": {
             "type": "object",
             "properties": {
-              "term": { "type": "string" },
-              "definition": { "type": "string" }
+              "id": { "type": "string" },
+              "question": { "type": "string" },
+              "options": { "type": "array", "items": { "type": "string" } },
+              "correctAnswer": { "type": "number" },
+              "explanation": { "type": "string" }
             }
           }
-        },
-        "createdAt": { "type": "number" }
-      }
+        }
+      },
+      "required": ["id", "title", "questions"]
     },
-    "AboutMe": {
-      "title": "About Me Page",
-      "description": "Global information about the application or creator, editable by admins.",
+    "Task": {
+      "title": "Study Task",
       "type": "object",
       "properties": {
-        "message": { "type": "string" },
-        "images": { "type": "array", "items": { "type": "string" } },
-        "updatedBy": { "type": "string" },
-        "updatedAt": { "type": "string", "format": "date-time" }
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "priority": { "type": "string", "enum": ["Low", "Medium", "High", "Urgent"] },
+        "deadline": { "type": "string" },
+        "duration": { "type": "number" },
+        "completed": { "type": "boolean" },
+        "createdAt": { "type": "number" },
+        "section": { "type": "string" }
       },
-      "required": ["message", "images"]
+      "required": ["id", "title", "priority"]
+    },
+    "ForgeCast": {
+      "title": "ForgeCast Lesson",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "metadata": { "type": "object" },
+        "chapters": { "type": "array", "items": { "type": "object" } },
+        "assessment": { "type": "object" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "metadata", "chapters"]
     }
   },
   "firestore": {
-    "/global/aboutMe": {
-      "schema": "AboutMe",
-      "description": "Single global configuration for the About Me section."
-    },
-    "/users/{userId}": {
+    "/users/{userId}/stats/main": {
       "schema": "UserStats",
-      "description": "Stores individual user gamification stats."
+      "description": "User profile, gamification stats, and settings."
     },
-    "/decks/{deckId}": {
+    "/users/{userId}/decks/{deckId}": {
       "schema": "Deck",
-      "description": "Public community curricula library."
+      "description": "User's private study decks."
     },
-    "/users/{userId}/myDecks/{deckId}": {
+    "/users/{userId}/quizzes/{quizId}": {
+      "schema": "Quiz",
+      "description": "User's private quizzes."
+    },
+    "/users/{userId}/tasks/{taskId}": {
+      "schema": "Task",
+      "description": "User's study planner tasks."
+    },
+    "/users/{userId}/forgeCasts/{castId}": {
+      "schema": "ForgeCast",
+      "description": "User's generated study lessons."
+    },
+    "/publicDecks/{deckId}": {
       "schema": "Deck",
-      "description": "Private copies of decks saved to user library."
+      "description": "Decks shared with the community."
     }
   }
 }

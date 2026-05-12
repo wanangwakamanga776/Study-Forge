@@ -328,7 +328,12 @@ export function ForgeChat({ onNavigate, onOpenForge, onSaveData, onEditData, onA
                 </div>
 
                 {/* Messages */}
-                <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 metallic-scrollbar pb-24">
+                <div 
+                  ref={scrollRef} 
+                  tabIndex={0}
+                  className="flex-1 overflow-y-auto p-6 space-y-6 metallic-scrollbar pb-24 focus:outline-none"
+                  aria-label="Chat messages"
+                >
                 {messages.map((message, i) => (
                   <motion.div
                     key={i}
@@ -528,7 +533,8 @@ export function ForgeChat({ onNavigate, onOpenForge, onSaveData, onEditData, onA
                       type="file"
                       ref={fileInputRef}
                       onChange={handleFileUpload}
-                      className="hidden"
+                      onClick={(e) => { (e.target as any).value = null; }}
+                      className="sr-only"
                       accept=".pdf,.docx,.doc,.txt,.pptx,.rtf,.odt"
                     />
                     <button

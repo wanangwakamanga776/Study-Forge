@@ -95,6 +95,31 @@ export const ForgeCast: React.FC<ForgeCastProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Keyboard Navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't interfere with inputs
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return;
+      }
+
+      if (mode === 'player') {
+        if (e.key === 'ArrowLeft') {
+          handleSkip('prev');
+        } else if (e.key === 'ArrowRight') {
+          handleSkip('next');
+        } else if (e.key === ' ') {
+          e.preventDefault();
+          handlePlayPause();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mode, currentChapterIndex, isPlaying]);
+
   const handlePlayPause = () => {
     setIsPlaying(!isPlaying);
     soundService.playClick();
@@ -491,10 +516,16 @@ export const ForgeCast: React.FC<ForgeCastProps> = ({
                     placeholder="Describe a topic or upload a file..."
                     className="w-full bg-white/5 border border-white/10 rounded-2xl py-5 pl-16 pr-16 text-white placeholder-stone-600 focus:outline-none focus:border-forge-accent/50 transition-colors font-medium"
                   />
-                  <label className="absolute left-5 top-1/2 -translate-y-1/2 p-2 text-stone-500 hover:text-forge-accent transition-colors cursor-pointer">
-                    <Upload size={24} />
-                    <input type="file" className="hidden" onChange={handleFileUpload} accept=".txt,.md" />
-                  </label>
+                    <label className="absolute left-5 top-1/2 -translate-y-1/2 p-2 text-stone-500 hover:text-forge-accent transition-colors cursor-pointer">
+                      <Upload size={24} />
+                      <input 
+                        type="file" 
+                        className="sr-only" 
+                        onChange={handleFileUpload} 
+                        onClick={(e) => { (e.target as any).value = null; }}
+                        accept=".txt,.md" 
+                      />
+                    </label>
                   <button
                     onClick={handleSend}
                     disabled={isForging || (!input.trim() && !uploadedFile)}

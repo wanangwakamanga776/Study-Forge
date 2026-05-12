@@ -236,6 +236,79 @@ export const updateAboutMe = async (data: AboutMeData) => {
   }
 };
 
+// Private Content Sync
+export const syncUserCollection = <T>(
+  userId: string, 
+  collectionName: 'decks' | 'quizzes' | 'tasks' | 'forgeCasts', 
+  callback: (data: T[]) => void
+) => {
+  const q = query(collection(db, 'users', userId, collectionName), orderBy('createdAt', 'desc'));
+  return onSnapshot(q, (snapshot) => {
+    const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as T));
+    callback(items);
+  }, (error) => {
+    handleFirestoreError(error, 'list', `users/${userId}/${collectionName}`);
+  });
+};
+
+export const saveUserItem = async (
+  userId: string, 
+  collectionName: 'decks' | 'quizzes' | 'tasks' | 'forgeCasts', 
+  item: any
+) => {
+  const docRef = doc(db, 'users', userId, collectionName, item.id);
+  try {
+    await setDoc(docRef, {
+      ...item,
+      updatedAt: serverTimestamp(),
+      createdAt: item.createdAt || Date.now()
+    }, { merge: true });
+  } catch (error) {
+    handleFirestoreError(error as FirestoreError, 'write', `users/${userId}/${collectionName}/${item.id}`);
+  }
+};
+
+export const deleteUserItem = async (
+  userId: string, 
+  collectionName: 'decks' | 'quizzes' | 'tasks' | 'forgeCasts', 
+  itemId: string
+) => {
+  const docRef = doc(db, 'users', userId, collectionName, itemId);
+  try {
+    // Note: We'd normally use deleteDoc but for safety and sync, sometimes we just filter locally.
+    // For cloud sync, we actually want to delete from Firestore.
+    const { deleteDoc } = await import('firebase/firestore');
+    await deleteDoc(docRef);
+  } catch (error) {
+    handleFirestoreError(error as FirestoreError, 'write', `users/${userId}/${collectionName}/${itemId}`);
+  }
+};
+
+export const subscribeUserStats = (userId: string, callback: (stats: Partial<UserStats> | null) => void) => {
+  const docRef = doc(db, 'users', userId, 'stats', 'main');
+  return onSnapshot(docRef, (docSnap) => {
+    if (docSnap.exists()) {
+      callback(docSnap.data() as Partial<UserStats>);
+    } else {
+      callback(null);
+    }
+  }, (error) => {
+    handleFirestoreError(error, 'get', `users/${userId}/stats/main`);
+  });
+};
+
+export const syncUserStats = async (userId: string, stats: Partial<UserStats>) => {
+  const docRef = doc(db, 'users', userId, 'stats', 'main');
+  try {
+    await setDoc(docRef, {
+      ...stats,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+  } catch (error) {
+    handleFirestoreError(error as FirestoreError, 'write', `users/${userId}/stats/main`);
+  }
+};
+
 export const subscribeAboutMe = (callback: (data: AboutMeData | null) => void) => {
   const docRef = doc(db, 'global', 'aboutMe');
   return onSnapshot(docRef, (docSnap) => {

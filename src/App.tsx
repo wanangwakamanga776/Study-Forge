@@ -53,24 +53,29 @@ const AdminOnlyView: React.FC<{ children: React.ReactNode; isAdmin: boolean; onR
 };
 
 import { AppStateProvider } from './contexts/AppStateContext';
+import { AuthProvider, useAuthContext } from './contexts/AuthContext';
 
 export default function App() {
   return (
-    <AppStateProvider>
-      <RewardProvider>
-          <ForgeStoreProvider>
-              <AppContent />
-          </ForgeStoreProvider>
-      </RewardProvider>
-    </AppStateProvider>
+    <AuthProvider>
+      <AppStateProvider>
+        <RewardProvider>
+            <ForgeStoreProvider>
+                <AppContent />
+            </ForgeStoreProvider>
+        </RewardProvider>
+      </AppStateProvider>
+    </AuthProvider>
   );
 }
+
+import { useScrollControls } from './hooks/useScrollControls';
 
 function AppContent() {
   const { state, setState, deleteForgeCast, resetToDefault } = useAppState();
   const { awardXP, level, xp, embers } = useForgeStore();
   const { setAdminMaxLevel, setAdminUnlimitedCurrency, setAdminMaxEverything } = useForgeEngine();
-  const { user, loading } = useAuth();
+  const { user, loading } = useAuthContext();
   const [isGuest, setIsGuest] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [currentView, setCurrentView] = useState<View>('dashboard');
@@ -82,6 +87,9 @@ function AppContent() {
   const [isForgeOpen, setIsForgeOpen] = useState(false);
   const [forgeTopic, setForgeTopic] = useState<string>();
   const [showTutorial, setShowTutorial] = useState(false);
+
+  // Enable global keyboard scroll controls
+  useScrollControls();
 
   useEffect(() => {
     testArchivesConnection();
@@ -527,7 +535,11 @@ function AppContent() {
         "fixed inset-y-0 left-0 z-50 w-64 bg-forge-dark border-r border-white/5 transition-transform lg:translate-x-0",
         isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
       )}>
-        <div className="flex flex-col h-full p-6 overflow-y-auto metallic-scrollbar">
+        <div 
+          tabIndex={0}
+          className="flex flex-col h-full p-6 overflow-y-auto metallic-scrollbar focus:outline-none"
+          aria-label="Navigation sidebar"
+        >
             <div className="flex items-center gap-4 mb-14">
               <div className="w-12 h-12 bg-forge-accent rounded-2xl flex items-center justify-center text-forge-dark forge-glow border border-white/10">
                 <BrainCircuit size={28} strokeWidth={2.5} />

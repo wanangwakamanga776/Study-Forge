@@ -304,12 +304,20 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({
                             onChange={(e) => {
                               const file = e.target.files?.[0];
                               if (file) handleFileSelect(file);
-                            }} 
-                            className="hidden" 
+                            }}
+                            onClick={(e) => {
+                              (e.target as any).value = null;
+                            }}
+                            className="sr-only" 
                             accept=".pdf,.docx,.doc,.txt,.pptx"
                           />
                           <button
-                            onClick={() => fileInputRef.current?.click()}
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              fileInputRef.current?.click();
+                            }}
                             className={cn(
                               "flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
                               selectedFile ? "bg-forge-accent text-forge-dark shadow-[0_0_15px_rgba(251,146,60,0.3)]" : "bg-white/5 text-stone-400 hover:bg-white/10 hover:text-white"

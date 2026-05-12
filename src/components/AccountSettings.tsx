@@ -183,9 +183,10 @@ export function AccountSettings({ isOpen, onClose }: AccountSettingsProps) {
                       <input 
                         type="file" 
                         ref={fileInputRef} 
-                        className="hidden" 
+                        className="sr-only" 
                         accept="image/*" 
                         onChange={handleFileChange} 
+                        onClick={(e) => { (e.target as any).value = null; }}
                       />
                     </div>
                     <div className="space-y-2">
