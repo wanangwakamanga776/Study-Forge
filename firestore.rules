@@ -30,16 +30,28 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------------------
-    // USER STATS
+    // GLOBAL DATA
     // -------------------------------------------------------------------------
-    match /users/{userId}/stats/main {
-      function isValidUserStats(data) {
-        return data.xp is number && data.level is number && data.streak is number && data.embers is number;
-      }
+    match /test/connection {
+      allow read: if true;
+    }
 
-      allow read: if isOwner(userId);
-      allow create: if isOwner(userId) && isValidUserStats(incoming());
-      allow update: if isOwner(userId) && isValidUserStats(incoming());
+    match /global/aboutMe {
+      allow read: if true;
+      allow write: if isSignedIn() && (request.auth.token.email == 'wanangwakamanga776@gmail.com' || request.auth.token.email_verified == true); 
+    }
+
+    // -------------------------------------------------------------------------
+    // USER STATS & PROFILES
+    // -------------------------------------------------------------------------
+    match /users/{userId} {
+      allow read: if true; // Allow reading profiles for leaderboard
+      allow write: if isOwner(userId);
+      
+      match /stats/main {
+        allow read: if true; // Allow reading stats for leaderboard
+        allow write: if isOwner(userId);
+      }
     }
 
     // -------------------------------------------------------------------------

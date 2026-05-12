@@ -135,7 +135,7 @@ export const getTotalUserCount = async (): Promise<number> => {
 
 export const publishDeck = async (deck: Deck) => {
   if (!auth.currentUser) return;
-  const deckDocRef = doc(db, 'decks', deck.id);
+  const deckDocRef = doc(db, 'publicDecks', deck.id);
   try {
     await setDoc(deckDocRef, {
       ...deck,
@@ -153,7 +153,7 @@ export const publishDeck = async (deck: Deck) => {
 export const getPublicDecks = async (category?: string, searchTerm?: string): Promise<Deck[]> => {
   try {
     let q = query(
-      collection(db, 'decks'),
+      collection(db, 'publicDecks'),
       where('isPublic', '==', true),
       orderBy('createdAt', 'desc'),
       limit(50)

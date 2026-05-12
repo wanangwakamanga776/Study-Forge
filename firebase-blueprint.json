@@ -103,9 +103,23 @@
         "createdAt": { "type": "number" }
       },
       "required": ["id", "metadata", "chapters"]
+    },
+    "AboutMe": {
+      "title": "About Me Data",
+      "type": "object",
+      "properties": {
+        "message": { "type": "string" },
+        "images": { "type": "array", "items": { "type": "string" } },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "updatedBy": { "type": "string" }
+      }
     }
   },
   "firestore": {
+    "/global/aboutMe": {
+      "schema": "AboutMe",
+      "description": "Global 'About Me' section content."
+    },
     "/users/{userId}/stats/main": {
       "schema": "UserStats",
       "description": "User profile, gamification stats, and settings."
