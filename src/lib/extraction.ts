@@ -140,6 +140,6 @@ export async function extractTextFromImage(file: File): Promise<string> {
 function cleanText(text: string): string {
   return text
     .replace(/\s+/g, " ")
-    .replace(/[^\x20-\x7E\n]/g, "")
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, "") // Remove control characters only
     .trim();
 }

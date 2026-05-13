@@ -25,9 +25,10 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
   const [sparks, setSparks] = useState<{ id: number; x: number; y: number; size: number; duration: number }[]>([]);
 
   useEffect(() => {
+    // Only run if not on low-power mode or high-performance preference
     const interval = setInterval(() => {
       setSparks(prev => [
-        ...prev.slice(-20),
+        ...prev.slice(-15), // Reduced from 20 to 15 max particles
         {
           id: Math.random(),
           x: Math.random() * 100,
@@ -36,7 +37,7 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
           duration: Math.random() * 2 + 1
         }
       ]);
-    }, 200);
+    }, 400); // Frequency reduced from 200ms to 400ms to save CPU
     return () => clearInterval(interval);
   }, []);
 

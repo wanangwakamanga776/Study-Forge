@@ -17,6 +17,7 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { UserStats, Deck } from '../types';
+import { generateId } from '../lib/utils';
 
 /**
  * Validates the connection to the Forge's Archives (Firestore).
@@ -67,19 +68,19 @@ const handleFirestoreError = (error: FirestoreError, operation: FirestoreErrorIn
 };
 
 export const saveUserStats = async (userId: string, stats: Partial<UserStats>) => {
-  const userDocRef = doc(db, 'users', userId);
+  const userDocRef = doc(db, 'users', userId, 'stats', 'main');
   try {
     await setDoc(userDocRef, {
       ...stats,
       updatedAt: serverTimestamp()
     }, { merge: true });
   } catch (error) {
-    handleFirestoreError(error as FirestoreError, 'write', `users/${userId}`);
+    handleFirestoreError(error as FirestoreError, 'write', `users/${userId}/stats/main`);
   }
 };
 
 export const incrementUserStats = async (userId: string, xpInc: number, embersInc: number) => {
-  const userDocRef = doc(db, 'users', userId);
+  const userDocRef = doc(db, 'users', userId, 'stats', 'main');
   try {
     await updateDoc(userDocRef, {
       xp: increment(xpInc),
@@ -87,12 +88,12 @@ export const incrementUserStats = async (userId: string, xpInc: number, embersIn
       updatedAt: serverTimestamp()
     });
   } catch (error) {
-    handleFirestoreError(error as FirestoreError, 'write', `users/${userId}`);
+    handleFirestoreError(error as FirestoreError, 'write', `users/${userId}/stats/main`);
   }
 };
 
 export const loadUserStats = async (userId: string): Promise<UserStats | null> => {
-  const userDocRef = doc(db, 'users', userId);
+  const userDocRef = doc(db, 'users', userId, 'stats', 'main');
   try {
     const docSnap = await getDoc(userDocRef);
     if (docSnap.exists()) {
@@ -100,7 +101,7 @@ export const loadUserStats = async (userId: string): Promise<UserStats | null> =
     }
     return null;
   } catch (error) {
-    handleFirestoreError(error as FirestoreError, 'get', `users/${userId}`);
+    handleFirestoreError(error as FirestoreError, 'get', `users/${userId}/stats/main`);
     return null;
   }
 };
@@ -181,8 +182,8 @@ export const getPublicDecks = async (category?: string, searchTerm?: string): Pr
 };
 
 export const cloneDeck = async (targetUserId: string, deck: Deck) => {
-  const newId = crypto.randomUUID();
-  const deckDocRef = doc(db, 'users', targetUserId, 'myDecks', newId);
+  const newId = generateId();
+  const deckDocRef = doc(db, 'users', targetUserId, 'decks', newId);
   try {
     await setDoc(deckDocRef, {
       ...deck,
@@ -195,7 +196,7 @@ export const cloneDeck = async (targetUserId: string, deck: Deck) => {
     });
     return { ...deck, id: newId, originalId: deck.id, isPublic: false };
   } catch (error) {
-    handleFirestoreError(error as FirestoreError, 'write', `users/${targetUserId}/myDecks/${newId}`);
+    handleFirestoreError(error as FirestoreError, 'write', `users/${targetUserId}/decks/${newId}`);
     return null;
   }
 };
@@ -298,15 +299,7 @@ export const subscribeUserStats = (userId: string, callback: (stats: Partial<Use
 };
 
 export const syncUserStats = async (userId: string, stats: Partial<UserStats>) => {
-  const docRef = doc(db, 'users', userId, 'stats', 'main');
-  try {
-    await setDoc(docRef, {
-      ...stats,
-      updatedAt: serverTimestamp()
-    }, { merge: true });
-  } catch (error) {
-    handleFirestoreError(error as FirestoreError, 'write', `users/${userId}/stats/main`);
-  }
+  return saveUserStats(userId, stats);
 };
 
 export const subscribeAboutMe = (callback: (data: AboutMeData | null) => void) => {

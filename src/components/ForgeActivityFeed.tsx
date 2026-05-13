@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { User, Sparkles, BookOpen, Trophy, Zap, MessageSquare } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn, generateId } from '../lib/utils';
 
 interface Activity {
   id: string;
@@ -33,7 +33,7 @@ export function ForgeActivityFeed() {
         const types: Activity['type'][] = ['study', 'achievement', 'community', 'creation'];
         
         const newActivity: Activity = {
-          id: crypto.randomUUID(),
+          id: generateId(),
           user: users[Math.floor(Math.random() * users.length)],
           action: actions[Math.floor(Math.random() * actions.length)],
           target: targets[Math.floor(Math.random() * targets.length)],

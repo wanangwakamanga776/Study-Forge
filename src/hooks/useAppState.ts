@@ -9,7 +9,9 @@ export function useAppState() {
     setAdminMaxLevel, 
     setAdminUnlimitedCurrency, 
     setAdminMaxEverything,
-    resetToDefault 
+    resetToDefault,
+    isSyncing,
+    syncError
   } = useAppStateContext();
 
   const updateStats = useCallback((xpGain: number) => {
@@ -25,6 +27,8 @@ export function useAppState() {
     setAdminMaxLevel,
     setAdminUnlimitedCurrency,
     setAdminMaxEverything,
-    resetToDefault
+    resetToDefault,
+    isSyncing,
+    syncError
   };
 }

@@ -1,5 +1,6 @@
-import { GoogleGenAI, Type, ThinkingLevel } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 import { Deck, Quiz, Flashcard, QuizQuestion, ForgeCastBlueprint, ForgeCastChapter } from "../types";
+import { generateId } from "../lib/utils";
 
 /**
  * Indicates if the AI service has been configured with an API key.
@@ -170,7 +171,7 @@ export async function generateForgeCast(
     );
 
     return {
-      id: crypto.randomUUID(),
+      id: generateId(),
       ...data,
       chapters: chaptersWithImages,
       createdAt: Date.now()
@@ -286,10 +287,10 @@ export async function chatWithAcademicAssistant(
  4. STATE MODIFICATION (CRITICAL): 
     - To CREATE/SAVE a new study set, use: [[ACTION:SAVE_DECK:{"title": "...", "cards": [{"term": "...", "definition": "...", "explanation": "...", "imagePrompt": "..."}]}]].
     - To ADD new items to existing, use: [[ACTION:ADD_TO_DECK:{"title": "...", "cards": [{"term": "...", "definition": "...", "explanation": "...", "imagePrompt": "..."}]}]].
-    - Universal Visual Fidelity Protocol: The 'imagePrompt' MUST be a specific, high-fidelity description for an educational image.
-       * NO EXCEPTIONS: This applies to ANY subject imaginable (Science, Literature, Medicine, Coding, etc.).
-       * CONTENT MIRRORING: The image must be a direct visual representation of the specific term/KU.
-       * Prompt Quality: Be explicit. e.g., 'A clear, detailed scientific diagram of [Process]' or 'A cinematic historical portrait of [Figure]'. Avoid generic descriptions.
+    - Universal Visual Fidelity Protocol (STRICT RELEVANCE): 
+       * CONTENT MIRRORING: The 'imagePrompt' MUST be a specific, high-fidelity description that directly represents the specific Knowledge Unit on the card.
+       * RELEVANCE RULE: Do NOT use generic or decorative images. The image must provide visual scaffolding for the core concept (e.g., if the term is 'Osmosis', prompt for a 'Scientific cross-section diagram of water molecules moving through a semi-permeable membrane').
+       * STYLE: Scientific schematic, cinematic historical scene, or symbolic representation.
     - To ADD questions to quiz, use: [[ACTION:ADD_TO_QUIZ:{"title": "...", "questions": [...]}]].
     - To REPLACE/EDIT, use: [[ACTION:EDIT_DECK:{...}]] or [[ACTION:EDIT_QUIZ:{...}]].
  4. Removing Barriers: Show the 'Why' using analogies from Programming, Engineering, or Sports.
@@ -430,7 +431,10 @@ export async function generateStudyMaterial(
         - Semantic Logic: Eliminate the "hardness" barrier. Show the 'Why'. Provide a logical rationale (explanation field) for every concept.
         - Scaffolding: Use analogies from Programming, Engineering, or Sports to make abstract ideas intuitive.
         - Precision: Use LaTeX ($...$) for all math/science notation.
-        - Universal Visual Fidelity Protocol: Every card MUST have a specific, high-fidelity visual_prompt description (Scientific schematic, cinematic portrait, etc.) reflecting the core concept.`,
+        - Universal Visual Fidelity Protocol (STRICT RELEVANCE): Every card MUST have a specific, high-fidelity visual_prompt description (Scientific schematic, cinematic portrait, logical diagram, etc.).
+          * RELEVANCE RULE: The prompt MUST be directly and explicitly related to the specific Term and Definition of that card. 
+          * EXPLANATORY VALUE: The image must help the user visualize the concept to enhance memory retention.
+          * NO GENERIC IMAGERY: Avoid "A person thinking" or "A generic classroom". Show the actual subject (e.g., "A detailed diagram of a plant cell showing the mitochondria" for a biology card).`,
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
@@ -483,7 +487,7 @@ export async function generateStudyMaterial(
           imageUrl = await generateImage(f.visual_prompt);
         }
         return {
-          id: crypto.randomUUID(),
+          id: generateId(),
           term: f.front,
           definition: f.back,
           explanation: f.explanation,
@@ -494,16 +498,16 @@ export async function generateStudyMaterial(
     );
 
     const deck: Deck = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       title: `Deck: ${title}`,
       cards: flashcardsWithImages
     };
 
     const quiz: Quiz = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       title: `Quiz: ${title}`,
       questions: (data.quiz_items || []).map((q: any) => ({
-        id: crypto.randomUUID(),
+        id: generateId(),
         question: q.question,
         options: q.options,
         correctAnswer: q.answer,

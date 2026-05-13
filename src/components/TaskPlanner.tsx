@@ -3,7 +3,7 @@ import { Plus, Trash2, CheckCircle2, Circle, Calendar, Flag, Clock, Tag, Message
 import { motion, AnimatePresence } from 'motion/react';
 import { Task, Priority } from '../types';
 import { XP_PER_TASK } from '../constants';
-import { cn } from '../lib/utils';
+import { cn, generateId } from '../lib/utils';
 import { soundService } from '../services/soundService';
 
 interface TaskPlannerProps {
@@ -33,7 +33,7 @@ export const TaskPlanner: React.FC<TaskPlannerProps> = ({ tasks, onUpdate, onCom
       : new Date().toISOString();
 
     const newTask: Task = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       title: newTaskTitle,
       priority,
       section,

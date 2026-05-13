@@ -7,6 +7,7 @@ import rehypeKatex from 'rehype-katex';
 import { Deck, Flashcard, DeckCategory } from '../types';
 import { cn } from '../lib/utils';
 import { soundService } from '../services/soundService';
+import { generateId } from '../lib/utils';
 import { publishDeck } from '../services/dataService';
 
 import { useForgeStore } from '../contexts/ForgeStoreContext';
@@ -28,6 +29,7 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
   const [category, setCategory] = useState<DeckCategory>('Educational');
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
+  const [expandedImageUrl, setExpandedImageUrl] = useState<string | null>(null);
 
   const { trackQuestProgress } = useForgeStore();
 
@@ -73,7 +75,7 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
   const createDeck = async () => {
     if (!newDeckTitle.trim()) return;
     const newDeck: Deck = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       title: newDeckTitle,
       cards: [],
       isPublic,
@@ -102,7 +104,7 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
     }
 
     const newCard: Flashcard = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       term,
       definition,
       imagePrompt: imagePrompt || undefined,
@@ -248,6 +250,22 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
               >
                 {/* Front */}
                 <div className="absolute inset-0 backface-hidden flex flex-col items-center justify-center p-12 bg-white rounded-3xl border border-black/5 shadow-sm text-center">
+                  {currentCard.imageUrl && (
+                    <div 
+                      className="absolute top-4 right-4 w-12 h-12 rounded-xl overflow-hidden border border-black/5 hover:scale-110 transition-transform shadow-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setExpandedImageUrl(currentCard.imageUrl!);
+                      }}
+                    >
+                      <img 
+                        src={currentCard.imageUrl} 
+                        alt="Hint" 
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                  )}
                   <span className="text-xs font-bold text-stone-300 uppercase tracking-widest mb-4">Term</span>
                   
                   <div className="text-2xl font-medium text-stone-800 markdown-content">
@@ -262,19 +280,27 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
                 <div 
                   className="absolute inset-0 backface-hidden flex flex-col items-center justify-center p-12 bg-stone-900 rounded-3xl border border-black/5 shadow-sm text-center rotate-y-180"
                 >
-                  <span className="text-xs font-bold text-stone-500 uppercase tracking-widest mb-4">Definition</span>
-                  
                   {currentCard.imageUrl && (
-                    <div className="w-full h-32 mb-6 overflow-hidden rounded-2xl border border-white/10">
+                    <div 
+                      className="absolute top-4 right-4 w-16 h-16 rounded-xl overflow-hidden border border-white/10 hover:scale-110 transition-transform shadow-md group/img"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setExpandedImageUrl(currentCard.imageUrl!);
+                      }}
+                    >
                       <img 
                         src={currentCard.imageUrl} 
                         alt={currentCard.term} 
                         className="w-full h-full object-cover"
                         referrerPolicy="no-referrer"
                       />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity">
+                        <Plus size={16} className="text-white" />
+                      </div>
                     </div>
                   )}
-
+                  <span className="text-xs font-bold text-stone-500 uppercase tracking-widest mb-4">Definition</span>
+                  
                   <div className="text-xl text-white leading-relaxed markdown-content prose prose-invert mb-4">
                     <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{currentCard.definition}</ReactMarkdown>
                   </div>
@@ -287,6 +313,46 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
                 </div>
               </motion.div>
             </div>
+
+            <AnimatePresence>
+              {expandedImageUrl && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setExpandedImageUrl(null)}
+                  className="fixed inset-0 z-[100] bg-black/90 p-4 md:p-12 flex items-center justify-center"
+                >
+                  <motion.div
+                    initial={{ scale: 0.9, y: 20 }}
+                    animate={{ scale: 1, y: 0 }}
+                    exit={{ scale: 0.9, y: 20 }}
+                    className="relative max-w-5xl w-full h-full flex flex-col items-center justify-center gap-6"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button 
+                      onClick={() => setExpandedImageUrl(null)}
+                      className="absolute top-0 -right-4 bg-white/10 border border-white/20 p-2 rounded-full text-white hover:bg-white/20 transition-colors"
+                    >
+                      <CloseIcon size={24} />
+                    </button>
+                    <div className="w-full h-full overflow-hidden rounded-3xl border border-white/10 shadow-2xl">
+                      <img 
+                        src={expandedImageUrl} 
+                        alt="Expanded visual" 
+                        className="w-full h-full object-contain"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                    {currentCard.imagePrompt && (
+                      <p className="text-stone-400 text-sm font-medium italic text-center max-w-2xl px-4">
+                        {currentCard.imagePrompt}
+                      </p>
+                    )}
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <div className="flex items-center gap-6">
               <button

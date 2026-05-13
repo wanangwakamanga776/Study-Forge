@@ -71,6 +71,7 @@ export default function App() {
 
 import { useScrollControls } from './hooks/useScrollControls';
 
+import { generateId } from './lib/utils';
 function AppContent() {
   const { state, setState, deleteForgeCast, resetToDefault } = useAppState();
   const { awardXP, level, xp, embers } = useForgeStore();
@@ -161,7 +162,7 @@ function AppContent() {
   }
 
   const handleAIGenerated = async (type: 'flashcards' | 'quiz' | 'forgeCast', data: any) => {
-    let finalData = { ...data, id: data.id || crypto.randomUUID(), createdAt: data.createdAt || Date.now() };
+    let finalData = { ...data, id: data.id || generateId(), createdAt: data.createdAt || Date.now() };
 
     // If cards have prompts but no images (usually from chat), enrich them
     if (type === 'flashcards' && finalData.cards) {
@@ -177,7 +178,7 @@ function AppContent() {
         const deck = dataWithId as Deck;
         // Ensure cards have IDs
         if (deck.cards) {
-          deck.cards = deck.cards.map(c => ({ ...c, id: c.id || crypto.randomUUID() }));
+          deck.cards = deck.cards.map(c => ({ ...c, id: c.id || generateId() }));
         }
         newState.decks = [...prev.decks, deck];
         newState.stats.aiUsage.flashcards += 1;
@@ -185,7 +186,7 @@ function AppContent() {
         const quiz = dataWithId as Quiz;
         // Ensure questions have IDs
         if (quiz.questions) {
-          quiz.questions = quiz.questions.map(q => ({ ...q, id: q.id || crypto.randomUUID() }));
+          quiz.questions = quiz.questions.map(q => ({ ...q, id: q.id || generateId() }));
         }
         newState.quizzes = [...prev.quizzes, quiz];
         newState.stats.aiUsage.quizzes += 1;
@@ -207,7 +208,7 @@ function AppContent() {
           (d.id === data.id || d.title.toLowerCase() === data.title.toLowerCase()) ? { 
             ...d, 
             ...data,
-            cards: (data.cards || d.cards).map((c: any) => ({ ...c, id: c.id || crypto.randomUUID() }))
+            cards: (data.cards || d.cards).map((c: any) => ({ ...c, id: c.id || generateId() }))
           } : d
         );
       } else if (type === 'quiz') {
@@ -216,7 +217,7 @@ function AppContent() {
           (q.id === data.id || q.title.toLowerCase() === data.title.toLowerCase()) ? { 
             ...q, 
             ...data,
-            questions: (data.questions || q.questions).map((ques: any) => ({ ...ques, id: ques.id || crypto.randomUUID() }))
+            questions: (data.questions || q.questions).map((ques: any) => ({ ...ques, id: ques.id || generateId() }))
           } : q
         );
       }
@@ -239,7 +240,7 @@ function AppContent() {
           if (d.id === finalData.id || d.title.toLowerCase() === finalData.title.toLowerCase()) {
             const newCards = (finalData.cards || []).map((c: any) => ({
               ...c,
-              id: c.id || crypto.randomUUID()
+              id: c.id || generateId()
             }));
             return {
               ...d,
@@ -253,7 +254,7 @@ function AppContent() {
           if (q.id === data.id || q.title.toLowerCase() === data.title.toLowerCase()) {
             const newQuestions = (data.questions || []).map((ques: any) => ({
               ...ques,
-              id: ques.id || crypto.randomUUID()
+              id: ques.id || generateId()
             }));
             return {
               ...q,

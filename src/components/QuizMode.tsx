@@ -8,6 +8,7 @@ import { Quiz, QuizQuestion } from '../types';
 import { XP_PER_QUIZ_QUESTION } from '../constants';
 import { cn } from '../lib/utils';
 import { soundService } from '../services/soundService';
+import { generateId } from '../lib/utils';
 import { useForgeEngine } from '../hooks/useForgeEngine';
 import { useRewards } from './RewardToast';
 
@@ -37,7 +38,7 @@ export const QuizMode: React.FC<QuizModeProps> = ({ quizzes, onUpdate, onComplet
   const createQuiz = () => {
     if (!newQuizTitle.trim()) return;
     const newQuiz: Quiz = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       title: newQuizTitle,
       questions: [],
     };
@@ -50,7 +51,7 @@ export const QuizMode: React.FC<QuizModeProps> = ({ quizzes, onUpdate, onComplet
   const addQuestion = (question: string, options: string[], correctAnswer: number) => {
     if (!activeQuiz) return;
     const newQ: QuizQuestion = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       question,
       options,
       correctAnswer,

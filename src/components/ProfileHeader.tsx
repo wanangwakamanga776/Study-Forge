@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useAuth, logout } from '../services/authService';
 import { useForgeStore } from '../contexts/ForgeStoreContext';
+import { useAppState } from '../hooks/useAppState';
 import { soundService } from '../services/soundService';
 import { uploadAvatar } from '../services/profileService';
 
@@ -24,7 +25,8 @@ interface ProfileHeaderProps {
 
 export function ProfileHeader({ onOpenSettings }: ProfileHeaderProps) {
   const { user } = useAuth();
-  const { xp, level, embers, currentTheme, unlockedThemes, isSyncing, syncError } = useForgeStore();
+  const { isSyncing, syncError } = useAppState();
+  const { xp, level, embers, currentTheme, unlockedThemes } = useForgeStore();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);

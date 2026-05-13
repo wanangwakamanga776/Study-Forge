@@ -4,8 +4,8 @@ import { useRewards } from '../components/RewardToast';
 import { soundService } from '../services/soundService';
 import { motion, AnimatePresence } from 'motion/react';
 import { Trophy, Star, Flame, CloudCheck, CloudOff, RefreshCw } from 'lucide-react';
-import { useAuth } from '../services/authService';
-import { saveUserStats, loadUserStats, incrementUserStats } from '../services/dataService';
+import { useAuthContext } from './AuthContext';
+import { incrementUserStats } from '../services/dataService';
 import { UserStats } from '../types';
 
 interface ForgeStoreContextType {
@@ -50,13 +50,12 @@ function hexToRgb(hex: string) {
 
 export function ForgeStoreProvider({ children }: { children: React.ReactNode }) {
   const { state, setState } = useAppState();
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const { triggerReward } = useRewards();
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [leveledTo, setLeveledTo] = useState(1);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncError, setSyncError] = useState(false);
-  const isInitialLoad = useRef(true);
 
   const { xp, level, embers, currentTheme, unlockedThemes, activeAssistantSkin = 'Default', unlockedSkins = ['Default'], unlockedItems = [], badges = [], activeBoosters = [] } = state.stats;
 
@@ -78,72 +77,8 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
     }
   }, [level, lastLevelCredit, setState]);
 
-  // Cloud Sync: Load stats on login
-  useEffect(() => {
-    if (user && isInitialLoad.current) {
-      loadUserStats(user.uid).then(cloudStats => {
-        if (cloudStats) {
-          setState(prev => ({
-            ...prev,
-            stats: { 
-              ...prev.stats, 
-              ...cloudStats,
-              unlockedThemes: Array.from(new Set([...(prev.stats.unlockedThemes || []), ...(cloudStats.unlockedThemes || [])])),
-              unlockedSkins: Array.from(new Set([...(prev.stats.unlockedSkins || []), ...(cloudStats.unlockedSkins || [])])),
-              unlockedItems: Array.from(new Set([...(prev.stats.unlockedItems || []), ...(cloudStats.unlockedItems || [])])),
-              badges: Array.from(new Set([...(prev.stats.badges || []), ...(cloudStats.badges || [])])),
-            }
-          }));
-          triggerReward(0, 0, "Session Sync Complete");
-        } else {
-          // Initialize New User with defaults
-          const initialStats: UserStats = {
-            ...state.stats,
-            xp: state.stats.xp || 0,
-            level: state.stats.level || 1,
-            embers: state.stats.embers || 100,
-            name: user.displayName || 'Student',
-            avatarUrl: user.photoURL,
-            lastActiveDate: new Date().toISOString().split('T')[0],
-            unlockedThemes: state.stats.unlockedThemes || ['Default Ember'],
-            unlockedSkins: state.stats.unlockedSkins || ['Default'],
-            aiUsage: {
-              quizzes: 0,
-              flashcards: 0,
-              forgeCasts: 0,
-              lastResetDate: new Date().toISOString()
-            },
-            plan: 'Free'
-          };
-          saveUserStats(user.uid, initialStats);
-          setState(prev => ({
-            ...prev,
-            stats: initialStats
-          }));
-          triggerReward(0, 0, "New Profile Created");
-        }
-        isInitialLoad.current = false;
-      });
-    } else if (!user) {
-      isInitialLoad.current = true;
-    }
-  }, [user]); // Removed setState, triggerReward from deps to avoid re-runs
-
-  // Cloud Sync: Save stats on change
-  useEffect(() => {
-    if (user && !isInitialLoad.current) {
-      setIsSyncing(true);
-      setSyncError(false);
-      saveUserStats(user.uid, state.stats)
-        .then(() => {
-          setTimeout(() => setIsSyncing(false), 2000); // Keep status visible for a bit
-        })
-        .catch(() => {
-          setIsSyncing(false);
-          setSyncError(true);
-        });
-    }
-  }, [state.stats, user]);
+  // Cloud Sync is handled by AppStateContext. 
+  // We only provide UI indicators here if needed, but AppStateContext.tsx is the authority.
 
   // Apply theme to CSS variables
   useEffect(() => {

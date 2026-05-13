@@ -7,7 +7,7 @@ import { extractTextFromFile } from '../lib/extraction';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
-import { cn } from '../lib/utils';
+import { cn, generateId } from '../lib/utils';
 import { soundService } from '../services/soundService';
 
 interface Message {
@@ -432,16 +432,16 @@ export function ForgeChat({ onNavigate, onOpenForge, onSaveData, onEditData, onA
                                         soundService.playSuccess();
                                         if (type === 'FLASHCARDS') {
                                           onSaveData?.('flashcards', {
-                                            id: crypto.randomUUID(),
+                                            id: generateId(),
                                             ...data,
-                                            cards: (data.cards || []).map((c: any) => ({ ...c, id: crypto.randomUUID() })),
+                                            cards: (data.cards || []).map((c: any) => ({ ...c, id: generateId() })),
                                             createdAt: Date.now()
                                           });
                                         } else if (type === 'QUIZ') {
                                           onSaveData?.('quiz', {
-                                            id: crypto.randomUUID(),
+                                            id: generateId(),
                                             ...data,
-                                            questions: (data.questions || []).map((q: any) => ({ ...q, id: crypto.randomUUID() })),
+                                            questions: (data.questions || []).map((q: any) => ({ ...q, id: generateId() })),
                                             createdAt: Date.now()
                                           });
                                         }

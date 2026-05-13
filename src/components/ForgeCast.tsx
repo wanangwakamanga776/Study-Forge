@@ -9,6 +9,7 @@ import { InlineMath, BlockMath } from 'react-katex';
 import { ForgeCastBlueprint, ForgeCastChapter } from '../types';
 import { soundService } from '../services/soundService';
 import { cn } from '../lib/utils';
+import { generateId } from '../lib/utils';
 import { generateForgeCastFromChat, isAIConfigured } from '../services/aiService';
 
 interface ForgeCastProps {
@@ -197,7 +198,7 @@ export const ForgeCast: React.FC<ForgeCastProps> = ({
       const blueprint = await generateForgeCastFromChat(input, userMessage.file?.content);
       
       const finalBlueprint: ForgeCastBlueprint = {
-        id: Date.now().toString(),
+        id: generateId(),
         createdAt: Date.now(),
         metadata: {
           title: blueprint.video_metadata.title,

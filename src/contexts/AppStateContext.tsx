@@ -19,6 +19,8 @@ interface AppStateContextType {
   setAdminUnlimitedCurrency: (active: boolean) => void;
   setAdminMaxEverything: () => void;
   resetToDefault: () => void;
+  isSyncing: boolean;
+  syncError: boolean;
 }
 
 const AppStateContext = createContext<AppStateContextType | undefined>(undefined);
@@ -26,10 +28,15 @@ const AppStateContext = createContext<AppStateContextType | undefined>(undefined
 export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuthContext();
   const [state, setState] = useState<AppState>(INITIAL_STATE);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncError, setSyncError] = useState(false);
   const isSyncingFromFirestore = useRef(false);
+  const hasLoadedFromCloud = useRef(false);
 
   // Load initial local state (Guest or Offline backup)
   useEffect(() => {
+    // Only load local storage if not already logged in? 
+    // Actually, we load it as a baseline, but Cloud will overwrite.
     try {
       const saved = localStorage.getItem('studysprint_state');
       if (saved) {
@@ -69,16 +76,24 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     if (!user) return;
 
     const unsubscribes: (() => void)[] = [];
+    hasLoadedFromCloud.current = false;
 
     // 1. Sync User Stats
     unsubscribes.push(subscribeUserStats(user.uid, (cloudStats) => {
       if (cloudStats) {
         isSyncingFromFirestore.current = true;
         setState(prev => ({
-          ...prev,
-          stats: { ...prev.stats, ...cloudStats }
+            ...prev,
+            stats: { ...prev.stats, ...cloudStats }
         }));
-        setTimeout(() => isSyncingFromFirestore.current = false, 100);
+        hasLoadedFromCloud.current = true;
+        setTimeout(() => isSyncingFromFirestore.current = false, 500);
+      } else {
+        // Initialize New User
+        const initialStats = { ...INITIAL_STATE.stats, name: user.displayName || 'Hero' };
+        syncUserStats(user.uid, initialStats).then(() => {
+             hasLoadedFromCloud.current = true;
+        });
       }
     }));
 
@@ -86,25 +101,29 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     unsubscribes.push(syncUserCollection<Deck>(user.uid, 'decks', (cloudDecks) => {
       isSyncingFromFirestore.current = true;
       setState(prev => ({ ...prev, decks: cloudDecks }));
-      setTimeout(() => isSyncingFromFirestore.current = false, 100);
+      hasLoadedFromCloud.current = true;
+      setTimeout(() => isSyncingFromFirestore.current = false, 500);
     }));
 
     unsubscribes.push(syncUserCollection<Quiz>(user.uid, 'quizzes', (cloudQuizzes) => {
       isSyncingFromFirestore.current = true;
       setState(prev => ({ ...prev, quizzes: cloudQuizzes }));
-      setTimeout(() => isSyncingFromFirestore.current = false, 100);
+      hasLoadedFromCloud.current = true;
+      setTimeout(() => isSyncingFromFirestore.current = false, 500);
     }));
 
     unsubscribes.push(syncUserCollection<Task>(user.uid, 'tasks', (cloudTasks) => {
       isSyncingFromFirestore.current = true;
       setState(prev => ({ ...prev, tasks: cloudTasks }));
-      setTimeout(() => isSyncingFromFirestore.current = false, 100);
+      hasLoadedFromCloud.current = true;
+      setTimeout(() => isSyncingFromFirestore.current = false, 500);
     }));
 
     unsubscribes.push(syncUserCollection<ForgeCastBlueprint>(user.uid, 'forgeCasts', (cloudCasts) => {
       isSyncingFromFirestore.current = true;
       setState(prev => ({ ...prev, forgeCasts: cloudCasts }));
-      setTimeout(() => isSyncingFromFirestore.current = false, 100);
+      hasLoadedFromCloud.current = true;
+      setTimeout(() => isSyncingFromFirestore.current = false, 500);
     }));
 
     return () => unsubscribes.forEach(unsub => unsub());
@@ -114,33 +133,73 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const lastPushedState = useRef<string>('');
 
   useEffect(() => {
-    if (!user || isSyncingFromFirestore.current) return;
+    if (!user || isSyncingFromFirestore.current || !hasLoadedFromCloud.current) return;
 
     const currentStateStr = JSON.stringify({
         stats: state.stats,
-        decks: state.decks.map(d => d.id),
-        quizzes: state.quizzes.map(q => q.id),
-        tasks: state.tasks.map(t => t.id),
-        forgeCasts: state.forgeCasts.map(f => f.id)
+        decks: state.decks,
+        quizzes: state.quizzes,
+        tasks: state.tasks,
+        forgeCasts: state.forgeCasts
     });
 
     if (currentStateStr === lastPushedState.current) return;
     lastPushedState.current = currentStateStr;
 
     const pushToCloud = async () => {
-        // Sync everything in chunks
-        await syncUserStats(user.uid, state.stats);
-        
-        // Items are saved individually when created/edited via setters generally, 
-        // but this effect captures any state change.
-        // To be safe, we'll iterate and save (Firestore set with merge is efficient)
-        state.decks.forEach(d => saveUserItem(user.uid, 'decks', d));
-        state.quizzes.forEach(q => saveUserItem(user.uid, 'quizzes', q));
-        state.tasks.forEach(t => saveUserItem(user.uid, 'tasks', t));
-        state.forgeCasts.forEach(f => saveUserItem(user.uid, 'forgeCasts', f));
+        setIsSyncing(true);
+        setSyncError(false);
+        try {
+            // Track what actually needs saving
+            const lastState = lastPushedState.current ? JSON.parse(lastPushedState.current) : null;
+            
+            const syncTasks: Promise<any>[] = [];
+
+            // 1. Stats Sync - Always safe to sync if string changed
+            if (!lastState || JSON.stringify(state.stats) !== JSON.stringify(lastState.stats)) {
+                syncTasks.push(syncUserStats(user.uid, state.stats));
+            }
+            
+            // 2. Collection Sync - only save changed items
+            // We use a small optimization: Firestore set with merge is mostly fine, 
+            // but we can avoid some network overhead by strictly checking.
+            const collections: ('decks' | 'quizzes' | 'tasks' | 'forgeCasts')[] = ['decks', 'quizzes', 'tasks', 'forgeCasts'];
+            
+            collections.forEach(col => {
+                const currentItems = state[col] as any[];
+                const lastItems = lastState ? (lastState[col] as any[]) : [];
+                
+                currentItems.forEach(item => {
+                    const lastItem = lastItems.find(li => li.id === item.id);
+                    if (!lastItem || JSON.stringify(item) !== JSON.stringify(lastItem)) {
+                        syncTasks.push(saveUserItem(user.uid, col, item));
+                    }
+                });
+            });
+
+            if (syncTasks.length > 0) {
+                await Promise.all(syncTasks);
+            }
+            
+            lastPushedState.current = currentStateStr;
+            setTimeout(() => setIsSyncing(false), 1000);
+        } catch (error) {
+            console.error("Cloud Sync Error:", error);
+            setSyncError(true);
+            setIsSyncing(false);
+        }
     }
 
-    const timeoutId = setTimeout(pushToCloud, 2000); // Debounced cloud push
+    // Use requestIdleCallback if available, otherwise fallback to setTimeout
+    const scheduleSync = (callback: () => void) => {
+        if ('requestIdleCallback' in window) {
+            (window as any).requestIdleCallback(callback, { timeout: 3000 });
+        } else {
+            setTimeout(callback, 0);
+        }
+    };
+
+    const timeoutId = setTimeout(() => scheduleSync(pushToCloud), 2000); // Debounced and deferred
     return () => clearTimeout(timeoutId);
   }, [state, user]);
 
@@ -230,7 +289,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       setAdminMaxLevel,
       setAdminUnlimitedCurrency,
       setAdminMaxEverything,
-      resetToDefault
+      resetToDefault,
+      isSyncing,
+      syncError
     }}>
       {children}
     </AppStateContext.Provider>

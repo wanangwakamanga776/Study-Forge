@@ -12,7 +12,7 @@ export function LevelBar() {
   const progress = Math.min(100, Math.max(0, (currentLevelXp / neededXp) * 100));
 
   return (
-    <div className="w-full max-w-xl mx-auto">
+    <div className="w-full max-w-xl mx-auto min-h-[80px]">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-forge-accent text-forge-dark flex items-center justify-center font-black animate-pulse shadow-[0_0_15px_rgba(var(--forge-accent-rgb),0.4)]">
