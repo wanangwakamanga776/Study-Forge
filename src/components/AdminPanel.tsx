@@ -229,6 +229,50 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     ))}
                   </div>
                 )}
+                {activeTab === 'aboutme' && (
+                  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                      <label className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20">About Me Message</label>
+                      <textarea 
+                          rows={6}
+                          value={aboutMeMessage}
+                          onChange={(e) => setAboutMeMessage(e.target.value)}
+                          className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-medium outline-none focus:border-forge-accent/50 transition-all"
+                      />
+                      <button
+                          onClick={handleSaveAboutMe}
+                          disabled={isSaving}
+                          className="px-8 py-3 bg-forge-accent text-forge-dark rounded-xl font-bold uppercase tracking-widest hover:scale-105 transition-all"
+                      >
+                          {isSaving ? 'Saving...' : 'Publish About Me'}
+                      </button>
+                  </div>
+                )}
+                {activeTab === 'activist' && (
+                  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                      <label className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20">Activist Desk Content</label>
+                      <input
+                          type="text"
+                          placeholder="Title"
+                          value={newPost.title}
+                          onChange={(e) => setNewPost({...newPost, title: e.target.value})}
+                          className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-medium outline-none focus:border-forge-accent/50 transition-all"
+                      />
+                      <textarea 
+                          rows={6}
+                          placeholder="Content"
+                          value={newPost.content}
+                          onChange={(e) => setNewPost({...newPost, content: e.target.value})}
+                          className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-medium outline-none focus:border-forge-accent/50 transition-all"
+                      />
+                      <button
+                          onClick={handleCreateAnnouncement}
+                          disabled={isSaving}
+                          className="px-8 py-3 bg-forge-accent text-forge-dark rounded-xl font-bold uppercase tracking-widest hover:scale-105 transition-all"
+                      >
+                          {isSaving ? 'Publishing...' : 'Publish to Activist Desk'}
+                      </button>
+                  </div>
+                )}
                 {activeTab === 'announcement' && (
                   <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
                       <label className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20">Global Announcement</label>

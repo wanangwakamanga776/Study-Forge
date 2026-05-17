@@ -30,12 +30,17 @@ import { FeedbackSection } from './components/FeedbackSystem';
 
 // Announcement popup component
 const AnnouncementPopup: React.FC<{ announcement: { message: string }, onClose: () => void }> = ({ announcement, onClose }) => (
-  <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
-    <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="max-w-lg w-full bg-forge-dark border border-white/10 rounded-[2rem] p-8 text-center">
-      <h2 className="text-xl font-black uppercase tracking-widest text-white mb-6">Announcement</h2>
-      <p className="text-stone-300 mb-8">{announcement.message}</p>
-      <button onClick={onClose} className="px-8 py-3 bg-white text-forge-dark rounded-xl font-bold uppercase tracking-widest">Understand</button>
-    </motion.div>
+  <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center p-8 bg-black/90 backdrop-blur-xl">
+    <h3 className="text-orange-500/70 text-sm font-bold tracking-[0.3em] uppercase mb-4">Announcement</h3>
+    <p className="text-3xl lg:text-5xl font-black text-white italic tracking-tighter text-center max-w-3xl mb-12">
+      {announcement.message}
+    </p>
+    <button 
+      onClick={onClose} 
+      className="px-12 py-4 bg-orange-500 text-white rounded-xl font-bold uppercase tracking-widest flex items-center gap-2 hover:bg-orange-600 transition"
+    >
+      Acknowledge & Proceed <span>&gt;</span>
+    </button>
   </div>
 );
 
