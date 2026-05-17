@@ -116,97 +116,7 @@ function AppContent() {
   const [showLessons, setShowLessons] = useState(false);
   const [activeSession, setActiveSession] = useState<ModeEngineSession | null>(null);
   const [activeAIExam, setActiveAIExam] = useState<{ exam: any; audit: any } | null>(null);
-
-  // Enable global keyboard scroll controls
-  useScrollControls();
-
-  useEffect(() => {
-    testArchivesConnection();
-    // Trigger initial atmosphere
-    updateAtmosphere('session_start');
-    
-    getGlobalAnnouncement().then(data => {
-      if (data && data.active) {
-        setGlobalAnnouncement(data);
-      }
-    }).catch(err => {
-      console.warn("Global announcement unavailable:", err);
-    });
-  }, [updateAtmosphere]);
-
-  // Auto-set isAdmin for the specific admin email
-  useEffect(() => {
-    if (user && user.email === 'wanangwakamanga776@gmail.com') {
-      setIsAdmin(true);
-    }
-  }, [user]);
-
   const [isAdminApplied, setIsAdminApplied] = useState(false);
-
-  // Apply admin privileges when status is active (handles both real user and guest admin)
-  useEffect(() => {
-    if (isAdmin && state.stats.embers < 500000 && !isAdminApplied) {
-      setAdminMaxEverything();
-      setIsAdminApplied(true);
-    }
-  }, [isAdmin, state.stats.embers, setAdminMaxEverything, isAdminApplied]);
-
-  // Auto-reset visuals when logged out and on home screen (LoginPage)
-  useEffect(() => {
-    // Only reset if we are NOT logged in and NOT a guest
-    if (!loading && !user && !isGuest) {
-      const isDefaultTheme = state.stats.currentTheme === 'Default Ember';
-      const isLowLevel = state.stats.level === 1;
-      
-      if (!isDefaultTheme || !isLowLevel) {
-        // Wrap in a guard to avoid repeated calls
-        resetToDefault();
-      }
-    }
-  }, [user, isGuest, loading, state.stats.currentTheme, state.stats.level, resetToDefault]);
-
-  const handleCloseTutorial = () => {
-    localStorage.setItem('forge_tutorial_seen', 'true');
-    setShowTutorial(false);
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-forge-dark bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.1),rgba(255,255,255,0))]">
-        <div className="relative">
-          <div className="absolute inset-0 bg-forge-accent/20 blur-[50px] rounded-full animate-pulse" />
-          <Loader2 size={48} className="animate-spin text-forge-accent relative z-10 drop-shadow-[0_0_15px_rgba(251,146,60,0.5)]" />
-        </div>
-        <p className="mt-8 text-xs font-black uppercase tracking-[0.3em] text-white/50 animate-pulse">Initializing Forge</p>
-      </div>
-    );
-  }
-
-  if (!user && !isGuest) {
-    return <LoginPage onGuestAccess={(admin) => {
-      setIsGuest(true);
-      if (admin) {
-        setIsAdmin(true);
-      }
-    }} />;
-  }
-
-  const handleLogout = () => {
-    soundService.playClick();
-    if (user) logout();
-    setIsGuest(false);
-    setIsAdmin(false);
-    resetToDefault();
-    setTimeout(() => window.location.reload(), 100);
-  };
-
-  if (!state || !state.stats) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-forge-dark">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-forge-accent"></div>
-      </div>
-    );
-  }
 
   const handleAIGenerated = useCallback(async (type: 'flashcards' | 'quiz' | 'forgeCast' | 'lesson' | 'session', data: any) => {
     // Wrap in setTimeout to prevent "Cannot update a component while rendering a different component" error
@@ -332,6 +242,95 @@ function AppContent() {
       console.error("Failed to add data:", error);
     }
   }, [setState]);
+
+  useEffect(() => {
+    testArchivesConnection();
+    // Trigger initial atmosphere
+    updateAtmosphere('session_start');
+    
+    getGlobalAnnouncement().then(data => {
+      if (data && data.active) {
+        setGlobalAnnouncement(data);
+      }
+    }).catch(err => {
+      console.warn("Global announcement unavailable:", err);
+    });
+  }, [updateAtmosphere]);
+
+  // Auto-set isAdmin for the specific admin email
+  useEffect(() => {
+    if (user && user.email === 'wanangwakamanga776@gmail.com') {
+      setIsAdmin(true);
+    }
+  }, [user]);
+
+  // Apply admin privileges when status is active (handles both real user and guest admin)
+  useEffect(() => {
+    if (!state || !state.stats) return;
+    if (isAdmin && state.stats.embers < 500000 && !isAdminApplied) {
+      setAdminMaxEverything();
+      setIsAdminApplied(true);
+    }
+  }, [isAdmin, state?.stats?.embers, setAdminMaxEverything, isAdminApplied, state]);
+
+  // Auto-reset visuals when logged out and on home screen (LoginPage)
+  useEffect(() => {
+    // Only reset if we are NOT logged in and NOT a guest
+    if (!loading && !user && !isGuest && state?.stats) {
+      const isDefaultTheme = state.stats.currentTheme === 'Default Ember';
+      const isLowLevel = state.stats.level === 1;
+      
+      if (!isDefaultTheme || !isLowLevel) {
+        // Wrap in a guard to avoid repeated calls
+        resetToDefault();
+      }
+    }
+  }, [user, isGuest, loading, state?.stats?.currentTheme, state?.stats?.level, resetToDefault, state]);
+
+  const handleCloseTutorial = () => {
+    localStorage.setItem('forge_tutorial_seen', 'true');
+    setShowTutorial(false);
+  };
+
+  const handleLogout = () => {
+    soundService.playClick();
+    if (user) logout();
+    setIsGuest(false);
+    setIsAdmin(false);
+    resetToDefault();
+    setTimeout(() => window.location.reload(), 100);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-forge-dark bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.1),rgba(255,255,255,0))]">
+        <div className="relative">
+          <div className="absolute inset-0 bg-forge-accent/20 blur-[50px] rounded-full animate-pulse" />
+          <Loader2 size={48} className="animate-spin text-forge-accent relative z-10 drop-shadow-[0_0_15px_rgba(251,146,60,0.5)]" />
+        </div>
+        <p className="mt-8 text-xs font-black uppercase tracking-[0.3em] text-white/50 animate-pulse">Initializing Forge</p>
+      </div>
+    );
+  }
+
+  if (!user && !isGuest) {
+    return <LoginPage onGuestAccess={(admin) => {
+      setIsGuest(true);
+      if (admin) {
+        setIsAdmin(true);
+      }
+    }} />;
+  }
+
+  if (!state || !state.stats) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-forge-dark">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-forge-accent"></div>
+      </div>
+    );
+  }
+
+
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: <Layout size={20} /> },
