@@ -61,10 +61,7 @@ const handleFirestoreError = (error: FirestoreError, operation: FirestoreErrorIn
     }
   };
   
-  if (error.code === 'permission-denied') {
-    throw new Error(JSON.stringify(errorInfo));
-  }
-  throw error;
+  throw new Error(JSON.stringify(errorInfo));
 };
 
 export const saveUserStats = async (userId: string, stats: Partial<UserStats>) => {

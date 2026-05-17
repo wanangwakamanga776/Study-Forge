@@ -214,7 +214,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 )}
                 {activeTab === 'feedback' && (
                   <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-                    {feedbacks.map(f => (
+                    {feedbacks
+                      .filter(f => feedbackFilter === 'all' || f.status === feedbackFilter)
+                      .map(f => (
                       <div key={f.id} className="p-6 bg-white/5 border border-white/10 rounded-2xl">
                         <div className="flex justify-between items-center mb-4">
                           <h4 className="text-white font-bold">{f.title}</h4>

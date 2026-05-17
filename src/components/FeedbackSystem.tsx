@@ -52,6 +52,13 @@ export const FeedbackSection: React.FC = () => {
         setIsOpen(false);
       }, 3000);
     } catch (error) {
+      console.error('Feedback submission error:', error);
+      try {
+        const errorInfo = JSON.parse(error instanceof Error ? error.message : String(error));
+        console.error('Firestore Error Details:', errorInfo);
+      } catch (e) {
+        console.error('Could not parse error JSON');
+      }
       soundService.playError();
     } finally {
       setIsSubmitting(false);

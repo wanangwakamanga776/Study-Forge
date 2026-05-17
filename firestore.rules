@@ -52,7 +52,8 @@ service cloud.firestore {
     }
 
     match /feedback/{feedbackId} {
-      allow create: if isSignedIn();
+      allow create: if true;
+      allow list: if isSignedIn() && request.auth.token.email in ['wanangwakamanga776@gmail.com', 'wanangwakamanga360@gmail.com'];
       allow read, update, delete: if isSignedIn() && request.auth.token.email in ['wanangwakamanga776@gmail.com', 'wanangwakamanga360@gmail.com'];
     }
 
