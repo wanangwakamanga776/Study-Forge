@@ -26,17 +26,15 @@ export const FeedbackSection: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
     if (!title.trim() || !message.trim()) return;
 
     setIsSubmitting(true);
     soundService.playClick();
 
     try {
-      if (!user?.uid) throw new Error("Anonymous users cannot submit feedback.");
       await submitFeedback({
-        userId: user.uid,
-        username: user.displayName || 'Researcher',
+        userId: user?.uid || 'guest',
+        username: user?.displayName || 'Guest User',
         title,
         message,
         category: category as any,
