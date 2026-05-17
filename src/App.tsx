@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, lazy, Suspense, useEffect } from 'react';
+import React, { useState, lazy, Suspense, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Layout, Timer, ListTodo, Layers, BrainCircuit, Menu, X, Star, Sparkles, Zap, Loader2, Video, Play, SkipBack, Monitor, RotateCcw, Trash2, Flame, LogOut, Trophy, BookOpen, Target, MessageSquare, HelpCircle, Store, Shield, ChevronRight, FileText } from 'lucide-react';
 import { useAppState } from './hooks/useAppState';
@@ -129,8 +129,10 @@ function AppContent() {
       if (data && data.active) {
         setGlobalAnnouncement(data);
       }
+    }).catch(err => {
+      console.warn("Global announcement unavailable:", err);
     });
-  }, []);
+  }, [updateAtmosphere]);
 
   // Auto-set isAdmin for the specific admin email
   useEffect(() => {
@@ -151,11 +153,13 @@ function AppContent() {
 
   // Auto-reset visuals when logged out and on home screen (LoginPage)
   useEffect(() => {
+    // Only reset if we are NOT logged in and NOT a guest
     if (!loading && !user && !isGuest) {
       const isDefaultTheme = state.stats.currentTheme === 'Default Ember';
       const isLowLevel = state.stats.level === 1;
       
       if (!isDefaultTheme || !isLowLevel) {
+        // Wrap in a guard to avoid repeated calls
         resetToDefault();
       }
     }
@@ -204,50 +208,58 @@ function AppContent() {
     );
   }
 
-  const handleAIGenerated = async (type: 'flashcards' | 'quiz' | 'forgeCast' | 'lesson' | 'session', data: any) => {
-    let finalData = { ...data, id: data.id || generateId(), createdAt: data.createdAt || Date.now() };
+  const handleAIGenerated = useCallback(async (type: 'flashcards' | 'quiz' | 'forgeCast' | 'lesson' | 'session', data: any) => {
+    // Wrap in setTimeout to prevent "Cannot update a component while rendering a different component" error
+    // when triggered immediately after generation.
+    setTimeout(async () => {
+      try {
+        let finalData = { ...data, id: data.id || generateId(), createdAt: data.createdAt || Date.now() };
 
-    // If cards have prompts but no images (usually from chat), enrich them
-    if (type === 'flashcards' && finalData.cards) {
-      const { enrichDeckWithImages } = await import('./services/aiService');
-      finalData = await enrichDeckWithImages(finalData as Deck);
-    }
-
-    setState(prev => {
-      const newState = { ...prev };
-      const dataWithId = finalData;
-
-      if (type === 'flashcards') {
-        const deck = dataWithId as Deck;
-        // Ensure cards have IDs
-        if (deck.cards) {
-          deck.cards = deck.cards.map(c => ({ ...c, id: c.id || generateId() }));
+        // If cards have prompts but no images (usually from chat), enrich them
+        if (type === 'flashcards' && finalData.cards) {
+          const { enrichDeckWithImages } = await import('./services/aiService');
+          finalData = await enrichDeckWithImages(finalData as Deck);
         }
-        newState.decks = [deck, ...prev.decks];
-        newState.stats.aiUsage.flashcards += 1;
-      } else if (type === 'quiz') {
-        const quiz = dataWithId as Quiz;
-        // Ensure questions have IDs
-        if (quiz.questions) {
-          quiz.questions = quiz.questions.map(q => ({ ...q, id: q.id || generateId() }));
-        }
-        newState.quizzes = [quiz, ...prev.quizzes];
-        newState.stats.aiUsage.quizzes += 1;
-      } else if (type === 'forgeCast') {
-        newState.forgeCasts = [dataWithId as ForgeCastBlueprint, ...prev.forgeCasts];
-        newState.stats.aiUsage.forgeCasts += 1;
-      } else if (type === 'lesson') {
-        newState.lessons = [...(prev.lessons || []), dataWithId as LessonArchitectAudit];
-        setCurrentView('lessons');
-      } else if (type === 'session') {
-        newState.sessions = [...(prev.sessions || []), dataWithId as ModeEngineSession];
+
+        setState(prev => {
+          const newState = { ...prev };
+          const dataWithId = finalData;
+
+          if (type === 'flashcards') {
+            const deck = dataWithId as Deck;
+            // Ensure cards have IDs
+            if (deck.cards) {
+              deck.cards = deck.cards.map(c => ({ ...c, id: c.id || generateId() }));
+            }
+            newState.decks = [deck, ...prev.decks];
+            newState.stats.aiUsage.flashcards += 1;
+          } else if (type === 'quiz') {
+            const quiz = dataWithId as Quiz;
+            // Ensure questions have IDs
+            if (quiz.questions) {
+              quiz.questions = quiz.questions.map(q => ({ ...q, id: q.id || generateId() }));
+            }
+            newState.quizzes = [quiz, ...prev.quizzes];
+            newState.stats.aiUsage.quizzes += 1;
+          } else if (type === 'forgeCast') {
+            newState.forgeCasts = [dataWithId as ForgeCastBlueprint, ...prev.forgeCasts];
+            newState.stats.aiUsage.forgeCasts += 1;
+          } else if (type === 'lesson') {
+            newState.lessons = [...(prev.lessons || []), dataWithId as LessonArchitectAudit];
+            setCurrentView('lessons');
+          } else if (type === 'session') {
+            newState.sessions = [...(prev.sessions || []), dataWithId as ModeEngineSession];
+          }
+          return newState;
+        });
+        awardXP(50);
+      } catch (error) {
+        console.error("Failed to process AI generated content:", error);
       }
-      return newState;
-    });
-    awardXP(50);
-  };
+    }, 0);
+  }, [setState, awardXP]);
 
-  const handleEditData = (type: 'flashcards' | 'quiz', data: any) => {
+  const handleEditData = useCallback((type: 'flashcards' | 'quiz', data: any) => {
     setState(prev => {
       const newState = { ...prev };
       if (type === 'flashcards') {
@@ -272,50 +284,54 @@ function AppContent() {
       return newState;
     });
     soundService.playSuccess();
-  };
+  }, [setState]);
 
-  const handleAddData = async (type: 'flashcards' | 'quiz', data: any) => {
-    let finalData = { ...data };
-    if (type === 'flashcards' && finalData.cards) {
-      const { enrichDeckWithImages } = await import('./services/aiService');
-      finalData = await enrichDeckWithImages(finalData as Deck);
-    }
-
-    setState(prev => {
-      const newState = { ...prev };
-      if (type === 'flashcards') {
-        newState.decks = prev.decks.map(d => {
-          if (d.id === finalData.id || d.title.toLowerCase() === finalData.title.toLowerCase()) {
-            const newCards = (finalData.cards || []).map((c: any) => ({
-              ...c,
-              id: c.id || generateId()
-            }));
-            return {
-              ...d,
-              cards: [...d.cards, ...newCards]
-            };
-          }
-          return d;
-        });
-      } else if (type === 'quiz') {
-        newState.quizzes = prev.quizzes.map(q => {
-          if (q.id === data.id || q.title.toLowerCase() === data.title.toLowerCase()) {
-            const newQuestions = (data.questions || []).map((ques: any) => ({
-              ...ques,
-              id: ques.id || generateId()
-            }));
-            return {
-              ...q,
-              questions: [...q.questions, ...newQuestions]
-            };
-          }
-          return q;
-        });
+  const handleAddData = useCallback(async (type: 'flashcards' | 'quiz', data: any) => {
+    try {
+      let finalData = { ...data };
+      if (type === 'flashcards' && finalData.cards) {
+        const { enrichDeckWithImages } = await import('./services/aiService');
+        finalData = await enrichDeckWithImages(finalData as Deck);
       }
-      return newState;
-    });
-    soundService.playSuccess();
-  };
+
+      setState(prev => {
+        const newState = { ...prev };
+        if (type === 'flashcards') {
+          newState.decks = prev.decks.map(d => {
+            if (d.id === finalData.id || d.title.toLowerCase() === finalData.title.toLowerCase()) {
+              const newCards = (finalData.cards || []).map((c: any) => ({
+                ...c,
+                id: c.id || generateId()
+              }));
+              return {
+                ...d,
+                cards: [...d.cards, ...newCards]
+              };
+            }
+            return d;
+          });
+        } else if (type === 'quiz') {
+          newState.quizzes = prev.quizzes.map(q => {
+            if (q.id === data.id || q.title.toLowerCase() === data.title.toLowerCase()) {
+              const newQuestions = (data.questions || []).map((ques: any) => ({
+                ...ques,
+                id: ques.id || generateId()
+              }));
+              return {
+                ...q,
+                questions: [...q.questions, ...newQuestions]
+              };
+            }
+            return q;
+          });
+        }
+        return newState;
+      });
+      soundService.playSuccess();
+    } catch (error) {
+      console.error("Failed to add data:", error);
+    }
+  }, [setState]);
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: <Layout size={20} /> },

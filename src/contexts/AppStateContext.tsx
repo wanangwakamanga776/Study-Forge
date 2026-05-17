@@ -28,11 +28,77 @@ const AppStateContext = createContext<AppStateContextType | undefined>(undefined
 
 export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuthContext();
-  const [state, setState] = useState<AppState>(INITIAL_STATE);
+  const [state, setInternalState] = useState<AppState>(INITIAL_STATE);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncError, setSyncError] = useState(false);
   const isSyncingFromFirestore = useRef(false);
   const hasLoadedFromCloud = useRef(false);
+
+  const setState: React.Dispatch<React.SetStateAction<AppState>> = useCallback((update) => {
+    setInternalState(prev => {
+      const newState = typeof update === 'function' ? (update as any)(prev) : update;
+      return newState;
+    });
+  }, []);
+
+  const deleteForgeCast = useCallback((id: string) => {
+    setState(prev => ({
+      ...prev,
+      forgeCasts: prev.forgeCasts.filter(fc => fc.id !== id)
+    }));
+    if (user) {
+        deleteUserItem(user.uid, 'forgeCasts', id);
+    }
+    soundService.playClick();
+  }, [user, setState]);
+
+  const setAdminMaxLevel = useCallback((active: boolean) => {
+    setState(prev => ({
+      ...prev,
+      stats: {
+        ...prev.stats,
+        xp: active ? 1000000 : 0,
+        level: active ? 100 : 1
+      }
+    }));
+    if (active) soundService.playSuccess();
+  }, [setState]);
+
+  const setAdminUnlimitedCurrency = useCallback((active: boolean) => {
+    setState(prev => ({
+      ...prev,
+      stats: {
+        ...prev.stats,
+        embers: active ? 1000000 : 100
+      }
+    }));
+    if (active) soundService.playSuccess();
+  }, [setState]);
+
+  const setAdminMaxEverything = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      stats: {
+        ...prev.stats,
+        xp: 1000000,
+        level: 100,
+        embers: 1000000,
+        streak: 99,
+        currentTheme: 'Inferno',
+        unlockedThemes: [...new Set([...prev.stats.unlockedThemes, 'Inferno', 'Nebula Pulse', 'Matrix Code', 'Abyssal Current'])]
+      }
+    }));
+    soundService.playSuccess();
+  }, [setState]);
+
+  const resetToDefault = useCallback(async () => {
+    setState(INITIAL_STATE);
+    await storageService.clearAll();
+    try {
+      const { clearGenericLocalDB } = await import('../services/storageManager');
+      await clearGenericLocalDB('forge_chat_history');
+    } catch (e) {}
+  }, [setState]);
 
   // Load initial local state (Guest or Offline backup)
   useEffect(() => {
@@ -40,7 +106,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       try {
         const localData = await storageService.loadFullState();
         if (localData) {
-          setState(prev => ({
+          setInternalState(prev => ({
             ...prev,
             ...localData,
             stats: {
@@ -93,7 +159,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       if (cloudStats) {
         isSyncingFromFirestore.current = true;
         setTimeout(() => {
-          setState(prev => ({
+          setInternalState(prev => ({
             ...prev,
             stats: { ...prev.stats, ...cloudStats }
           }));
@@ -113,7 +179,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     unsubscribes.push(syncUserCollection<Deck>(user.uid, 'decks', (cloudDecks) => {
       isSyncingFromFirestore.current = true;
       setTimeout(() => {
-        setState(prev => ({ ...prev, decks: cloudDecks }));
+        setInternalState(prev => ({ ...prev, decks: cloudDecks }));
       }, 0);
       hasLoadedFromCloud.current = true;
       setTimeout(() => isSyncingFromFirestore.current = false, 500);
@@ -122,7 +188,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     unsubscribes.push(syncUserCollection<Quiz>(user.uid, 'quizzes', (cloudQuizzes) => {
       isSyncingFromFirestore.current = true;
       setTimeout(() => {
-        setState(prev => ({ ...prev, quizzes: cloudQuizzes }));
+        setInternalState(prev => ({ ...prev, quizzes: cloudQuizzes }));
       }, 0);
       hasLoadedFromCloud.current = true;
       setTimeout(() => isSyncingFromFirestore.current = false, 500);
@@ -131,7 +197,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     unsubscribes.push(syncUserCollection<Task>(user.uid, 'tasks', (cloudTasks) => {
       isSyncingFromFirestore.current = true;
       setTimeout(() => {
-        setState(prev => ({ ...prev, tasks: cloudTasks }));
+        setInternalState(prev => ({ ...prev, tasks: cloudTasks }));
       }, 0);
       hasLoadedFromCloud.current = true;
       setTimeout(() => isSyncingFromFirestore.current = false, 500);
@@ -140,7 +206,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     unsubscribes.push(syncUserCollection<ForgeCastBlueprint>(user.uid, 'forgeCasts', (cloudCasts) => {
       isSyncingFromFirestore.current = true;
       setTimeout(() => {
-        setState(prev => ({ ...prev, forgeCasts: cloudCasts }));
+        setInternalState(prev => ({ ...prev, forgeCasts: cloudCasts }));
       }, 0);
       hasLoadedFromCloud.current = true;
       setTimeout(() => isSyncingFromFirestore.current = false, 500);
@@ -149,7 +215,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     unsubscribes.push(syncUserCollection<LessonArchitectAudit>(user.uid, 'lessons', (cloudLessons) => {
       isSyncingFromFirestore.current = true;
       setTimeout(() => {
-        setState(prev => ({ ...prev, lessons: cloudLessons }));
+        setInternalState(prev => ({ ...prev, lessons: cloudLessons }));
       }, 0);
       hasLoadedFromCloud.current = true;
       setTimeout(() => isSyncingFromFirestore.current = false, 500);
@@ -158,7 +224,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     unsubscribes.push(syncUserCollection<ModeEngineSession>(user.uid, 'sessions', (cloudSessions) => {
       isSyncingFromFirestore.current = true;
       setTimeout(() => {
-        setState(prev => ({ ...prev, sessions: cloudSessions }));
+        setInternalState(prev => ({ ...prev, sessions: cloudSessions }));
       }, 0);
       hasLoadedFromCloud.current = true;
       setTimeout(() => isSyncingFromFirestore.current = false, 500);
@@ -201,8 +267,6 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
             }
             
             // 2. Collection Sync - only save changed items
-            // We use a small optimization: Firestore set with merge is mostly fine, 
-            // but we can avoid some network overhead by strictly checking.
             const collections: ('decks' | 'quizzes' | 'tasks' | 'forgeCasts' | 'lessons' | 'sessions')[] = ['decks', 'quizzes', 'tasks', 'forgeCasts', 'lessons', 'sessions'];
             
             collections.forEach(col => {
@@ -264,79 +328,32 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         };
       });
     }
-  }, [state.stats?.aiUsage?.lastResetDate]);
+  }, [state.stats?.aiUsage?.lastResetDate, setState]);
 
-  const deleteForgeCast = useCallback((id: string) => {
-    setState(prev => ({
-      ...prev,
-      forgeCasts: prev.forgeCasts.filter(fc => fc.id !== id)
-    }));
-    if (user) {
-        deleteUserItem(user.uid, 'forgeCasts', id);
-    }
-    soundService.playClick();
-  }, [user]);
-
-  const setAdminMaxLevel = useCallback((active: boolean) => {
-    setState(prev => ({
-      ...prev,
-      stats: {
-        ...prev.stats,
-        xp: active ? 1000000 : 0,
-        level: active ? 100 : 1
-      }
-    }));
-    if (active) soundService.playSuccess();
-  }, []);
-
-  const setAdminUnlimitedCurrency = useCallback((active: boolean) => {
-    setState(prev => ({
-      ...prev,
-      stats: {
-        ...prev.stats,
-        embers: active ? 1000000 : 100
-      }
-    }));
-    if (active) soundService.playSuccess();
-  }, []);
-
-  const setAdminMaxEverything = useCallback(() => {
-    setState(prev => ({
-      ...prev,
-      stats: {
-        ...prev.stats,
-        xp: 1000000,
-        level: 100,
-        embers: 1000000,
-        streak: 99,
-        currentTheme: 'Inferno',
-        unlockedThemes: [...new Set([...prev.stats.unlockedThemes, 'Inferno', 'Nebula Pulse', 'Matrix Code', 'Abyssal Current'])]
-      }
-    }));
-    soundService.playSuccess();
-  }, []);
-
-  const resetToDefault = useCallback(async () => {
-    setState(INITIAL_STATE);
-    await storageService.clearAll();
-    try {
-      const { clearGenericLocalDB } = await import('../services/storageManager');
-      await clearGenericLocalDB('forge_chat_history');
-    } catch (e) {}
-  }, []);
+  const value = React.useMemo(() => ({ 
+    state, 
+    setState, 
+    deleteForgeCast,
+    setAdminMaxLevel,
+    setAdminUnlimitedCurrency,
+    setAdminMaxEverything,
+    resetToDefault,
+    isSyncing,
+    syncError
+  }), [
+    state, 
+    setState, 
+    deleteForgeCast, 
+    setAdminMaxLevel, 
+    setAdminUnlimitedCurrency, 
+    setAdminMaxEverything, 
+    resetToDefault, 
+    isSyncing, 
+    syncError
+  ]);
 
   return (
-    <AppStateContext.Provider value={{ 
-      state, 
-      setState, 
-      deleteForgeCast,
-      setAdminMaxLevel,
-      setAdminUnlimitedCurrency,
-      setAdminMaxEverything,
-      resetToDefault,
-      isSyncing,
-      syncError
-    }}>
+    <AppStateContext.Provider value={value}>
       {children}
     </AppStateContext.Provider>
   );

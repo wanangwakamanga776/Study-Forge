@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useAppState } from './useAppState';
 import { soundService } from '../services/soundService';
 
@@ -93,7 +93,7 @@ export function useForgeEngine() {
     return { xpGain, embersGain };
   }, [setState]);
 
-  return {
+  const value = React.useMemo(() => ({
     stats: state.stats,
     getLevelFromXp,
     getXpThreshold,
@@ -102,5 +102,16 @@ export function useForgeEngine() {
     setAdminMaxLevel,
     setAdminUnlimitedCurrency,
     setAdminMaxEverything,
-  };
+  }), [
+    state.stats,
+    getLevelFromXp,
+    getXpThreshold,
+    getLevelProgress,
+    awardStudySession,
+    setAdminMaxLevel,
+    setAdminUnlimitedCurrency,
+    setAdminMaxEverything
+  ]);
+
+  return value;
 }

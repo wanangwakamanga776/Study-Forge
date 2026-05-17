@@ -35,7 +35,14 @@
         "definition": { "type": "string" },
         "explanation": { "type": "string" },
         "imageUrl": { "type": "string" },
-        "imagePrompt": { "type": "string" }
+        "imagePrompt": { "type": "string" },
+        "interval": { "type": "number" },
+        "ease": { "type": "number" },
+        "nextReviewDate": { "type": "number" },
+        "cardType": { "type": "string" },
+        "topicTag": { "type": "string" },
+        "totalAttempts": { "type": "number" },
+        "wrongCount": { "type": "number" }
       },
       "required": ["id", "term", "definition"]
     },
@@ -70,10 +77,16 @@
               "question": { "type": "string" },
               "options": { "type": "array", "items": { "type": "string" } },
               "correctAnswer": { "type": "number" },
-              "explanation": { "type": "string" }
+              "correctAnswerText": { "type": "string" },
+              "explanation": { "type": "string" },
+              "marks": { "type": "number" },
+              "type": { "type": "string" }
             }
           }
-        }
+        },
+        "isExam": { "type": "boolean" },
+        "timeLimit": { "type": "number" },
+        "isAIGraded": { "type": "boolean" }
       },
       "required": ["id", "title", "questions"]
     },
@@ -119,14 +132,14 @@
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "audit_meta": { "type": "object" },
-        "semantic_structure": { "type": "object" },
-        "high_value_extractions": { "type": "array", "items": { "type": "object" } },
-        "causal_graph": { "type": "array", "items": { "type": "object" } },
-        "metadata": { "type": "object" },
+        "audit_metadata": { "type": "object" },
+        "semantic_map": { "type": "object" },
+        "memory_layer": { "type": "object" },
+        "application_layer": { "type": "object" },
+        "forgechat_context_block": { "type": "string" },
         "createdAt": { "type": "number" }
       },
-      "required": ["id", "audit_meta", "semantic_structure"]
+      "required": ["id", "audit_metadata", "semantic_map"]
     },
     "Announcement": {
       "title": "Activist Desk Announcement",
@@ -145,6 +158,17 @@
         "authorId": { "type": "string" }
       },
       "required": ["id", "title", "content", "createdAt"]
+    },
+    "UserUsage": {
+      "title": "AI Usage Tracking",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "date": { "type": "string" },
+        "count": { "type": "number" },
+        "createdAt": { "type": "object", "description": "Server timestamp" }
+      },
+      "required": ["userId", "date", "count"]
     },
     "Feedback": {
       "title": "User Feedback Report",
@@ -208,6 +232,10 @@
     "/publicDecks/{deckId}": {
       "schema": "Deck",
       "description": "Decks shared with the community."
+    },
+    "/userUsage/{usageId}": {
+      "schema": "UserUsage",
+      "description": "Daily AI generation limits enforcement."
     }
   }
 }

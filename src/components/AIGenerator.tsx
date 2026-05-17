@@ -88,8 +88,8 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({
   };
 
   const generateLessonMaterial = async () => {
-    if (!selectedFile && !pastedText.trim()) {
-      setError('Please provide some text or a file to analyze.');
+    if (!pastedText.trim()) {
+      setError('Please provide instructions for the Oracle to process (minimum 20 characters).');
       return;
     }
 
@@ -311,6 +311,32 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({
               </div>
 
               <div className="flex-1 overflow-y-auto p-6 sm:p-12 metallic-scrollbar">
+                {/* Global Status Bar */}
+                {!isGenerating && !isSuccess && isAIConfigured && (
+                  <div className="mb-8 flex items-center justify-between gap-4 px-6 py-3 bg-white/[0.02] border border-white/5 rounded-2xl">
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-2 h-2 rounded-full animate-pulse",
+                        pastedText.trim().length >= 20 ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" : "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]"
+                      )} />
+                      <span className={cn(
+                        "text-[10px] font-black uppercase tracking-widest",
+                        pastedText.trim().length >= 20 ? "text-emerald-500" : "text-red-500"
+                      )}>
+                        {pastedText.trim().length < 20 ? "Insufficient Instructions" : "System Ready"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={cn(
+                        "text-[10px] font-black tabular-nums tracking-widest",
+                        pastedText.trim().length < 20 ? "text-red-500" : "text-stone-500"
+                      )}>
+                        {pastedText.trim().length} / 20 MIN
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 {!isAIConfigured ? (
                   <div className="py-16 text-center">
                     <div className="w-24 h-24 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-8 border border-red-500/20">
