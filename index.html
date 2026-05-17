@@ -9,6 +9,15 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://firestore.googleapis.com" />
     <link rel="preconnect" href="https://firebasestorage.googleapis.com" />
+    <link rel="preconnect" href="https://images.unsplash.com" />
+    <style>
+      :root { --forge-dark: #0F0F12; --forge-accent: #FB923C; }
+      body { background-color: var(--forge-dark); margin: 0; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+      #root { min-height: 100vh; display: flex; flex-direction: column; }
+      .loader-container { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--forge-dark); z-index: 9999; }
+      .loader-pulse { width: 40px; height: 40px; border: 3px solid rgba(251,146,60,0.1); border-top-color: var(--forge-accent); border-radius: 50%; animation: spin 1s linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
     <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
     <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" />

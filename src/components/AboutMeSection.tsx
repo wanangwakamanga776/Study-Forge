@@ -221,7 +221,7 @@ I built Study Forge because I was tired of hitting paywalls for basic study feat
 
 Using Google AI Studio, I developed the Academic Assistant to act as a tutor guiding you through concepts in Chemistry or Geometry rather than just handing over the answers. My goal is to help us all maintain high grades and understanding essential concepts while actually having time for a life outside of school.
 
-Please keep in mind that Study Forge is currently in its Beta stage. As a student developer, I’m constantly shipping updates, fixing bugs, and adding new features like the Embers Shop and Community Vault.
+Please keep in mind that Study Forge is currently in its <span className="font-black text-emerald-500">Update 2.0</span> stage. As a student developer, I’m constantly shipping updates, fixing bugs, and adding new features like the Embers Shop and Community Vault.
 
 By using the app now, you are a "Founding Member." Your feedback directly shapes how this tool grows. If you find a bug or have a feature request, let me know—I’m building this for us.`}
                     </div>

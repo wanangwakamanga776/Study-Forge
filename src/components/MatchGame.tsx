@@ -159,7 +159,7 @@ export function MatchGame({ decks, onComplete, bestRecords }: MatchGameProps) {
             <button
               key={deck.id}
               onClick={() => initGame(deck)}
-              className="group relative p-8 bg-white/5 border border-white/10 rounded-3xl text-left hover:bg-white/10 transition-all hover:scale-[1.02] hover:shadow-2xl hover:shadow-forge-accent/10 shadow-lg"
+              className="group relative p-8 glass-card rounded-[2rem] text-left premium-card-hover"
             >
               <div className="flex items-center justify-between mb-4">
                 <div className="p-3 bg-forge-accent/20 rounded-2xl text-forge-accent group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(251,146,60,0.1)]">
@@ -211,7 +211,7 @@ export function MatchGame({ decks, onComplete, bestRecords }: MatchGameProps) {
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="text-center py-20 bg-white/5 rounded-[40px] border border-white/10 backdrop-blur-xl relative overflow-hidden"
+            className="text-center py-20 glass-panel rounded-[3rem] relative overflow-hidden"
           >
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-forge-accent to-yellow-400" />
             <div className="w-24 h-24 bg-forge-accent/10 rounded-3xl flex items-center justify-center mx-auto mb-8 forge-glow rotate-6">

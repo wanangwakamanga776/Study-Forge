@@ -10,7 +10,8 @@ import { ForgeCastBlueprint, ForgeCastChapter } from '../types';
 import { soundService } from '../services/soundService';
 import { cn } from '../lib/utils';
 import { generateId } from '../lib/utils';
-import { generateForgeCastFromChat, isAIConfigured } from '../services/aiService';
+import { isAIConfigured } from '../services/aiConfig';
+import { useForgeStore } from '../contexts/ForgeStoreContext';
 
 interface ForgeCastProps {
   blueprint?: ForgeCastBlueprint;
@@ -49,6 +50,7 @@ export const ForgeCast: React.FC<ForgeCastProps> = ({
   onSaveBlueprint,
   initialMode = 'player'
 }) => {
+  const { processSessionCompletion } = useForgeStore();
   const [mode, setMode] = useState<'player' | 'agent'>(initialBlueprint ? initialMode : 'agent');
   const [currentBlueprint, setCurrentBlueprint] = useState<ForgeCastBlueprint | undefined>(initialBlueprint);
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
@@ -144,7 +146,14 @@ export const ForgeCast: React.FC<ForgeCastProps> = ({
     if (selectedOption === currentBlueprint.assessment.correct_index) {
       setAssessmentResult('correct');
       soundService.playSuccess();
-      setTimeout(() => onComplete(50), 2000);
+      
+      processSessionCompletion({
+        session_type: 'forgecast_listened',
+        session_duration_minutes: Math.ceil((currentBlueprint.chapters.length * chapterDuration) / 60),
+        streak_continued: true
+      }).then(res => {
+        onComplete(res.embers_earned.total_earned * 5);
+      });
     } else {
       setAssessmentResult('incorrect');
       soundService.playError();
@@ -195,6 +204,7 @@ export const ForgeCast: React.FC<ForgeCastProps> = ({
     soundService.playClick();
 
     try {
+      const { generateForgeCastFromChat } = await import('../services/aiService');
       const blueprint = await generateForgeCastFromChat(input, userMessage.file?.content);
       
       const finalBlueprint: ForgeCastBlueprint = {

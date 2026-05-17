@@ -5,15 +5,26 @@
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Space Grotesk", sans-serif;
-  --color-forge-dark: #0F0F12;
-  --color-forge-card: rgba(255, 255, 255, 0.03);
+  --color-forge-dark: #0A0A0C;
+  --color-forge-card: rgba(255, 255, 255, 0.02);
   --color-forge-accent: var(--forge-accent, #FB923C);
   --color-forge-gold: #FACC15;
+  --animate-spin-slow: spin 8s linear infinite;
+  --shadow-premium: 0 20px 50px -12px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 30px -5px rgba(var(--forge-accent-rgb, 251, 146, 60), 0.3);
+}
+
+:root {
+  --forge-accent-rgb: 251, 146, 60;
 }
 
 @layer base {
   body {
-    @apply bg-forge-dark text-stone-100 antialiased;
+    @apply bg-forge-dark text-stone-100 antialiased selection:bg-forge-accent/30 selection:text-white;
+  }
+
+  h1, h2, h3, h4, .font-display {
+    @apply tracking-tighter;
   }
 
   .perspective-1000 {
@@ -27,23 +38,65 @@
   .backface-hidden {
     backface-visibility: hidden;
   }
-  
-  .rotate-y-180 {
-    transform: rotateY(180deg);
-  }
 }
 
 @layer components {
   .glass-card {
-    @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl;
+    @apply bg-white/[0.02] backdrop-blur-[20px] border border-white/[0.05] shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all duration-500;
+  }
+
+  .glass-card-hover {
+    @apply hover:bg-white/[0.05] hover:border-white/[0.12] hover:shadow-[0_20px_60px_-15px_rgba(251,146,60,0.15)] hover:-translate-y-1;
   }
   
+  .glass-panel {
+    @apply bg-forge-dark/40 backdrop-blur-[60px] border border-white/[0.03] shadow-2xl;
+  }
+
+  .cinematic-shadow {
+    box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.6), 0 0 40px -10px rgba(0, 0, 0, 0.4);
+  }
+
   .forge-gradient {
-    @apply bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-400;
+    @apply bg-gradient-to-br from-orange-400 via-forge-accent to-orange-600;
+  }
+
+  .text-glow {
+    text-shadow: 0 0 20px rgba(var(--forge-accent-rgb,251,146,60),0.4), 0 0 40px rgba(var(--forge-accent-rgb,251,146,60),0.2);
   }
 
   .forge-glow {
-    @apply shadow-[0_0_30px_rgba(var(--forge-accent-rgb,251,146,60),0.4)];
+    box-shadow: 0 0 50px -10px rgba(var(--forge-accent-rgb,251,146,60), 0.4), 
+                inset 0 0 20px -5px rgba(255,255,255,0.05);
+  }
+
+  .premium-card-active {
+    @apply border-forge-accent/50 shadow-[0_0_40px_-10px_rgba(251,146,60,0.3)];
+  }
+
+  .ember-particle {
+    @apply absolute w-1 h-1 bg-forge-accent rounded-full pointer-events-none;
+    box-shadow: 0 0 10px #F97316, 0 0 20px #EF4444;
+  }
+
+  @keyframes floating {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    33% { transform: translateY(-10px) rotate(1deg); }
+    66% { transform: translateY(5px) rotate(-1deg); }
+  }
+
+  .animate-floating {
+    animation: floating 8s ease-in-out infinite;
+  }
+
+  @keyframes ambient-glow {
+    0%, 100% { opacity: 0.3; filter: blur(40px) scale(1); }
+    50% { opacity: 0.6; filter: blur(60px) scale(1.1); }
+  }
+
+  .ambient-light {
+    @apply absolute rounded-full pointer-events-none;
+    animation: ambient-glow var(--duration, 10s) ease-in-out infinite;
   }
 
   .metallic-scrollbar::-webkit-scrollbar {
@@ -107,6 +160,81 @@
   @keyframes pulse-plasma {
     0%, 100% { transform: scale(1); opacity: 0.3; }
     50% { transform: scale(1.5); opacity: 0.6; }
+  }
+
+  @keyframes ink-spread {
+    0% { transform: scale(0.1); opacity: 0; filter: blur(20px); }
+    50% { opacity: 0.4; }
+    100% { transform: scale(3); opacity: 0; filter: blur(40px); }
+  }
+
+  @keyframes glitch-static {
+    0% { transform: translate(0); }
+    10% { transform: translate(-2px, 2px); }
+    20% { transform: translate(2px, -2px); }
+    30% { transform: translate(0); }
+    100% { transform: translate(0); }
+  }
+
+  @keyframes wave-collapse {
+    0% { transform: scale(3); filter: blur(10px); opacity: 0; }
+    50% { transform: scale(1); filter: blur(0px); opacity: 1; }
+    100% { transform: scale(0.8); filter: blur(5px); opacity: 0; }
+  }
+
+  @keyframes neural-pulse {
+    0% { box-shadow: 0 0 5px currentColor; transform: scale(1); }
+    50% { box-shadow: 0 0 20px currentColor; transform: scale(1.1); }
+    100% { box-shadow: 0 0 5px currentColor; transform: scale(1); }
+  }
+
+  @keyframes drift {
+    0% { transform: translate(0, 0) rotate(0deg); }
+    50% { transform: translate(20px, 20px) rotate(180deg); }
+    100% { transform: translate(0, 0) rotate(360deg); }
+  }
+
+  .ink-blot {
+    position: absolute;
+    background: radial-gradient(circle, #000 0%, transparent 70%);
+    border-radius: 50%;
+    filter: blur(30px);
+    pointer-events: none;
+    animation: ink-spread var(--duration) ease-out infinite;
+  }
+
+  .parchment-flake {
+    position: absolute;
+    width: 6px;
+    height: 8px;
+    background: #d4a373;
+    opacity: 0.6;
+    clip-path: polygon(20% 0%, 80% 0%, 100% 20%, 100% 80%, 80% 100%, 20% 100%, 0% 80%, 0% 20%);
+    animation: drift var(--duration) linear infinite;
+  }
+
+  .wavefunction {
+    position: absolute;
+    border: 1px solid rgba(52, 211, 153, 0.3);
+    border-radius: 50%;
+    animation: wave-collapse var(--duration) ease-in-out infinite;
+  }
+
+  .neural-spark {
+    width: 2px;
+    height: 2px;
+    background: currentColor;
+    border-radius: 50%;
+    animation: neural-pulse var(--duration) ease-in-out infinite;
+  }
+
+  .static-glitch {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-image: repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 2px);
+    pointer-events: none;
+    animation: glitch-static 0.2s steps(2) infinite;
   }
 
   @keyframes matrix-fall {

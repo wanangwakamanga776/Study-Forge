@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle2, Circle, Flame, Star, Trophy, Zap, Timer, BrainCircuit, Layers } from 'lucide-react';
 import { useForgeStore } from '../contexts/ForgeStoreContext';
 import { cn } from '../lib/utils';
 import { soundService } from '../services/soundService';
+import { PyraMascot } from './PyraMascot';
 
 interface Quest {
   id: string;
@@ -20,7 +21,7 @@ interface Quest {
 export function DailyQuests() {
   const { trackQuestProgress } = useForgeStore();
   const [quests, setQuests] = useState<Quest[]>([]);
-  const [lastReset, setLastReset] = useState<string | null>(localStorage.getItem('forge_quests_reset'));
+  const [lastReset, setLastReset] = useState<string | null>(null);
 
   const getIcon = (type: Quest['iconType']) => {
     switch (type) {
@@ -31,75 +32,88 @@ export function DailyQuests() {
     }
   };
 
+  const refreshQuests = useCallback(() => {
+    import('../services/storageManager').then(({ getGenericLocalDB }) => {
+      getGenericLocalDB('forge_quests_data').then(saved => {
+        if (saved) {
+          try {
+            // Migration: if missing new iconType field, clear and restart
+            if (saved.length > 0 && !saved[0].iconType) {
+              import('../services/storageManager').then(({ clearGenericLocalDB }) => clearGenericLocalDB('forge_quests_data'));
+              setQuests([]);
+              return;
+            }
+            setQuests(saved);
+          } catch (e) {
+            import('../services/storageManager').then(({ clearGenericLocalDB }) => clearGenericLocalDB('forge_quests_data'));
+          }
+        }
+      });
+    });
+  }, []);
+
   useEffect(() => {
+    let isMounted = true;
     const today = new Date().toISOString().split('T')[0];
     
-    const refreshQuests = () => {
-      const saved = localStorage.getItem('forge_quests_data');
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          // Migration: if missing new iconType field, clear and restart
-          if (parsed.length > 0 && !parsed[0].iconType) {
-            localStorage.removeItem('forge_quests_data');
-            setQuests([]);
-            return;
-          }
-          setQuests(parsed);
-        } catch (e) {
-          localStorage.removeItem('forge_quests_data');
-        }
-      }
-    };
+    import('../services/storageManager').then(({ getGenericLocalDB, saveGenericLocalDB }) => {
+      getGenericLocalDB('forge_quests_reset').then(reset => {
+        if (!isMounted) return;
+        setLastReset(reset as string | null);
 
-    if (lastReset !== today) {
-      // Generate new quests for the day
-      const dailyQuests: Quest[] = [
-        {
-          id: 'focus_session',
-          title: 'Deep Work',
-          description: 'Focus for 25 minutes',
-          rewardXP: 100,
-          rewardEmbers: 20,
-          iconType: 'timer',
-          target: 1,
-          current: 0,
-          completed: false
-        },
-        {
-          id: 'quiz_master',
-          title: 'Brain Probe',
-          description: 'Score 100% on any quiz',
-          rewardXP: 150,
-          rewardEmbers: 30,
-          iconType: 'brain',
-          target: 1,
-          current: 0,
-          completed: false
-        },
-        {
-          id: 'card_flip',
-          title: 'Memory Lane',
-          description: 'Review 10 flashcards',
-          rewardXP: 50,
-          rewardEmbers: 10,
-          iconType: 'layers',
-          target: 10,
-          current: 0,
-          completed: false
+        if (reset !== today) {
+          // Generate new quests for the day
+          const dailyQuests: Quest[] = [
+            {
+              id: 'focus_session',
+              title: 'Deep Work',
+              description: 'Focus for 25 minutes',
+              rewardXP: 100,
+              rewardEmbers: 20,
+              iconType: 'timer',
+              target: 1,
+              current: 0,
+              completed: false
+            },
+            {
+              id: 'quiz_master',
+              title: 'Brain Probe',
+              description: 'Score 100% on any quiz',
+              rewardXP: 150,
+              rewardEmbers: 30,
+              iconType: 'brain',
+              target: 1,
+              current: 0,
+              completed: false
+            },
+            {
+              id: 'card_flip',
+              title: 'Memory Lane',
+              description: 'Review 10 flashcards',
+              rewardXP: 50,
+              rewardEmbers: 10,
+              iconType: 'layers',
+              target: 10,
+              current: 0,
+              completed: false
+            }
+          ];
+          setQuests(dailyQuests);
+          setLastReset(today);
+          saveGenericLocalDB('forge_quests_reset', today);
+          saveGenericLocalDB('forge_quests_data', dailyQuests);
+        } else {
+          refreshQuests();
         }
-      ];
-      setQuests(dailyQuests);
-      setLastReset(today);
-      localStorage.setItem('forge_quests_reset', today);
-      localStorage.setItem('forge_quests_data', JSON.stringify(dailyQuests));
-    } else {
-      refreshQuests();
-    }
+      });
+    });
 
     window.addEventListener('forge_quests_updated', refreshQuests);
-    return () => window.removeEventListener('forge_quests_updated', refreshQuests);
-  }, [lastReset]);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('forge_quests_updated', refreshQuests);
+    };
+  }, [refreshQuests]);
 
   // For Demo purposes, allow clicking to "complete" if in beta/admin
   const isAllCompleted = quests.every(q => q.completed);
@@ -109,9 +123,15 @@ export function DailyQuests() {
       <div className="absolute top-0 right-0 w-32 h-32 bg-forge-accent/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-forge-accent/10 transition-all duration-700" />
       
       <div className="flex items-center justify-between mb-8 relative z-10">
-        <div>
-          <h2 className="text-2xl font-display font-black uppercase italic tracking-tighter text-white">Daily Trials</h2>
-          <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest mt-1">Refine your skills. Claim rewards.</p>
+        <div className="flex items-center gap-4">
+          <PyraMascot 
+            expression={isAllCompleted ? 'excited' : 'happy'}
+            className="scale-50 origin-left"
+          />
+          <div className="-ml-6">
+            <h2 className="text-2xl font-display font-black uppercase italic tracking-tighter text-white">Daily Trials</h2>
+            <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest mt-1">Refine your skills. Claim rewards.</p>
+          </div>
         </div>
         <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-xl border border-white/5">
           <Flame size={14} className={cn("text-red-400", isAllCompleted ? "animate-pulse" : "")} />

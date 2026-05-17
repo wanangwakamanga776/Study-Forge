@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { AppState, Deck, Quiz, Task, ForgeCastBlueprint } from '../types';
+import { AppState, Deck, Quiz, Task, ForgeCastBlueprint, LessonArchitectAudit, ModeEngineSession } from '../types';
 import { INITIAL_STATE } from '../constants';
 import { soundService } from '../services/soundService';
 import { useAuthContext } from './AuthContext';
@@ -10,6 +10,7 @@ import {
   subscribeUserStats, 
   syncUserStats 
 } from '../services/dataService';
+import { storageService } from '../services/storageService';
 
 interface AppStateContextType {
   state: AppState;
@@ -35,39 +36,48 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   // Load initial local state (Guest or Offline backup)
   useEffect(() => {
-    // Only load local storage if not already logged in? 
-    // Actually, we load it as a baseline, but Cloud will overwrite.
-    try {
-      const saved = localStorage.getItem('studysprint_state');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setState(prev => ({
-          ...INITIAL_STATE,
-          ...parsed,
-          stats: {
-            ...INITIAL_STATE.stats,
-            ...(parsed.stats || {}),
-            aiUsage: {
-              ...INITIAL_STATE.stats.aiUsage,
-              ...(parsed.stats?.aiUsage || {}),
+    const hydrate = async () => {
+      try {
+        const localData = await storageService.loadFullState();
+        if (localData) {
+          setState(prev => ({
+            ...prev,
+            ...localData,
+            stats: {
+              ...prev.stats,
+              ...(localData.stats || {}),
+              aiUsage: {
+                ...prev.stats.aiUsage,
+                ...(localData.stats?.aiUsage || {}),
+              }
             }
-          }
-        }));
+          }));
+        }
+
+        // Cleanup legacy storage to free up space
+        localStorage.removeItem('studysprint_state');
+      } catch (e) {
+        console.error('Failed to hydrate local state:', e);
       }
-    } catch (e) {
-      console.error('Failed to load local state:', e);
-    }
+    };
+    hydrate();
   }, []);
 
-  // Persist to local storage (Auto-save for guests/offline)
+  // Persist to local storage & IndexedDB (Auto-save for guests/offline)
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
+    const timeoutId = setTimeout(async () => {
       try {
-        localStorage.setItem('studysprint_state', JSON.stringify(state));
+        await storageService.saveStats(state.stats);
+        await storageService.saveCollection('decks', state.decks);
+        await storageService.saveCollection('quizzes', state.quizzes);
+        await storageService.saveCollection('tasks', state.tasks);
+        await storageService.saveCollection('forgeCasts', state.forgeCasts);
+        await storageService.saveCollection('lessons', state.lessons);
+        await storageService.saveCollection('sessions', state.sessions);
       } catch (e) {
-        console.error('Failed to save local state:', e);
+        console.error('Failed to save to local storage/IndexedDB:', e);
       }
-    }, 1000);
+    }, 2000);
     return () => clearTimeout(timeoutId);
   }, [state]);
 
@@ -82,10 +92,12 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     unsubscribes.push(subscribeUserStats(user.uid, (cloudStats) => {
       if (cloudStats) {
         isSyncingFromFirestore.current = true;
-        setState(prev => ({
+        setTimeout(() => {
+          setState(prev => ({
             ...prev,
             stats: { ...prev.stats, ...cloudStats }
-        }));
+          }));
+        }, 0);
         hasLoadedFromCloud.current = true;
         setTimeout(() => isSyncingFromFirestore.current = false, 500);
       } else {
@@ -100,28 +112,54 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     // 2. Sync Collections
     unsubscribes.push(syncUserCollection<Deck>(user.uid, 'decks', (cloudDecks) => {
       isSyncingFromFirestore.current = true;
-      setState(prev => ({ ...prev, decks: cloudDecks }));
+      setTimeout(() => {
+        setState(prev => ({ ...prev, decks: cloudDecks }));
+      }, 0);
       hasLoadedFromCloud.current = true;
       setTimeout(() => isSyncingFromFirestore.current = false, 500);
     }));
 
     unsubscribes.push(syncUserCollection<Quiz>(user.uid, 'quizzes', (cloudQuizzes) => {
       isSyncingFromFirestore.current = true;
-      setState(prev => ({ ...prev, quizzes: cloudQuizzes }));
+      setTimeout(() => {
+        setState(prev => ({ ...prev, quizzes: cloudQuizzes }));
+      }, 0);
       hasLoadedFromCloud.current = true;
       setTimeout(() => isSyncingFromFirestore.current = false, 500);
     }));
 
     unsubscribes.push(syncUserCollection<Task>(user.uid, 'tasks', (cloudTasks) => {
       isSyncingFromFirestore.current = true;
-      setState(prev => ({ ...prev, tasks: cloudTasks }));
+      setTimeout(() => {
+        setState(prev => ({ ...prev, tasks: cloudTasks }));
+      }, 0);
       hasLoadedFromCloud.current = true;
       setTimeout(() => isSyncingFromFirestore.current = false, 500);
     }));
 
     unsubscribes.push(syncUserCollection<ForgeCastBlueprint>(user.uid, 'forgeCasts', (cloudCasts) => {
       isSyncingFromFirestore.current = true;
-      setState(prev => ({ ...prev, forgeCasts: cloudCasts }));
+      setTimeout(() => {
+        setState(prev => ({ ...prev, forgeCasts: cloudCasts }));
+      }, 0);
+      hasLoadedFromCloud.current = true;
+      setTimeout(() => isSyncingFromFirestore.current = false, 500);
+    }));
+
+    unsubscribes.push(syncUserCollection<LessonArchitectAudit>(user.uid, 'lessons', (cloudLessons) => {
+      isSyncingFromFirestore.current = true;
+      setTimeout(() => {
+        setState(prev => ({ ...prev, lessons: cloudLessons }));
+      }, 0);
+      hasLoadedFromCloud.current = true;
+      setTimeout(() => isSyncingFromFirestore.current = false, 500);
+    }));
+
+    unsubscribes.push(syncUserCollection<ModeEngineSession>(user.uid, 'sessions', (cloudSessions) => {
+      isSyncingFromFirestore.current = true;
+      setTimeout(() => {
+        setState(prev => ({ ...prev, sessions: cloudSessions }));
+      }, 0);
       hasLoadedFromCloud.current = true;
       setTimeout(() => isSyncingFromFirestore.current = false, 500);
     }));
@@ -140,7 +178,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         decks: state.decks,
         quizzes: state.quizzes,
         tasks: state.tasks,
-        forgeCasts: state.forgeCasts
+        forgeCasts: state.forgeCasts,
+        lessons: state.lessons,
+        sessions: state.sessions
     });
 
     if (currentStateStr === lastPushedState.current) return;
@@ -163,10 +203,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
             // 2. Collection Sync - only save changed items
             // We use a small optimization: Firestore set with merge is mostly fine, 
             // but we can avoid some network overhead by strictly checking.
-            const collections: ('decks' | 'quizzes' | 'tasks' | 'forgeCasts')[] = ['decks', 'quizzes', 'tasks', 'forgeCasts'];
+            const collections: ('decks' | 'quizzes' | 'tasks' | 'forgeCasts' | 'lessons' | 'sessions')[] = ['decks', 'quizzes', 'tasks', 'forgeCasts', 'lessons', 'sessions'];
             
             collections.forEach(col => {
-                const currentItems = state[col] as any[];
+                const currentItems = (state[col] || []) as any[];
                 const lastItems = lastState ? (lastState[col] as any[]) : [];
                 
                 currentItems.forEach(item => {
@@ -276,9 +316,13 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     soundService.playSuccess();
   }, []);
 
-  const resetToDefault = useCallback(() => {
+  const resetToDefault = useCallback(async () => {
     setState(INITIAL_STATE);
-    localStorage.removeItem('studysprint_state');
+    await storageService.clearAll();
+    try {
+      const { clearGenericLocalDB } = await import('../services/storageManager');
+      await clearGenericLocalDB('forge_chat_history');
+    } catch (e) {}
   }, []);
 
   return (

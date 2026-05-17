@@ -4,9 +4,11 @@ import { useRewards } from '../components/RewardToast';
 import { soundService } from '../services/soundService';
 import { motion, AnimatePresence } from 'motion/react';
 import { Trophy, Star, Flame, CloudCheck, CloudOff, RefreshCw } from 'lucide-react';
+import { ProgressionEngine } from '../services/progressionEngine';
 import { useAuthContext } from './AuthContext';
 import { incrementUserStats } from '../services/dataService';
-import { UserStats } from '../types';
+import { UserStats, EmberSessionData, EmberStudentData, EmberEarningsResponse, EmberRewardResponse, AtmosphereRequest, AtmosphereResponse } from '../types';
+import { emberService } from '../services/emberService';
 
 interface ForgeStoreContextType {
   xp: number;
@@ -15,6 +17,8 @@ interface ForgeStoreContextType {
   awardXP: (amount: number) => void;
   spendEmbers: (amount: number) => boolean;
   completeFocusSession: (xp: number, embers: number) => Promise<void>;
+  processSessionCompletion: (sessionData: EmberSessionData) => Promise<EmberEarningsResponse>;
+  purchaseEmberItem: (itemId: string, metadata?: any) => Promise<EmberRewardResponse>;
   currentTheme: string;
   setTheme: (theme: string) => void;
   unlockedThemes: string[];
@@ -29,18 +33,28 @@ interface ForgeStoreContextType {
   unlockedSkins: string[];
   unlockedItems: string[];
   badges: string[];
+  atmosphere: AtmosphereResponse | null;
+  updateAtmosphere: (trigger: AtmosphereRequest['trigger'], subject?: string, themeOverride?: string) => Promise<void>;
+  clearAtmosphere: () => void;
   isSyncing: boolean;
   syncError: boolean;
+  stats: UserStats;
+  decks: any[];
+  lessons: any[];
 }
 
 const ForgeStoreContext = createContext<ForgeStoreContextType | undefined>(undefined);
 
 export const THEMES = {
   'Default Ember': '#FB923C',
-  'Abyssal Current': '#3B82F6',
-  'Nebula Pulse': '#A855F7',
-  'Matrix Code': '#22C55E',
-  'Inferno': '#EF4444',
+  'Map Explorer': '#000000',
+  'Inner Fire': '#B91C1C',
+  'Radio Mystery': '#312E81',
+  'Grand Archive': '#78350F',
+  'Perfect Focus': '#064E3B',
+  'Brain Link': '#831843',
+  'Deep Ocean': '#1E3A8A',
+  'Star Field': '#4C1D95',
 };
 
 function hexToRgb(hex: string) {
@@ -58,6 +72,7 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
   const [syncError, setSyncError] = useState(false);
 
   const { xp, level, embers, currentTheme, unlockedThemes, activeAssistantSkin = 'Default', unlockedSkins = ['Default'], unlockedItems = [], badges = [], activeBoosters = [] } = state.stats;
+  const [atmosphere, setAtmosphere] = useState<AtmosphereResponse | null>(null);
 
   // Level Up logic to credit Embers
   const [lastLevelCredit, setLastLevelCredit] = useState(level);
@@ -196,6 +211,44 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
     }));
   }, [setState]);
 
+  const updateAtmosphere = useCallback(async (trigger: AtmosphereRequest['trigger'], subject?: string, themeOverride?: string) => {
+    try {
+      const idMap: Record<string, string> = {
+        'Default Ember': 'default',
+        'Map Explorer': 'void_cartographer',
+        'Inner Fire': 'deep_forge',
+        'Radio Mystery': 'signal_lost',
+        'Grand Archive': 'the_library_at_the_end',
+        'Perfect Focus': 'eigenstate',
+        'Brain Link': 'bone_circuit',
+        'Deep Ocean': 'abyssal_current',
+        'Star Field': 'nebula_pulse'
+      };
+      
+      const themeToUse = themeOverride || currentTheme;
+      
+      const { generateAtmosphere } = await import('../services/aiService');
+      const response = await generateAtmosphere({
+        active_theme: idMap[themeToUse] || 'default',
+        student_name: state.stats.studentName || state.stats.name || 'Student',
+        subject_context: subject,
+        trigger
+      });
+      setAtmosphere(response);
+      
+      // Auto-clear after 1 minute
+      setTimeout(() => {
+        setAtmosphere(null);
+      }, 60000);
+    } catch (error) {
+      console.error("Atmosphere Engine failed to generate:", error);
+    }
+  }, [currentTheme, state.stats]);
+
+  const clearAtmosphere = useCallback(() => {
+    setAtmosphere(null);
+  }, []);
+
   const unlockTheme = useCallback((theme: string) => {
     setState(prev => {
       const newUnlocked = [...new Set([...prev.stats.unlockedThemes, theme])];
@@ -265,10 +318,26 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
     }));
   }, [setState]);
 
-  const trackQuestProgress = useCallback((id: string, amount: number = 1) => {
-    const saved = localStorage.getItem('forge_quests_data');
-    if (saved) {
-      const quests = JSON.parse(saved);
+  const setAdminMaxEverything = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      stats: {
+        ...prev.stats,
+        xp: 1000000,
+        level: 100,
+        embers: 1000000,
+        streak: 99,
+        currentTheme: 'Inner Fire',
+        unlockedThemes: [...new Set([...prev.stats.unlockedThemes, 'Inner Fire', 'Star Field', 'Perfect Focus', 'Deep Ocean'])]
+      }
+    }));
+    soundService.playSuccess();
+  }, [setState]);
+
+  const trackQuestProgress = useCallback(async (id: string, amount: number = 1) => {
+    const { getGenericLocalDB, saveGenericLocalDB } = await import('../services/storageManager');
+    const quests = await getGenericLocalDB('forge_quests_data');
+    if (quests) {
       let awarded = false;
       let xpAward = 0;
 
@@ -285,7 +354,7 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
         return q;
       });
 
-      localStorage.setItem('forge_quests_data', JSON.stringify(newQuests));
+      await saveGenericLocalDB('forge_quests_data', newQuests);
       if (awarded) {
         awardXP(xpAward);
       }
@@ -324,6 +393,203 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
     }
   }, [user, awardXP, addBadge]);
 
+  const processSessionCompletion = useCallback(async (sessionData: EmberSessionData): Promise<EmberEarningsResponse> => {
+    const studentData: EmberStudentData = {
+      name: state.stats.name || 'Student',
+      current_embers: state.stats.embers || 0,
+      lifetime_embers_earned: (state.stats as any).lifetime_embers_earned || 0, // Fallback if not in type
+      streak_days: state.stats.streak || 0,
+      level: `Level ${state.stats.level}`,
+      subject_focus: 'General'
+    };
+
+    const result = emberService.calculateEarnings(studentData, sessionData);
+    const { total_earned } = result.embers_earned;
+
+    // Evaluate Progression
+    import('../services/progressionEngine').then(({ ProgressionEngine }) => {
+      const progStudent = {
+        id: user?.uid || 'guest',
+        name: state.stats.studentName || state.stats.name || 'Student',
+        level: 'a_level' as const, // default for now
+        current_forge_score: state.stats.forgeScore || 0,
+        current_rank: state.stats.rank || 'Ember',
+        current_rank_index: state.stats.rankIndex || 0,
+        titles_earned: state.stats.titlesEarned || [],
+        active_title: state.stats.activeTitle || null,
+        path_tiers: state.stats.pathTiers || { archivist: 0, duelist: 0, architect: 0, forgemaster: 0 },
+        milestones_triggered: state.stats.milestonesTriggered || []
+      };
+
+      const dateStr = new Date().toISOString();
+      const sTotalCards = state.decks.reduce((sum, d) => sum + d.cards.length, 0);
+      const sMatureCards = state.decks.reduce((sum, d) => sum + d.cards.filter(c => (c.interval || 0) >= 21).length, 0);
+      
+      const newMatureThisSession = sessionData.new_mature_cards || 0;
+      
+      // Calculate retention percent
+      const allStudied = state.decks.flatMap(d => d.cards.filter(c => c.totalAttempts));
+      const totalAttempts = allStudied.reduce((sum, c) => sum + (c.totalAttempts || 0), 0);
+      const totalMisses = allStudied.reduce((sum, c) => sum + (c.wrongCount || 0), 0);
+      let rollingRetention = 80; // default initial
+      if (totalAttempts > 0) {
+        rollingRetention = Math.round(((totalAttempts - totalMisses) / totalAttempts) * 100);
+      }
+
+      const progSession = {
+        session_type: sessionData.session_type,
+        timestamp: dateStr,
+        duration_minutes: sessionData.session_duration_minutes || 5,
+        srs_data: {
+          cards_reviewed: sessionData.cards_reviewed || 0,
+          cards_correct: sessionData.cards_correct || 0,
+          session_accuracy_percent: sessionData.accuracy_percent || 0,
+          rolling_30day_retention_percent: rollingRetention,
+          total_cards_in_deck: sTotalCards,
+          mature_cards_total: sMatureCards + newMatureThisSession,
+          new_mature_cards_this_session: newMatureThisSession,
+          average_ease_factor: 2.2,
+          weakest_card_topic: 'Unknown'
+        },
+        exam_data: {
+          exam_completed: sessionData.session_type === 'exam_completed',
+          exam_score_percent: sessionData.exam_score_percent || 0,
+          exam_grade: sessionData.exam_grade || '',
+          total_exams_completed_lifetime: (state.stats.totalExamsCompletedLifetime || 0) + (sessionData.session_type === 'exam_completed' ? 1 : 0),
+          rolling_exam_average_percent: state.stats.rollingExamAveragePercent || 0, // Would be updated dynamically
+          consecutive_exams_above_80: state.stats.consecutiveExamsAbove80 || 0,
+          consecutive_exams_above_90: state.stats.consecutiveExamsAbove90 || 0
+        },
+        consistency_data: {
+          current_streak_days: state.stats.streak,
+          streak_gaps_this_month: 0, // Placeholder
+          study_days_this_month: 10, // Placeholder
+          total_study_days_lifetime: (state.stats.totalStudyDaysLifetime || 0) + 1,
+          longest_streak_ever: Math.max(state.stats.longestStreakEver || 0, state.stats.streak)
+        },
+        upload_data: {
+          total_subjects_uploaded: state.stats.totalSubjectsUploaded || 0,
+          total_words_audited_lifetime: state.stats.totalWordsAuditedLifetime || 0,
+          new_upload_this_session: sessionData.session_type === 'upload_completed'
+        },
+        embers_data: {
+          embers_earned_this_session: total_earned,
+          lifetime_embers_earned: (state.stats.lifetimeEmbersEarned || 0) + total_earned,
+          current_embers_balance: state.stats.embers + total_earned
+        }
+      };
+
+      const output = ProgressionEngine.evaluateSession({
+        action: 'evaluate_session',
+        student: progStudent as any,
+        session_data: progSession as any
+      });
+
+      setState(prev => {
+        let nextConsecutive80 = prev.stats.consecutiveExamsAbove80 || 0;
+        let nextConsecutive90 = prev.stats.consecutiveExamsAbove90 || 0;
+        if (sessionData.session_type === 'exam_completed' && sessionData.exam_score_percent) {
+          if (sessionData.exam_score_percent >= 90) {
+            nextConsecutive90++; nextConsecutive80++;
+          } else if (sessionData.exam_score_percent >= 80) {
+            nextConsecutive90 = 0; nextConsecutive80++;
+          } else {
+            nextConsecutive80 = 0; nextConsecutive90 = 0;
+          }
+        }
+
+        let nextRollingExam = prev.stats.rollingExamAveragePercent || 0;
+        if (sessionData.session_type === 'exam_completed' && sessionData.exam_score_percent) {
+          const pastExams = prev.stats.totalExamsCompletedLifetime || 0;
+          nextRollingExam = Math.round(((nextRollingExam * pastExams) + sessionData.exam_score_percent) / (pastExams + 1));
+        }
+
+        return {
+          ...prev,
+          stats: {
+            ...prev.stats,
+            embers: output.ember_awards_this_session.new_balance,
+            lifetimeEmbersEarned: progSession.embers_data.lifetime_embers_earned,
+            forgeScore: output.forge_score.new,
+            rank: output.rank.new_rank,
+            rankIndex: output.rank.rank_index,
+            titlesEarned: Array.from(new Set([...(prev.stats.titlesEarned || []), ...output.titles.newly_unlocked])),
+            pathTiers: {
+              archivist: output.paths.archivist.new_tier,
+              duelist: output.paths.duelist.new_tier,
+              architect: output.paths.architect.new_tier,
+              forgemaster: output.paths.forgemaster.new_tier
+            },
+            milestonesTriggered: Array.from(new Set([...(prev.stats.milestonesTriggered || []), ...output.milestones_fired.map((m: any) => m.milestone_id)])),
+            totalExamsCompletedLifetime: progSession.exam_data.total_exams_completed_lifetime,
+            rollingExamAveragePercent: nextRollingExam,
+            consecutiveExamsAbove80: nextConsecutive80,
+            consecutiveExamsAbove90: nextConsecutive90,
+            matureCardsTotal: progSession.srs_data.mature_cards_total,
+            rolling30DayRetentionPercent: progSession.srs_data.rolling_30day_retention_percent,
+          }
+        };
+      });
+
+      // Show specific rewards from progression engine
+      if (output.milestones_fired.length > 0) {
+        // Find most significant one to show
+        const majorMilestone = output.milestones_fired.sort((a: any, b: any) => (b.embers_awarded || 0) - (a.embers_awarded || 0))[0];
+        if (majorMilestone) {
+          triggerReward(output.forge_score.delta, output.ember_awards_this_session.total_awarded, majorMilestone.display_message);
+        }
+      } else if (result.embers_earned.total_earned > 0) {
+        triggerReward(output.forge_score.delta, result.embers_earned.total_earned, result.earn_message);
+      }
+    });
+
+    return result;
+  }, [state.decks, state.stats, user, triggerReward, setState]);
+
+  const purchaseEmberItem = useCallback(async (itemId: string, context?: any): Promise<EmberRewardResponse> => {
+    const COSTS: Record<string, number> = {
+      'neural_nudge': 5,
+      'phantom_recall': 15,
+      'echo_chamber': 10,
+      'temporal_splice': 8,
+      'deep_dive': 15,
+      'void_collapse': 50,
+      'cryo_shield': 20,
+      'memory_palace': 35,
+      'forge_exam': 50,
+      'kill_chain': 25
+    };
+
+    const cost = COSTS[itemId] || 10;
+    
+    if (state.stats.embers < cost) {
+      throw new Error(`Insufficient Embers. You need ${cost}, but have ${state.stats.embers}.`);
+    }
+
+    const studentData: EmberStudentData = {
+      name: state.stats.name || 'Student',
+      current_embers: state.stats.embers || 0,
+      lifetime_embers_earned: (state.stats as any).lifetime_embers_earned || 0,
+      streak_days: state.stats.streak || 0,
+      level: `Level ${state.stats.level}`,
+      subject_focus: 'General'
+    };
+
+    const purchaseData: any = {
+      item_id: itemId,
+      ember_cost: cost,
+      context: context
+    };
+
+    const { generateRewardContent } = await import('../services/aiService');
+    const reward = await generateRewardContent(purchaseData, studentData, activeAssistantSkin);
+
+    // Spend the embers
+    spendEmbers(cost);
+
+    return reward;
+  }, [state.stats, spendEmbers]);
+
   return (
     <ForgeStoreContext.Provider value={{
       xp,
@@ -332,6 +598,8 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
       awardXP,
       spendEmbers,
       completeFocusSession,
+      processSessionCompletion,
+      purchaseEmberItem,
       currentTheme,
       setTheme,
       unlockedThemes,
@@ -346,8 +614,14 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
       unlockedSkins,
       unlockedItems,
       badges,
+      atmosphere,
+      updateAtmosphere,
+      clearAtmosphere,
       isSyncing,
-      syncError
+      syncError,
+      stats: state.stats,
+      decks: state.decks,
+      lessons: state.lessons
     }}>
       {children}
       

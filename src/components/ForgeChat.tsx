@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { MessageSquare, X, Send, Paperclip, Loader2, User, BookOpen, FileText, Trash2, Zap, Layers, BrainCircuit, Sparkles } from 'lucide-react';
-import { chatWithAcademicAssistant, isAIConfigured } from '../services/aiService';
+import { MessageSquare, X, Send, Paperclip, Loader2, User, BookOpen, FileText, Trash2, Zap, Layers, BrainCircuit, Sparkles, Shield, GraduationCap, Flame, Terminal, HelpCircle } from 'lucide-react';
+import { isAIConfigured } from '../services/aiConfig';
 import { useForgeStore } from '../contexts/ForgeStoreContext';
 import { extractTextFromFile } from '../lib/extraction';
 import ReactMarkdown from 'react-markdown';
@@ -9,6 +9,8 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import { cn, generateId } from '../lib/utils';
 import { soundService } from '../services/soundService';
+import { ForgePersona, LessonArchitectAudit } from '../types';
+import { PyraMascot } from './PyraMascot';
 
 interface Message {
   role: 'user' | 'model';
@@ -18,17 +20,75 @@ interface Message {
 interface ForgeChatProps {
   onNavigate?: (view: any) => void;
   onOpenForge?: (topic?: string) => void;
-  onSaveData?: (type: 'flashcards' | 'quiz' | 'forgeCast', data: any) => void;
+  onSaveData?: (type: 'flashcards' | 'quiz' | 'forgeCast' | 'lesson', data: any) => void;
   onEditData?: (type: 'flashcards' | 'quiz', data: any) => void;
   onAddData?: (type: 'flashcards' | 'quiz', data: any) => void;
+  activeLesson?: LessonArchitectAudit;
 }
 
-export function ForgeChat({ onNavigate, onOpenForge, onSaveData, onEditData, onAddData }: ForgeChatProps) {
-  const { unlockTheme, setTheme, currentTheme, activeAssistantSkin, addBadge, badges } = useForgeStore();
+const PERSONA_LABELS: Record<ForgePersona, { label: string; icon: any; color: string; description: string }> = {
+  pyra_default: { 
+    label: 'Pyra', 
+    icon: Sparkles, 
+    color: 'text-forge-accent',
+    description: 'Your general study buddy. Balanced, direct, and helpful.'
+  },
+  forge_master: { 
+    label: 'Forge Master', 
+    icon: Shield, 
+    color: 'text-red-400',
+    description: 'Intense exam mode. Fast-paced, strict, and focused on pure facts.'
+  },
+  vault_scholar: { 
+    label: 'Vault Scholar', 
+    icon: GraduationCap, 
+    color: 'text-blue-400',
+    description: 'Deep learning mode. Explores the "why" and hidden connections.'
+  },
+  ember_coach: { 
+    label: 'Ember Coach', 
+    icon: Flame, 
+    color: 'text-orange-500',
+    description: 'Motivation mode. Focused on rewards, streaks, and progress.'
+  },
+  spark_mode: { 
+    label: 'Spark Mode', 
+    icon: Terminal, 
+    color: 'text-yellow-400',
+    description: 'Active recall mode. Pyra asks the questions to test your brain.'
+  }
+};
+
+export function ForgeChat({ onNavigate, onOpenForge, onSaveData, onEditData, onAddData, activeLesson }: ForgeChatProps) {
+  const { unlockTheme, setTheme, currentTheme, addBadge, badges, stats, decks, lessons, activeAssistantSkin } = useForgeStore();
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    { role: 'model', content: `Lead Academic Assistant active. I am here to help you master your curriculum with precision. ${activeAssistantSkin !== 'Default' ? `Current Persona: ${activeAssistantSkin}.` : ''} What topic should we explore today?` }
-  ]);
+  const [persona, setPersona] = useState<ForgePersona>('pyra_default');
+  const [showHelp, setShowHelp] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    import('../services/storageManager').then(({ getGenericLocalDB }) => {
+      getGenericLocalDB('forge_chat_history').then(saved => {
+        if (isMounted) {
+          if (saved && saved.length > 0) {
+            setMessages(saved);
+          } else {
+            // Initialization happens in the other useEffect
+          }
+        }
+      });
+    });
+    return () => { isMounted = false; };
+  }, []);
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      import('../services/storageManager').then(({ saveGenericLocalDB }) => {
+        saveGenericLocalDB('forge_chat_history', messages);
+      });
+    }
+  }, [messages]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [fileContent, setFileContent] = useState<string | null>(null);
@@ -36,6 +96,55 @@ export function ForgeChat({ onNavigate, onOpenForge, onSaveData, onEditData, onA
   const [focusCount, setFocusCount] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Initialize Pyra based on persona and skin
+  useEffect(() => {
+    if (messages.length === 0) {
+      const SKIN_GREETINGS: Record<string, string>|any = {
+        'Ghost Protocol': "Asset identified. Ghost Protocol active. State your coordinates.",
+        'Oracle Prime': "I have seen this arrival before. The pattern is clear. Ask, and the archive answers.",
+        'Circuit Breaker': "Processing. Circuit Breaker online. Efficiency: low. Recalibrating. Input topic now.",
+        'The Archivist': "Ah, another entry in our shared archive! Scholarly parameters set. What shall we cross-reference today?",
+        'Forge Wraith': "This is where most quit. The forge is hottest right before the metal holds. Begin your transformation."
+      };
+
+      const initialGreeting = activeAssistantSkin && SKIN_GREETINGS[activeAssistantSkin] 
+        ? SKIN_GREETINGS[activeAssistantSkin]
+        : (persona === 'pyra_default' ? "Warm, direct, intelligent. I am Pyra — your academic tutor. What are we mastering today?" :
+           persona === 'forge_master' ? "Precision and discipline. I am the Forge Master. You have work to do. State your topic." :
+           persona === 'vault_scholar' ? "Greetings, scholar. I have been exploring the depths of your material. What connections shall we unveil today?" :
+           persona === 'ember_coach' ? "Let's win the day! I'm your Ember Coach. Ready to turn focus into progress?" :
+           "Socratic dialogue initiated. Spark Mode active. What do you believe is the core of our next topic?");
+      
+      setMessages([{ role: 'model', content: initialGreeting }]);
+    }
+  }, [persona, messages.length, activeAssistantSkin]);
+
+  // Construct Student Profile for AI context
+  const getStudentProfile = useCallback(() => {
+    const totalCards = decks.reduce((acc, d) => acc + d.cards.length, 0);
+    const matureCards = decks.reduce((acc, d) => acc + d.cards.filter(c => c.interval >= 21).length, 0);
+    const weakTopics = lessons
+      .filter(l => (l.mastery_score || 0) < 60)
+      .map(l => l.audit_metadata.title);
+
+    return {
+      name: stats.studentName || 'Student',
+      level: stats.level || 'gcse',
+      upcoming_exam: stats.upcomingExams?.[0] || null,
+      srs_data: {
+        total_cards: totalCards,
+        mature_cards: matureCards,
+        retention_rate: "85%", // Mocked for now
+        weak_topics: weakTopics
+      },
+      gamification: {
+        streak: stats.streak || 0,
+        embers: stats.embers || 0,
+        rank: stats.rank || 'Novice'
+      }
+    };
+  }, [stats, decks, lessons]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -58,7 +167,7 @@ export function ForgeChat({ onNavigate, onOpenForge, onSaveData, onEditData, onA
   const handleSend = async () => {
     if (!input.trim() && !fileContent) return;
     if (!isAIConfigured) {
-      alert("AI Configuration needed. Please set your API Key in the settings to activate the Academic Assistant.");
+      alert("AI Configuration needed. Please set your API Key in the settings to activate Pyra.");
       return;
     }
 
@@ -83,14 +192,18 @@ export function ForgeChat({ onNavigate, onOpenForge, onSaveData, onEditData, onA
         parts: [{ text: m.content }]
       }));
 
-      // Inyect personality into prompt if needed
-      const personalityPrompt = activeAssistantSkin === 'Drill Sergeant' ? "You are now in Drill Sergeant mode. Be aggressive, strictly disciplined, and demand excellence. Stop procrastination." :
-                               activeAssistantSkin === 'Zen Master' ? "You are now in Zen Master mode. Be calm, use nature analogies, and focus on stress-reduction." :
-                               activeAssistantSkin === 'Rival' ? "You are now in Rival mode. Be a competitive 4.0 student who challenges the user to beat your speed." : "";
-
-      const fullMessage = personalityPrompt ? `${personalityPrompt}\n\nUser Message: ${userMessage}` : userMessage;
-
-      const response = await chatWithAcademicAssistant(fullMessage, history, fileContent || undefined);
+      const { chatWithAcademicAssistant } = await import('../services/aiService');
+      const studentProfile = getStudentProfile();
+      const response = await chatWithAcademicAssistant(
+        userMessage, 
+        history, 
+        studentProfile, 
+        persona, 
+        activeAssistantSkin || 'Default',
+        activeLesson, 
+        fileContent || undefined
+      );
+      
       setMessages(prev => [...prev, { role: 'model', content: response }]);
       
       // Process Actions
@@ -228,10 +341,10 @@ export function ForgeChat({ onNavigate, onOpenForge, onSaveData, onEditData, onA
     }
 
     // 5. Navigation Action (Process LAST)
-    const navMatches = content.match(/\[\[ACTION:NAVIGATE:\w+\]\]/g);
+    const navMatches = content.match(/\[\[ACTION:NAVIGATE:[-\w]+\]\]/g);
     if (navMatches && onNavigate) {
       navMatches.forEach(match => {
-        const view = match.match(/NAVIGATE:(\w+)/)?.[1];
+        const view = match.match(/NAVIGATE:([-\w]+)/)?.[1];
         if (view) onNavigate(view);
       });
       soundService.playSuccess();
@@ -294,38 +407,121 @@ export function ForgeChat({ onNavigate, onOpenForge, onSaveData, onEditData, onA
                 className="fixed top-0 right-0 h-full w-full max-w-md bg-forge-dark border-l-4 border-forge-accent/40 shadow-[0_0_50px_rgba(251,146,60,0.15)] z-[70] flex flex-col"
               >
                 {/* Header */}
-                <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-forge-accent/10 rounded-xl flex items-center justify-center text-forge-accent shadow-[0_0_15px_rgba(251,146,60,0.2)]">
-                      <Sparkles size={20} />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-display font-black uppercase italic tracking-tighter text-white">Academic Oracle</h3>
-                      <div className="flex items-center gap-1">
-                          <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                          <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">Active & Ready</span>
+                <div className="p-6 border-b border-white/5 bg-white/[0.02]">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-4">
+                      <div className="relative w-16 h-16 mr-3">
+                        <PyraMascot 
+                          persona={persona}
+                          expression={isLoading ? 'thinking' : 'happy'}
+                          className="scale-[0.65] origin-top-left"
+                        />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-display font-black uppercase italic tracking-tighter text-white">Pyra Vault</h3>
+                        <div className="flex items-center gap-1">
+                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                            <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">{PERSONA_LABELS[persona].label} Active</span>
+                        </div>
                       </div>
                     </div>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => setShowHelp(!showHelp)}
+                        className="p-2 text-stone-500 hover:text-white transition-colors relative"
+                        title="How this Vault works"
+                      >
+                        <HelpCircle size={20} />
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setMessages([]);
+                          soundService.playClick();
+                        }}
+                        className="p-2 text-stone-500 hover:text-red-400 transition-colors"
+                        title="Reset Session"
+                      >
+                        <Trash2 size={20} />
+                      </button>
+                      <button 
+                        onClick={() => setIsOpen(false)}
+                        className="p-2 text-stone-500 hover:text-white transition-colors"
+                      >
+                        <X size={24} />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={() => {
-                        setMessages([{ role: 'model', content: "Session reset. How can I assist you with a new topic?" }]);
-                        soundService.playClick();
-                      }}
-                      className="p-2 text-stone-500 hover:text-red-400 transition-colors"
-                      title="Reset Session"
-                    >
-                      <Trash2 size={20} />
-                    </button>
-                    <button 
-                      onClick={() => setIsOpen(false)}
-                      className="p-2 text-stone-500 hover:text-white transition-colors"
-                    >
-                      <X size={24} />
-                    </button>
+
+                  {/* Persona Switcher */}
+                  <div className="flex gap-2 overflow-x-auto pb-3 px-1 metallic-scrollbar">
+                    {(Object.entries(PERSONA_LABELS) as [ForgePersona, any][]).map(([key, config]) => (
+                      <button
+                        key={key}
+                        onClick={() => {
+                          setPersona(key);
+                          setMessages([]); // Reset to trigger new greeting
+                          soundService.playClick();
+                        }}
+                        className={cn(
+                          "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-tighter border transition-all whitespace-nowrap flex items-center gap-2",
+                          persona === key 
+                            ? "bg-forge-accent/20 border-forge-accent text-forge-accent" 
+                            : "bg-white/5 border-white/5 text-stone-500 hover:text-white hover:bg-white/10"
+                        )}
+                      >
+                        {(() => {
+                          const Icon = config.icon;
+                          return <Icon size={12} />;
+                        })()}
+                        {config.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="mt-1 px-1">
+                    <p className="text-[10px] text-stone-500 font-medium italic">
+                      {PERSONA_LABELS[persona].description}
+                    </p>
                   </div>
                 </div>
+
+                <AnimatePresence>
+                  {showHelp && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: -20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      className="absolute top-28 left-4 right-4 bg-forge-dark/95 backdrop-blur-xl border border-forge-accent/30 rounded-2xl p-6 shadow-2xl z-50 overflow-y-auto max-h-[60vh] metallic-scrollbar"
+                    >
+                      <div className="flex justify-between items-center mb-4">
+                        <h4 className="text-forge-accent font-black uppercase tracking-widest text-sm flex items-center gap-2">
+                          <HelpCircle size={16} /> Vault Features Guide
+                        </h4>
+                        <button onClick={() => setShowHelp(false)} className="text-stone-400 hover:text-white">
+                          <X size={16} />
+                        </button>
+                      </div>
+                      <div className="space-y-4 text-sm text-stone-300">
+                        <div className="space-y-1">
+                          <h5 className="text-white font-bold text-xs uppercase tracking-widest flex items-center gap-2"><Flame size={14} className="text-forge-accent"/> Personas</h5>
+                          <p className="text-xs">Pyra can switch teaching styles using the buttons above. E.g., <span className="text-forge-accent">Forge Master</span> is strict, <span className="text-purple-400">Vault Scholar</span> uses Socratic method.</p>
+                        </div>
+                        <div className="space-y-1">
+                          <h5 className="text-white font-bold text-xs uppercase tracking-widest flex items-center gap-2"><MessageSquare size={14} className="text-blue-400"/> General Chat</h5>
+                          <p className="text-xs">Chat naturally about any topic just like standard AI assistants (ChatGPT, Claude, Gemini).</p>
+                        </div>
+                        <div className="space-y-1">
+                          <h5 className="text-white font-bold text-xs uppercase tracking-widest flex items-center gap-2"><Paperclip size={14} className="text-pink-400"/> Upload Docs</h5>
+                          <p className="text-xs">Click the paperclip below to upload your notes, PDFs, or PPTXs. Pyra will read them and answer questions, create flashcards, or quiz you on them.</p>
+                        </div>
+                        <div className="space-y-1">
+                          <h5 className="text-white font-bold text-xs uppercase tracking-widest flex items-center gap-2"><Zap size={14} className="text-yellow-400"/> Quick Actions</h5>
+                          <p className="text-xs">Ask Pyra to "generate a quiz on biology" or "make 10 flashcards about math" and she'll create cards directly in this chat that you can save to your library.</p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* Messages */}
                 <div 

@@ -1,5 +1,6 @@
 {
   "name": "Study Forge (BETA)",
-  "description": "An advanced academic study platform with AI-powered video lessons, cinematic learning experiences, and achievement-based gamification.",
-  "requestFramePermissions": []
+  "description": "Adaptive AI-powered study platform featuring Spaced Repetition (Anki-style), Rigorous Exam Simulation, and High-Fidelity Visual Lessons. Now with AI Study Guide generation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

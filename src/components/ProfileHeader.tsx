@@ -68,12 +68,12 @@ export function ProfileHeader({ onOpenSettings }: ProfileHeaderProps) {
         onClick={toggleMenu}
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
-        className="flex items-center gap-4 bg-white/5 border border-white/10 rounded-full pl-2 pr-5 py-2 backdrop-blur-md hover:bg-white/10 transition-all group"
+        className="flex items-center gap-4 bg-white/[0.03] border border-white/[0.08] rounded-full pl-2 pr-5 py-2 backdrop-blur-2xl hover:bg-white/[0.08] hover:border-white/[0.15] hover:shadow-[0_0_25px_rgba(255,255,255,0.05)] transition-all duration-300 group"
       >
         {/* Avatar Ring with Dynamic Theme Glow & Metallic Frame */}
-        <div className="relative w-10 h-10 rounded-full p-[3px] bg-gradient-to-br from-stone-400 via-stone-200 to-stone-500 shadow-[inset_0_0_2px_rgba(255,255,255,0.5),0_0_15px_rgba(251,146,60,0.3)] shrink-0 group/avatar overflow-hidden">
+        <div className="relative w-10 h-10 rounded-full p-[2px] bg-gradient-to-br from-forge-accent via-stone-200 to-orange-500 shadow-[inset_0_0_2px_rgba(255,255,255,0.8),0_0_20px_rgba(251,146,60,0.4)] shrink-0 group/avatar overflow-hidden">
           <div className="w-full h-full rounded-full p-0.5 bg-forge-dark overflow-hidden relative">
-            <div className="absolute inset-0 bg-gradient-to-tr from-forge-accent/20 to-transparent animate-pulse" />
+            <div className="absolute inset-0 bg-gradient-to-tr from-forge-accent/30 to-transparent animate-pulse" />
             {user.photoURL ? (
               <img 
                 src={user.photoURL} 
@@ -111,7 +111,7 @@ export function ProfileHeader({ onOpenSettings }: ProfileHeaderProps) {
               {user.displayName || 'Student'}
             </span>
             <div className="px-1.5 py-0.5 bg-forge-accent/10 border border-forge-accent/20 rounded-md text-[8px] font-black text-forge-accent uppercase tracking-widest">
-              LVL {level}
+              Level {level}
             </div>
             
             {/* Cloud Sync Icon */}
@@ -127,16 +127,19 @@ export function ProfileHeader({ onOpenSettings }: ProfileHeaderProps) {
           </div>
           
           <div className="flex flex-col gap-1">
-            <div className="w-24 h-1 bg-white/5 rounded-full overflow-hidden border border-white/5">
+            <div className="w-24 h-1.5 bg-white/10 rounded-full overflow-hidden border border-white/5 relative">
               <motion.div 
                 initial={{ width: 0 }}
                 animate={{ width: `${levelProgress}%` }}
-                className="h-full bg-forge-accent shadow-[0_0_8px_rgba(251,146,60,0.5)]" 
+                className="absolute inset-y-0 left-0 bg-gradient-to-r from-orange-500 to-forge-accent shadow-[0_0_10px_rgba(251,146,60,0.8)]" 
               />
             </div>
-            <div className="flex items-center gap-2 text-stone-500">
-              <Flame size={10} className="text-forge-accent" />
-              <span className="text-[10px] font-bold uppercase tracking-widest leading-none">{embers} Embers</span>
+            <div className="flex items-center gap-2 text-stone-300">
+              <div className="relative">
+                <Flame size={12} className="text-forge-accent relative z-10" />
+                <div className="absolute inset-0 bg-forge-accent blur-md opacity-60 animate-pulse" />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-widest leading-none drop-shadow-md">{embers} Embers</span>
             </div>
           </div>
         </div>

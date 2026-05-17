@@ -38,7 +38,22 @@ service cloud.firestore {
 
     match /global/aboutMe {
       allow read: if true;
-      allow write: if isSignedIn() && (request.auth.token.email == 'wanangwakamanga776@gmail.com' || request.auth.token.email_verified == true); 
+      allow write: if isSignedIn() && request.auth.token.email == 'wanangwakamanga776@gmail.com'; 
+    }
+
+    match /global/announcement {
+      allow read: if true;
+      allow write: if isSignedIn() && request.auth.token.email == 'wanangwakamanga776@gmail.com'; 
+    }
+
+    match /announcements/{announcementId} {
+      allow read: if true;
+      allow write: if isSignedIn() && request.auth.token.email == 'wanangwakamanga776@gmail.com';
+    }
+
+    match /feedback/{feedbackId} {
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
+      allow read, update, delete: if isSignedIn() && request.auth.token.email == 'wanangwakamanga776@gmail.com';
     }
 
     // -------------------------------------------------------------------------
@@ -55,10 +70,10 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------------------
-    // PRIVATE CONTENT (Decks, Quizzes, Tasks, ForgeCasts)
+    // PRIVATE CONTENT (Decks, Quizzes, Tasks, ForgeCasts, Lessons)
     // -------------------------------------------------------------------------
     match /users/{userId}/{collectionName}/{docId} {
-      allow read, write: if isOwner(userId) && collectionName in ['decks', 'quizzes', 'tasks', 'forgeCasts'];
+      allow read, write: if isOwner(userId) && collectionName in ['decks', 'quizzes', 'tasks', 'forgeCasts', 'lessons', 'sessions'];
     }
 
     // -------------------------------------------------------------------------

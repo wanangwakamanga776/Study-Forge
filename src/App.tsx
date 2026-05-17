@@ -5,41 +5,60 @@
 
 import React, { useState, lazy, Suspense, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Layout, Timer, ListTodo, Layers, BrainCircuit, Menu, X, Star, Sparkles, Zap, Loader2, Video, Play, SkipBack, Monitor, RotateCcw, Trash2, Flame, LogOut, Trophy, BookOpen } from 'lucide-react';
+import { Layout, Timer, ListTodo, Layers, BrainCircuit, Menu, X, Star, Sparkles, Zap, Loader2, Video, Play, SkipBack, Monitor, RotateCcw, Trash2, Flame, LogOut, Trophy, BookOpen, Target, MessageSquare, HelpCircle, Store, Shield, ChevronRight, FileText } from 'lucide-react';
 import { useAppState } from './hooks/useAppState';
+import { HelpButton } from './components/HelpSystem';
 import { Dashboard } from './components/Dashboard';
 import { LevelBar } from './components/LevelBar';
-import { ForgeChat } from './components/ForgeChat';
 import { ForgeHeatIcon } from './components/ForgeHeatIcon';
 import { RewardProvider } from './components/RewardToast';
 import { LoginPage } from './components/LoginPage';
 import { ProfileHeader } from './components/ProfileHeader';
 import { ForgeStoreProvider, useForgeStore } from './contexts/ForgeStoreContext';
-import { CommunityLibrary } from './components/CommunityLibrary';
-import { cn } from './lib/utils';
-import { Deck, Quiz, ForgeCastBlueprint } from './types';
+import { cn, generateId } from './lib/utils';
+import { Deck, Quiz, ForgeCastBlueprint, LessonArchitectAudit, ModeEngineSession } from './types';
 import { soundService } from './services/soundService';
 import { useAuth, logout } from './services/authService';
 import { useForgeEngine } from './hooks/useForgeEngine';
-import { testArchivesConnection } from './services/dataService';
-import { HelpCircle, Store, Shield } from 'lucide-react';
+import { testArchivesConnection, getGlobalAnnouncement } from './services/dataService';
+import { AppStateProvider } from './contexts/AppStateContext';
 import { ThemeVisuals } from './components/ThemeVisuals';
 import { AboutMePopup } from './components/AboutMeSection';
+import { AuthProvider, useAuthContext } from './contexts/AuthContext';
+import { useScrollControls } from './hooks/useScrollControls';
+import { FeedbackSection } from './components/FeedbackSystem';
 
-const TaskPlanner = lazy(() => import('./components/TaskPlanner').then(m => ({ default: m.TaskPlanner })));
-const FocusTimer = lazy(() => import('./components/FocusTimer').then(m => ({ default: m.FocusTimer })));
-const Flashcards = lazy(() => import('./components/Flashcards').then(m => ({ default: m.Flashcards })));
-const QuizMode = lazy(() => import('./components/QuizMode').then(m => ({ default: m.QuizMode })));
-const MatchGame = lazy(() => import('./components/MatchGame').then(m => ({ default: m.MatchGame })));
-const AIGenerator = lazy(() => import('./components/AIGenerator').then(m => ({ default: m.AIGenerator })));
-const ForgeCast = lazy(() => import('./components/ForgeCast').then(m => ({ default: m.ForgeCast })));
-const Leaderboard = lazy(() => import('./components/Leaderboard').then(m => ({ default: m.Leaderboard })));
-const ForgeTutorial = lazy(() => import('./components/ForgeTutorial').then(m => ({ default: m.ForgeTutorial })));
-const ForgeShop = lazy(() => import('./components/ForgeShop').then(m => ({ default: m.ForgeShop })));
-const AccountSettings = lazy(() => import('./components/AccountSettings').then(m => ({ default: m.AccountSettings })));
-const AdminPanel = lazy(() => import('./components/AdminPanel').then(m => ({ default: m.AdminPanel })));
+// Announcement popup component
+const AnnouncementPopup: React.FC<{ announcement: { message: string }, onClose: () => void }> = ({ announcement, onClose }) => (
+  <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
+    <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="max-w-lg w-full bg-forge-dark border border-white/10 rounded-[2rem] p-8 text-center">
+      <h2 className="text-xl font-black uppercase tracking-widest text-white mb-6">Announcement</h2>
+      <p className="text-stone-300 mb-8">{announcement.message}</p>
+      <button onClick={onClose} className="px-8 py-3 bg-white text-forge-dark rounded-xl font-bold uppercase tracking-widest">Understand</button>
+    </motion.div>
+  </div>
+);
 
-type View = 'dashboard' | 'planner' | 'timer' | 'flashcards' | 'quiz' | 'match' | 'forge-library' | 'forge-player' | 'leaderboard' | 'community';
+const TaskPlanner = lazy(() => import('./components/TaskPlanner.tsx').then(m => ({ default: m.TaskPlanner })));
+const FocusTimer = lazy(() => import('./components/FocusTimer.tsx').then(m => ({ default: m.FocusTimer })));
+const Flashcards = lazy(() => import('./components/Flashcards'));
+const QuizMode = lazy(() => import('./components/QuizMode.tsx').then(m => ({ default: m.QuizMode })));
+const MatchGame = lazy(() => import('./components/MatchGame.tsx').then(m => ({ default: m.MatchGame })));
+const AIGenerator = lazy(() => import('./components/AIGenerator.tsx').then(m => ({ default: m.AIGenerator })));
+const ForgeCast = lazy(() => import('./components/ForgeCast.tsx').then(m => ({ default: m.ForgeCast })));
+const Leaderboard = lazy(() => import('./components/Leaderboard.tsx').then(m => ({ default: m.Leaderboard })));
+const ForgeTutorial = lazy(() => import('./components/ForgeTutorial.tsx').then(m => ({ default: m.ForgeTutorial })));
+const ForgeShop = lazy(() => import('./components/ForgeShop.tsx').then(m => ({ default: m.ForgeShop })));
+const AccountSettings = lazy(() => import('./components/AccountSettings.tsx').then(m => ({ default: m.AccountSettings })));
+const AdminPanel = lazy(() => import('./components/AdminPanel.tsx').then(m => ({ default: m.AdminPanel })));
+const StudyGuideViewer = lazy(() => import('./components/StudyGuideViewer.tsx').then(m => ({ default: m.StudyGuideViewer })));
+const ExamSimulator = lazy(() => import('./components/ExamSimulator'));
+const LessonManager = lazy(() => import('./components/LessonManager.tsx').then(m => ({ default: m.LessonManager })));
+const SessionViewer = lazy(() => import('./components/SessionViewer.tsx').then(m => ({ default: m.SessionViewer })));
+const ForgeChat = lazy(() => import('./components/ForgeChat.tsx').then(m => ({ default: m.ForgeChat })));
+const CommunityLibrary = lazy(() => import('./components/CommunityLibrary.tsx').then(m => ({ default: m.CommunityLibrary })));
+
+type View = 'dashboard' | 'planner' | 'timer' | 'flashcards' | 'quiz' | 'match' | 'forge-library' | 'forge-player' | 'leaderboard' | 'community' | 'exam' | 'ai-exam' | 'lessons' | 'feedback' | 'study-guide';
 
 const AdminOnlyView: React.FC<{ children: React.ReactNode; isAdmin: boolean; onRedirect: () => void }> = ({ children, isAdmin, onRedirect }) => {
   React.useEffect(() => {
@@ -52,8 +71,7 @@ const AdminOnlyView: React.FC<{ children: React.ReactNode; isAdmin: boolean; onR
   return <>{children}</>;
 };
 
-import { AppStateProvider } from './contexts/AppStateContext';
-import { AuthProvider, useAuthContext } from './contexts/AuthContext';
+
 
 export default function App() {
   return (
@@ -69,13 +87,13 @@ export default function App() {
   );
 }
 
-import { useScrollControls } from './hooks/useScrollControls';
-
-import { generateId } from './lib/utils';
 function AppContent() {
   const { state, setState, deleteForgeCast, resetToDefault } = useAppState();
-  const { awardXP, level, xp, embers } = useForgeStore();
+  const { awardXP, level, xp, embers, atmosphere, updateAtmosphere, clearAtmosphere } = useForgeStore();
   const { setAdminMaxLevel, setAdminUnlimitedCurrency, setAdminMaxEverything } = useForgeEngine();
+  
+  // Enable buttery smooth keyboard navigation
+  useScrollControls({ speed: 45 });
   const { user, loading } = useAuthContext();
   const [isGuest, setIsGuest] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -88,12 +106,25 @@ function AppContent() {
   const [isForgeOpen, setIsForgeOpen] = useState(false);
   const [forgeTopic, setForgeTopic] = useState<string>();
   const [showTutorial, setShowTutorial] = useState(false);
+  const [globalAnnouncement, setGlobalAnnouncement] = useState<{ message: string } | null>(null);
+  const [activeExam, setActiveExam] = useState<Quiz | null>(null);
+  const [showLessons, setShowLessons] = useState(false);
+  const [activeSession, setActiveSession] = useState<ModeEngineSession | null>(null);
+  const [activeAIExam, setActiveAIExam] = useState<{ exam: any; audit: any } | null>(null);
 
   // Enable global keyboard scroll controls
   useScrollControls();
 
   useEffect(() => {
     testArchivesConnection();
+    // Trigger initial atmosphere
+    updateAtmosphere('session_start');
+    
+    getGlobalAnnouncement().then(data => {
+      if (data && data.active) {
+        setGlobalAnnouncement(data);
+      }
+    });
   }, []);
 
   // Auto-set isAdmin for the specific admin email
@@ -129,8 +160,12 @@ function AppContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-forge-dark">
-        <Loader2 size={40} className="animate-spin text-forge-accent" />
+      <div className="min-h-screen flex flex-col items-center justify-center bg-forge-dark bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.1),rgba(255,255,255,0))]">
+        <div className="relative">
+          <div className="absolute inset-0 bg-forge-accent/20 blur-[50px] rounded-full animate-pulse" />
+          <Loader2 size={48} className="animate-spin text-forge-accent relative z-10 drop-shadow-[0_0_15px_rgba(251,146,60,0.5)]" />
+        </div>
+        <p className="mt-8 text-xs font-black uppercase tracking-[0.3em] text-white/50 animate-pulse">Initializing Forge</p>
       </div>
     );
   }
@@ -155,13 +190,13 @@ function AppContent() {
 
   if (!state || !state.stats) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-stone-50">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-stone-900"></div>
+      <div className="min-h-screen flex items-center justify-center bg-forge-dark">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-forge-accent"></div>
       </div>
     );
   }
 
-  const handleAIGenerated = async (type: 'flashcards' | 'quiz' | 'forgeCast', data: any) => {
+  const handleAIGenerated = async (type: 'flashcards' | 'quiz' | 'forgeCast' | 'lesson' | 'session', data: any) => {
     let finalData = { ...data, id: data.id || generateId(), createdAt: data.createdAt || Date.now() };
 
     // If cards have prompts but no images (usually from chat), enrich them
@@ -180,7 +215,7 @@ function AppContent() {
         if (deck.cards) {
           deck.cards = deck.cards.map(c => ({ ...c, id: c.id || generateId() }));
         }
-        newState.decks = [...prev.decks, deck];
+        newState.decks = [deck, ...prev.decks];
         newState.stats.aiUsage.flashcards += 1;
       } else if (type === 'quiz') {
         const quiz = dataWithId as Quiz;
@@ -188,11 +223,16 @@ function AppContent() {
         if (quiz.questions) {
           quiz.questions = quiz.questions.map(q => ({ ...q, id: q.id || generateId() }));
         }
-        newState.quizzes = [...prev.quizzes, quiz];
+        newState.quizzes = [quiz, ...prev.quizzes];
         newState.stats.aiUsage.quizzes += 1;
       } else if (type === 'forgeCast') {
-        newState.forgeCasts = [...prev.forgeCasts, dataWithId as ForgeCastBlueprint];
+        newState.forgeCasts = [dataWithId as ForgeCastBlueprint, ...prev.forgeCasts];
         newState.stats.aiUsage.forgeCasts += 1;
+      } else if (type === 'lesson') {
+        newState.lessons = [...(prev.lessons || []), dataWithId as LessonArchitectAudit];
+        setCurrentView('lessons');
+      } else if (type === 'session') {
+        newState.sessions = [...(prev.sessions || []), dataWithId as ModeEngineSession];
       }
       return newState;
     });
@@ -274,11 +314,14 @@ function AppContent() {
     { id: 'planner', label: 'Planner', icon: <ListTodo size={20} /> },
     { id: 'timer', label: 'Focus Timer', icon: <Timer size={20} /> },
     { id: 'flashcards', label: 'Flashcards', icon: <Layers size={20} /> },
-    { id: 'match', label: 'Match Mode', icon: <Zap size={20} /> },
-    { id: 'quiz', label: 'Quiz Mode', icon: <BrainCircuit size={20} /> },
+    { id: 'match', label: 'Match Game', icon: <Zap size={20} /> },
+    { id: 'quiz', label: 'Quiz', icon: <BrainCircuit size={20} /> },
     { id: 'community', label: 'Community', icon: <BookOpen size={20} /> },
-    { id: 'forge-library', label: 'Study Lessons', icon: <Video size={20} /> },
-    { id: 'leaderboard', label: 'Hall of Fame', icon: <Trophy size={20} />, adminOnly: true },
+    { id: 'lessons', label: 'Lessons', icon: <Sparkles size={20} /> },
+    { id: 'study-guide', label: 'Study Guide', icon: <FileText size={20} /> },
+    { id: 'forge-library', label: 'Library', icon: <Video size={20} /> },
+    { id: 'leaderboard', label: 'Leaderboard', icon: <Trophy size={20} />, adminOnly: true },
+    { id: 'feedback', label: 'Feedback', icon: <MessageSquare size={20} /> },
   ].filter(item => !item.adminOnly || isAdmin);
 
   const handleMatchComplete = (xp: number, time: number, deckId: string) => {
@@ -320,6 +363,18 @@ function AppContent() {
             isAdmin={isAdmin}
             isGuest={isGuest}
           />
+        );
+      case 'feedback':
+        return (
+          <div className="pt-20">
+            <FeedbackSection />
+          </div>
+        );
+      case 'study-guide':
+        return (
+          <div className="pt-20">
+            <StudyGuideViewer />
+          </div>
         );
       case 'forge-library':
         return (
@@ -454,8 +509,151 @@ function AppContent() {
             quizzes={state.quizzes} 
             onUpdate={(quizzes) => setState(prev => ({ ...prev, quizzes }))}
             onComplete={awardXP}
+            onStartExam={(exam) => {
+              setActiveExam(exam);
+              setCurrentView('exam');
+            }}
           />
         );
+      case 'exam':
+        return activeExam ? (
+          <ExamSimulator 
+            exam={{
+              exam_id: activeExam.id,
+              title: activeExam.title,
+              level: 'standard',
+              exam_board_style: 'standard',
+              total_marks: activeExam.questions.length,
+              time_limit_minutes: activeExam.timeLimit || 15,
+              sections: [{
+                section_id: 's1',
+                section_title: 'Core Assessment',
+                section_instructions: 'Complete all questions.',
+                marks_available: activeExam.questions.length,
+                time_recommendation_minutes: activeExam.timeLimit || 15,
+                questions: activeExam.questions.map(q => ({
+                  question_id: q.id,
+                  type: 'mcq',
+                  marks: 1,
+                  question_text: q.question,
+                  options: q.options,
+                  topic_tag: 'General',
+                  targets_weak_area: false,
+                  is_trick_question: false,
+                  cognitive_demand: 'recall',
+                  HIDDEN_correct_answer: q.options[q.correctAnswer],
+                  HIDDEN_mark_scheme: q.explanation || 'No explanation provided.',
+                  HIDDEN_model_answer: q.options[q.correctAnswer],
+                  HIDDEN_common_mistakes: [],
+                  HIDDEN_examiner_tip: ''
+                }))
+              }],
+              difficulty_profile: 'standard',
+              instructions: 'Standard assessment.',
+              difficulty_map: { accessible_question_ids: [], target_question_ids: [], stretch_question_ids: [] }
+            }}
+            auditData={{
+              audit_metadata: {
+                title: activeExam.title,
+                subject: 'General',
+                level_detected: 'standard',
+                content_type: 'quiz',
+                word_count: 0,
+                academic_density_score: 5,
+                exam_relevance_score: 5,
+                estimated_mastery_hours: 1,
+                prerequisite_knowledge: []
+              },
+              semantic_map: { central_thesis: '', causal_chains: [], concept_hierarchy: [] },
+              misconception_map: [],
+              memory_layer: { flashcard_deck: [], total_cards: 0 },
+              application_layer: { exam_questions: [] },
+              mode_routing: { normal_study_card_ids: [], quick_review_card_ids: [], detailed_mastery_card_ids: [], test_prep_question_ids: [], eli5_concept_ids: [] },
+              forgecast_brief: { hook_premise: '', core_technical_points: [], best_analogy_candidates: [], summary_statement: '' },
+              forgechat_context_block: ''
+            }}
+            onClose={() => {
+              // Update audit metadata on exit
+              setState(prev => ({
+                ...prev,
+                lessons: (prev.lessons || []).map(l => 
+                  l.audit_metadata.title === activeExam.title ? {
+                    ...l,
+                    last_session_at: Date.now()
+                  } : l
+                )
+              }));
+              setCurrentView('quiz');
+            }}
+            onComplete={(attempt) => {
+              setState(prev => ({
+                ...prev,
+                quizzes: prev.quizzes.map(q => q.id === activeExam.id ? {
+                  ...q,
+                  examHistory: [...(q.examHistory || []), attempt]
+                } : q)
+              }));
+              setCurrentView('quiz');
+            }}
+          />
+        ) : null;
+      case 'ai-exam':
+        return activeAIExam ? (
+          <ExamSimulator 
+            exam={activeAIExam.exam}
+            auditData={activeAIExam.audit}
+            onClose={() => {
+              // Update audit metadata on exit
+              setState(prev => ({
+                ...prev,
+                lessons: (prev.lessons || []).map(l => 
+                  l.id === activeAIExam.audit.id ? {
+                    ...l,
+                    last_session_at: Date.now()
+                  } : l
+                )
+              }));
+              setCurrentView('lessons');
+            }}
+            onAddRevisionPlan={(plan) => {
+              // Add crash course cards to a new deck
+              const deck: Deck = {
+                id: 'revision-' + generateId(),
+                title: "REVISION: " + plan.forge_revision_plan.plan_title,
+                cards: plan.forge_revision_plan.crash_course_flashcard_deck.map(c => ({
+                  id: c.card_id,
+                  term: c.front,
+                  definition: c.back,
+                  explanation: c.why_this_card_was_created,
+                  cardType: c.card_type as any,
+                  memoryHook: c.memory_hook,
+                  hint: c.hint,
+                  ease: c.sm2_initial_ease_factor,
+                  interval: c.sm2_initial_interval_days
+                }))
+              };
+              setState(prev => ({
+                ...prev,
+                decks: [deck, ...prev.decks]
+              }));
+            }}
+            onComplete={(attempt) => {
+              // Update audit with performance data
+              setState(prev => ({
+                ...prev,
+                lessons: (prev.lessons || []).map(l => 
+                  l.id === activeAIExam.audit.id ? {
+                    ...l,
+                    last_session_at: Date.now(),
+                    completed_sessions_count: (l.completed_sessions_count || 0) + 1,
+                    mastery_score: Math.max(l.mastery_score || 0, attempt.results.percentage)
+                  } : l
+                )
+              }));
+              setCurrentView('lessons');
+            }}
+          />
+        ) : null;
       case 'match':
         return (
           <MatchGame 
@@ -472,6 +670,77 @@ function AppContent() {
         );
       case 'community':
         return <CommunityLibrary onAddDeck={handleAddDeck} onNavigate={(v) => setCurrentView(v as View)} />;
+      case 'lessons':
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-2xl font-bold text-white uppercase italic tracking-tight">My Lessons</h3>
+              <button 
+                onClick={() => setIsForgeOpen(true)}
+                className="px-6 py-2 bg-orange-500 text-white rounded-xl font-bold hover:scale-105 transition-transform"
+              >
+                New Lesson
+              </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {(state.lessons || []).map(lesson => (
+                <div 
+                  key={lesson.id}
+                  className="glass-card hover-lift p-6 rounded-[2rem] border border-white/5 cursor-pointer flex flex-col group"
+                  onClick={() => {
+                    setShowLessons(true);
+                    soundService.playClick();
+                  }}
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-orange-400">{lesson.audit_metadata.level_detected}</span>
+                    <div className="flex flex-col items-end">
+                      <span className="text-[10px] font-mono text-stone-600">{new Date(lesson.createdAt!).toLocaleDateString()}</span>
+                      {lesson.last_session_at && (
+                        <span className="text-[8px] font-bold text-blue-500 uppercase">Active: {new Date(lesson.last_session_at).toLocaleDateString()}</span>
+                      )}
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-display font-black uppercase italic tracking-tighter text-white mb-2">{lesson.audit_metadata.title}</h3>
+                  <div className="flex-1">
+                    <div className="text-stone-500 text-xs line-clamp-1 italic mb-4 markdown-content prose-sm">
+                      <span className="line-clamp-1">{lesson.semantic_map?.central_thesis || 'Understanding topic...'}</span>
+                    </div>
+                    {lesson.mastery_score !== undefined && (
+                      <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden mb-4">
+                        <div 
+                          className="bg-emerald-500 h-full transition-all duration-1000" 
+                          style={{ width: `${lesson.mastery_score}%` }} 
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/5">
+                    <div className="flex -space-x-2">
+                       <div className="w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center"><Layers size={14} className="text-emerald-400" /></div>
+                       <div className="w-8 h-8 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center"><Zap size={14} className="text-amber-400" /></div>
+                       <div className="w-8 h-8 rounded-full bg-rose-500/20 border border-rose-500/30 flex items-center justify-center"><Target size={14} className="text-rose-400" /></div>
+                    </div>
+                    <span className="text-[10px] font-bold text-stone-500">READY TO PRACTICE</span>
+                  </div>
+                </div>
+              ))}
+              {(!state.lessons || state.lessons.length === 0) && (
+                <div className="col-span-full py-20 text-center glass-card rounded-[2.5rem] border border-white/5">
+                  <BrainCircuit size={64} className="mx-auto text-stone-700 mb-6" />
+                  <h3 className="text-2xl font-display font-black uppercase italic tracking-tighter text-white mb-4">No Lessons Yet</h3>
+                  <p className="text-stone-500 font-bold uppercase tracking-widest text-xs mb-8">Our AI analyzes your materials to help you learn faster.</p>
+                  <button 
+                    onClick={() => setIsForgeOpen(true)}
+                    className="px-8 py-3 bg-white text-forge-dark rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform"
+                  >
+                    Start Analyzing
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        );
       default:
         return (
           <Dashboard 
@@ -488,17 +757,176 @@ function AppContent() {
   };
 
   return (
-    <div className="min-h-screen bg-stone-50 text-stone-900 font-sans selection:bg-stone-200">
+    <div className="min-h-screen bg-forge-dark text-stone-200 font-sans selection:bg-forge-accent/20">
           <ThemeVisuals />
           <AboutMePopup />
           <AnimatePresence>
+            {globalAnnouncement && (
+              <AnnouncementPopup 
+                announcement={globalAnnouncement}
+                onClose={() => setGlobalAnnouncement(null)}
+              />
+            )}
             {showTutorial && <ForgeTutorial onClose={() => setShowTutorial(false)} isAdmin={isAdmin} />}
+            {showLessons && (
+              <LessonManager 
+                lessons={state.lessons || []} 
+                stats={state.stats}
+                onLaunchSession={(session) => {
+                  setShowLessons(false);
+                  setActiveSession(session);
+                  handleAIGenerated('session', session);
+                }}
+                onLaunchExam={(exam, audit) => {
+                  setShowLessons(false);
+                  setActiveAIExam({ exam, audit });
+                  setCurrentView('ai-exam');
+                }}
+                onClose={() => setShowLessons(false)}
+              />
+            )}
+            {activeSession && (
+              <SessionViewer 
+                session={activeSession}
+                onClose={() => {
+                  const lessonId = activeSession.lessonId;
+                  setState(prev => ({
+                    ...prev,
+                    lessons: (prev.lessons || []).map(l => 
+                      l.id === lessonId ? {
+                        ...l,
+                        last_session_at: Date.now(),
+                        completed_sessions_count: (l.completed_sessions_count || 0) + 1
+                      } : l
+                    )
+                  }));
+                  setActiveSession(null);
+                }}
+                onStartPractice={(type, data) => {
+                  const lessonId = activeSession.lessonId;
+                  setState(prev => ({
+                    ...prev,
+                    lessons: (prev.lessons || []).map(l => 
+                      l.id === lessonId ? {
+                        ...l,
+                        last_session_at: Date.now(),
+                        completed_sessions_count: (l.completed_sessions_count || 0) + 1
+                      } : l
+                    )
+                  }));
+                  if (type === 'flashcards') {
+                    // Start a specific deck view or match
+                    const deck: Deck = {
+                      id: 'session-' + activeSession.id,
+                      title: activeSession.session_title,
+                      cards: data.map((c: any) => ({
+                        id: c.card_id,
+                        term: c.front,
+                        definition: c.back,
+                        explanation: c.mode_specific_tip,
+                        hint: c.hint,
+                        ease: c.sm2_initial_ease_factor,
+                        interval: c.sm2_initial_interval_days,
+                        memoryHook: c.memory_hook
+                      }))
+                    };
+                    setState(prev => ({
+                      ...prev,
+                      decks: [deck, ...prev.decks]
+                    }));
+                    setCurrentView('flashcards');
+                  } else {
+                    let questionsData = data;
+                    if (!questionsData || questionsData.length === 0) {
+                      const lesson = state.lessons?.find(l => l.id === activeSession.lessonId);
+                      if (lesson && lesson.application_layer?.exam_questions) {
+                        questionsData = lesson.application_layer.exam_questions;
+                      }
+                    }
+                    
+                    const quiz: Quiz = {
+                      id: 'session-quiz-' + activeSession.id,
+                      title: activeSession.session_title,
+                      questions: questionsData.map((q: any) => ({
+                        id: q.question_id || generateId(),
+                        question: q.question || q.question_text || q.text || 'Missing question text',
+                        type: q.type || 'mcq',
+                        marks: q.marks || 1,
+                        options: q.options || [],
+                        correctAnswer: (q.options || []).indexOf(q.correct_answer) >= 0 ? (q.options || []).indexOf(q.correct_answer) : 0,
+                        correctAnswerText: q.correct_answer || q.model_answer || '',
+                        explanation: q.mark_scheme || q.explanation || ''
+                      }))
+                    };
+                    setState(prev => ({
+                      ...prev,
+                      quizzes: [quiz, ...prev.quizzes]
+                    }));
+                    setCurrentView('quiz');
+                  }
+                  setActiveSession(null);
+                }}
+              />
+            )}
           </AnimatePresence>
 
-          <ForgeShop isOpen={isShopOpen} onClose={() => setIsShopOpen(false)} />
+      <AnimatePresence>
+        {atmosphere && (
+          <motion.div
+            key={atmosphere.theme_id}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md pointer-events-auto"
+          >
+            <motion.div 
+               initial={{ opacity: 0, scale: 0.9, y: 30 }}
+               animate={{ opacity: 1, scale: 1, y: 0 }}
+               transition={{ delay: 0.2 }}
+               className="max-w-2xl w-full text-center relative"
+            >
+               <button 
+                 onClick={() => clearAtmosphere()}
+                 className="absolute -top-4 -right-4 p-2 text-white/50 hover:text-white transition-colors"
+               >
+                 <X size={24} />
+               </button>
+               {state.stats.currentTheme === 'Signal Lost' && (
+                 <div className="absolute inset-0 scanline-crt opacity-20 pointer-events-none" />
+               )}
+               <p className="text-[10px] font-black text-forge-accent uppercase tracking-[0.5em] mb-4">
+                 {state.stats.currentTheme === 'Signal Lost' ? '>>> INCOMING TRANSMISSION <<<' : 'Atmosphere Initialized'}
+               </p>
+               <h2 className={cn(
+                 "text-4xl sm:text-6xl font-display font-black uppercase italic tracking-tighter text-white mb-6 leading-none",
+                 state.stats.currentTheme === 'Signal Lost' && "glitch-text font-mono"
+               )}>
+                 {atmosphere.session_greeting}
+               </h2>
+               <p className="text-xl text-stone-400 font-medium italic mb-10 max-w-lg mx-auto">
+                 {atmosphere.forgecast_atmosphere_line}
+               </p>
+               <button 
+                onClick={() => clearAtmosphere()}
+                className="group px-10 py-4 bg-forge-accent text-forge-dark rounded-xl text-[10px] font-black uppercase tracking-widest transition-all hover:scale-105 forge-glow flex items-center gap-3 mx-auto"
+               >
+                 Acknowledge & Proceed
+                 <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
+               </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <ForgeShop isOpen={isShopOpen} onClose={() => setIsShopOpen(false)} />
 
           <ForgeChat 
-            onNavigate={(v) => setCurrentView(v as View)}
+            onNavigate={(v) => {
+              if (v === 'lessons') {
+                setShowLessons(true);
+              } else {
+                setCurrentView(v as View);
+              }
+            }}
             onOpenForge={(topic) => {
               setForgeTopic(topic);
               setIsForgeOpen(true);
@@ -506,10 +934,15 @@ function AppContent() {
             onSaveData={handleAIGenerated}
             onEditData={handleEditData}
             onAddData={handleAddData}
+            activeLesson={
+              activeSession ? state.lessons.find(l => l.id === activeSession.lessonId) :
+              activeAIExam ? activeAIExam.audit :
+              undefined
+            }
           />
 
           <Suspense fallback={null}>
-            <AIGenerator 
+                        <AIGenerator 
               stats={state.stats} 
               onGenerated={handleAIGenerated}
               onOpenPremium={() => setIsShopOpen(true)}
@@ -518,6 +951,7 @@ function AppContent() {
               onOpenChange={setIsForgeOpen}
               initialTopic={forgeTopic}
               hideTrigger={true}
+              isAdmin={isAdmin}
             />
           </Suspense>
 
@@ -531,88 +965,127 @@ function AppContent() {
             currentEmbers={state.stats.embers}
           />
 
-      {/* Sidebar / Navigation */}
-      <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 w-64 bg-forge-dark border-r border-white/5 transition-transform lg:translate-x-0",
-        isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-      )}>
+      {/* Global Cinematic Background */}
+      <div className="fixed inset-0 z-[-2] pointer-events-none overflow-hidden bg-transparent">
+        <div 
+          className="ambient-light w-[800px] h-[800px] -top-96 -left-96 bg-forge-accent/5" 
+          style={{ "--duration": "15s" } as any} 
+        />
+        <div 
+          className="ambient-light w-[600px] h-[600px] -bottom-48 -right-48 bg-forge-accent/5" 
+          style={{ "--duration": "20s" } as any} 
+        />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(10,10,12,0.8)_100%)]" />
+      </div>
+
+      {/* Sidebar / Navigation (Floating Dock) */}
+      <aside 
+        className={cn(
+          "fixed left-6 top-6 bottom-6 z-50 w-64 bg-white/[0.02] backdrop-blur-[30px] border border-white/10 rounded-[2.5rem] transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] shadow-[0_24px_80px_-12px_rgba(0,0,0,0.6)] flex flex-col group/sidebar overflow-hidden",
+          isMobileMenuOpen ? "translate-x-0" : "lg:translate-x-0 -translate-x-full",
+          state.stats.currentTheme === 'Signal Lost' && "glitch-static opacity-90"
+        )}
+      >
         <div 
           tabIndex={0}
-          className="flex flex-col h-full p-6 overflow-y-auto metallic-scrollbar focus:outline-none"
+          className="flex-1 overflow-y-auto no-scrollbar focus:outline-none p-8 py-10 space-y-12"
           aria-label="Navigation sidebar"
         >
-            <div className="flex items-center gap-4 mb-14">
-              <div className="w-12 h-12 bg-forge-accent rounded-2xl flex items-center justify-center text-forge-dark forge-glow border border-white/10">
-                <BrainCircuit size={28} strokeWidth={2.5} />
+            <div className="flex flex-col items-center gap-4 group">
+              <motion.div 
+                whileHover={{ rotate: 5, scale: 1.05 }}
+                className="w-16 h-16 bg-gradient-to-br from-forge-accent to-orange-600 rounded-[1.5rem] flex items-center justify-center text-forge-dark shadow-[0_0_30px_rgba(251,146,60,0.4)] border border-white/20"
+              >
+                <BrainCircuit size={32} strokeWidth={2.5} />
+              </motion.div>
+              <div className="text-center">
+                <h1 className="text-2xl font-black tracking-[-0.05em] font-display text-white uppercase italic leading-tight">
+                  Study <span className="text-forge-accent text-glow">Forge</span>
+                </h1>
+                <span className="text-[8px] font-black tracking-[0.4em] text-white/40 uppercase mt-1 block">Learn Smarter</span>
               </div>
-              <h1 className="text-3xl font-extrabold tracking-tighter font-display text-white uppercase italic drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]">
-                Study Forge <span className="text-[10px] bg-forge-accent text-forge-dark px-2 py-0.5 rounded-sm not-italic align-middle ml-1">BETA</span>
-              </h1>
             </div>
 
-          <nav className="flex-1 space-y-2">
+          <nav className="space-y-1.5">
             {navItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => {
                   setCurrentView(item.id as View);
                   setIsMobileMenuOpen(false);
+                  soundService.playClick();
                 }}
                 className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold uppercase tracking-widest transition-all",
+                  "w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 relative group overflow-hidden outline-none",
                   currentView === item.id 
-                    ? "bg-forge-accent text-forge-dark shadow-[0_0_20px_rgba(251,146,60,0.2)]" 
-                    : "text-stone-500 hover:bg-white/5 hover:text-white"
+                    ? "text-white bg-white/10 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.1)]" 
+                    : "text-white/40 hover:text-white/80 hover:bg-white/[0.03] focus:bg-white/[0.03]"
                 )}
               >
-                {item.icon}
-                {item.label}
+                {currentView === item.id && (
+                  <motion.div 
+                    layoutId="nav-glow"
+                    className="absolute inset-0 bg-gradient-to-r from-forge-accent/20 to-transparent blur-md pointer-events-none"
+                  />
+                )}
+                <span className={cn(
+                  "transition-colors",
+                  currentView === item.id ? "text-forge-accent" : "group-hover:text-white group-focus:text-white"
+                )}>
+                  {item.icon}
+                </span>
+                <span className="relative z-10">{item.label}</span>
               </button>
             ))}
           </nav>
 
-          <div className="mt-auto pt-6 border-t border-white/5 space-y-4">
+          <div className="pt-8 border-t border-white/5 space-y-6">
             <ForgeHeatIcon streak={state.stats.streak} />
             
-            <button
-                onClick={() => {
-                    setIsShopOpen(true);
-                    soundService.playClick();
-                }}
-                className="w-full flex items-center justify-center gap-2 p-3 bg-white/5 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-colors border border-white/5"
-            >
-                <Store size={14} />
-                Resource Shop
-            </button>
-
-            {isAdmin && (
-               <button
+            <div className="flex items-center gap-2">
+              <button
                   onClick={() => {
-                      setIsAdminPanelOpen(true);
+                      setIsShopOpen(true);
                       soundService.playClick();
                   }}
-                  className="w-full flex items-center justify-center gap-2 p-3 bg-red-500/10 text-red-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500/20 transition-colors border border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.2)]"
-               >
-                  <Shield size={14} />
-                  Admin Console
-               </button>
-            )}
+                  className="flex-1 flex items-center justify-center p-4 bg-white/5 text-white/60 rounded-2xl transition-all hover:bg-white/10 hover:text-white border border-white/5 active:scale-95 outline-none focus:bg-white/10"
+                  title="Embers Shop"
+              >
+                  <Store size={18} />
+              </button>
+
+              {isAdmin && (
+                <button
+                    onClick={() => {
+                        setIsAdminPanelOpen(true);
+                        soundService.playClick();
+                    }}
+                    className="flex-1 flex items-center justify-center p-4 bg-red-500/5 text-red-500/60 rounded-2xl transition-all hover:bg-red-500/20 hover:text-red-500 border border-red-500/10 active:scale-95 outline-none focus:bg-red-500/20"
+                    title="Activist Panel"
+                >
+                    <Shield size={18} />
+                </button>
+              )}
+            </div>
 
             {user ? (
-               <div className="flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/5 relative group overflow-hidden">
-                 <div className="w-8 h-8 rounded-full p-[2px] bg-gradient-to-br from-stone-400 to-stone-600 shadow-[0_0_10px_rgba(251,146,60,0.3)] shrink-0 overflow-hidden">
-                   <img src={user.photoURL || ''} alt="" className="w-full h-full rounded-full object-cover" />
+               <div className="flex items-center gap-3 p-4 bg-white/[0.03] rounded-[1.5rem] border border-white/10 relative group overflow-hidden">
+                 <div className="relative w-10 h-10 shrink-0">
+                    <div className="absolute inset-0 bg-forge-accent/20 blur-lg rounded-full animate-pulse" />
+                    <div className="relative w-10 h-10 rounded-full p-[2px] bg-gradient-to-br from-forge-accent to-orange-400 overflow-hidden">
+                      <img src={user.photoURL || ''} alt="" className="w-full h-full rounded-full object-cover" />
+                    </div>
                  </div>
                  <div className="flex-1 min-w-0">
-                   <p className="text-[10px] font-black text-stone-500 uppercase tracking-widest truncate">
-                     {user.displayName || 'Student'}
+                   <p className="text-[8px] font-black text-white/40 uppercase tracking-widest truncate">
+                     {user.displayName || 'Academic Hero'}
                    </p>
-                   <p className="text-sm font-bold text-white leading-none mt-1">{embers} Embers</p>
+                   <p className="text-xs font-bold text-white leading-none mt-1 tracking-tight">{embers} Embers</p>
                  </div>
                  
                  <button 
                    onClick={handleLogout}
-                   className="absolute -top-2 -right-2 p-2 bg-forge-dark border border-white/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-500 z-10"
+                   className="absolute -top-2 -right-2 p-3 bg-red-500 text-white rounded-bl-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 -translate-y-2 group-hover:translate-x-0 group-hover:translate-y-0"
                    title="Log Out"
                  >
                    <LogOut size={14} />
@@ -620,14 +1093,14 @@ function AppContent() {
                </div>
             ) : (
               <div className="flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/5 relative group">
-                <div className="w-8 h-8 rounded-full bg-forge-accent text-forge-dark flex items-center justify-center text-xs font-black shadow-[0_0_10px_rgba(251,146,60,0.3)] shrink-0">
+                <div className="w-10 h-10 rounded-full bg-forge-accent text-forge-dark flex items-center justify-center text-sm font-black shadow-[0_0_20px_rgba(251,146,60,0.4)] shrink-0">
                   {level}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-black text-stone-500 uppercase tracking-widest truncate">
-                    Guest Student
+                  <p className="text-[8px] font-black text-white/40 uppercase tracking-widest truncate">
+                    Guest Researcher
                   </p>
-                  <p className="text-sm font-bold text-white">{xp} XP</p>
+                  <p className="text-xs font-bold text-white mt-1">{xp} XP</p>
                 </div>
                 <button 
                   onClick={handleLogout}
@@ -640,24 +1113,34 @@ function AppContent() {
             )}
           </div>
         </div>
+        
+        {/* Visual Progress Line at bottom of sidebar */}
+        <div className="h-1 w-full bg-white/5 relative shrink-0">
+           <motion.div 
+            initial={{ width: 0 }}
+            animate={{ width: `${(xp % 1000) / 10}%` }}
+            className="absolute inset-y-0 left-0 bg-forge-accent shadow-[0_0_10px_rgba(251,146,60,0.5)]" 
+           />
+        </div>
       </aside>
 
+
       {/* Main Content */}
-      <main className="lg:ml-64 min-h-screen bg-forge-dark">
+      <main className="lg:ml-80 min-h-screen relative z-10">
         {/* Header */}
-        <header className="sticky top-0 z-40 bg-forge-dark/80 backdrop-blur-md border-b border-white/5 lg:hidden">
-          <div className="flex items-center justify-between p-4">
+        <header className="sticky top-0 z-40 bg-forge-dark/60 backdrop-blur-xl border-b border-white/5 lg:hidden">
+          <div className="flex items-center justify-between p-5">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-forge-accent rounded-lg flex items-center justify-center text-forge-dark forge-glow">
-                <BrainCircuit size={18} strokeWidth={2.5} />
+              <div className="w-10 h-10 bg-gradient-to-br from-forge-accent to-orange-600 rounded-xl flex items-center justify-center text-forge-dark shadow-lg">
+                <BrainCircuit size={22} strokeWidth={2.5} />
               </div>
-              <span className="font-black tracking-tighter font-display uppercase italic text-white text-lg">Study Forge <span className="text-[8px] bg-forge-accent text-forge-dark px-1.5 py-0.5 rounded-xs not-italic align-middle ml-1">BETA</span></span>
+              <span className="font-black tracking-tighter font-display uppercase italic text-white text-xl">Study Forge</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               {user && <ProfileHeader onOpenSettings={() => setIsSettingsOpen(true)} />}
               <button 
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-2 text-stone-500 hover:text-white"
+                className="p-3 bg-white/5 rounded-xl text-white active:scale-95 transition-transform"
               >
                 {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
@@ -665,76 +1148,104 @@ function AppContent() {
           </div>
         </header>
 
-        <div className="p-6 lg:p-12">
+        <div className="p-8 lg:p-16 max-w-[1600px] mx-auto">
           {/* Top Row for Desktop */}
-          <div className="hidden lg:flex justify-end mb-8">
-            <ProfileHeader onOpenSettings={() => setIsSettingsOpen(true)} />
+          <div className="hidden lg:flex justify-end mb-12">
+            <motion.div 
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="glass-card pl-6 pr-2 py-2 rounded-full flex items-center gap-4"
+            >
+              <div className="flex items-center gap-3 mr-4">
+                <div className="w-2 h-2 rounded-full bg-forge-accent animate-pulse" />
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/50">Forge OS 3.1 Online</span>
+              </div>
+              <ProfileHeader onOpenSettings={() => setIsSettingsOpen(true)} />
+            </motion.div>
           </div>
           
-          <div className="mb-12">
+          <div className="mb-16">
             <LevelBar />
           </div>
+
           <AnimatePresence mode="wait">
             <motion.div
               key={currentView}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
+              initial={{ opacity: 0, scale: 0.98, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 1.02, y: -10 }}
+              transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
             >
-              <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-                <div>
-                  <h2 className="text-4xl font-extrabold tracking-tighter font-display text-white uppercase italic mb-2">
-                    {currentView === 'dashboard' ? 'Workspace' : 
-                     currentView === 'planner' ? 'Dynamic Planner' :
-                     currentView === 'timer' ? 'Focus Mode' :
-                     currentView === 'flashcards' ? 'Flashcard Decks' :
-                     currentView === 'match' ? 'Velocity Match' :
-                     currentView === 'leaderboard' ? 'Elite Leaderboard' :
-                     currentView === 'community' ? 'Academy Archives' :
-                     'Knowledge Lab'}
-                  </h2>
-                  <p className="text-stone-400 mt-1 max-w-lg font-bold text-sm">
-                    {currentView === 'dashboard' && "Prepare your knowledge. Build your future."}
-                    {currentView === 'planner' && "Strategize your goals. Sort by urgency and priority."}
-                    {currentView === 'timer' && "Enter focus mode. Block out distractions and master your time."}
-                    {currentView === 'flashcards' && "Active recall decks for rapid mastery."}
-                    {currentView === 'match' && "Speed is power. Match terms with their definitions."}
-                    {currentView === 'quiz' && "Test your knowledge with rigorous assessment."}
-                    {currentView === 'leaderboard' && "The highest-ranking academic heroes in the archives."}
-                    {currentView === 'community' && "Shared repository of community-driven academic curricula."}
+              <div className="mb-12 flex flex-col xl:flex-row xl:items-end justify-between gap-8">
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-4">
+                    <h2 className="text-5xl sm:text-7xl font-black tracking-[-0.04em] font-display text-white uppercase italic leading-[0.9] drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+                      {currentView === 'dashboard' ? 'Dashboard' : 
+                       currentView === 'planner' ? 'Planner' :
+                       currentView === 'timer' ? 'Focus Timer' :
+                       currentView === 'flashcards' ? 'Flashcards' :
+                       currentView === 'match' ? 'Match Game' :
+                       currentView === 'quiz' ? 'Quiz' :
+                       currentView === 'leaderboard' ? 'Leaderboard' :
+                       currentView === 'community' ? 'Community' :
+                       currentView === 'lessons' ? 'Learning Paths' :
+                       currentView === 'forge-library' ? 'Library' :
+                       currentView === 'feedback' ? 'Feedback' :
+                       'Engine'}
+                    </h2>
+                    {currentView !== 'study-guide' && <HelpButton view={currentView} className="bg-white/5" />}
+                  </div>                
+                  <p className="text-white/40 mt-6 max-w-2xl font-medium text-lg italic leading-relaxed border-l-2 border-white/5 pl-6">
+                    {currentView === 'dashboard' && "Overview of your progress and active learning activities."}
+                    {currentView === 'planner' && "Plan and organize your study tasks."}
+                    {currentView === 'timer' && "Use the timer to maintain focused study sessions."}
+                    {currentView === 'flashcards' && "Review and memorize concepts with flashcards."}
+                    {currentView === 'match' && "Test your recognition speed by matching terms."}
+                    {currentView === 'quiz' && "Test your knowledge with quizzes."}
+                    {currentView === 'leaderboard' && "See how you rank against other learners."}
+                    {currentView === 'community' && "Browse and copy shared study materials."}
+                    {currentView === 'feedback' && "Send us your thoughts and suggestions."}
                   </p>
                 </div>
 
                 {currentView === 'dashboard' && (
-                  <div className="flex items-center gap-2">
-                    <button 
+                  <div className="flex items-center gap-3">
+                    <motion.button 
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
                         onClick={() => {
                             setShowTutorial(true);
                             soundService.playClick();
                         }}
-                        className="p-3 bg-white/5 text-stone-500 rounded-2xl hover:text-white transition-colors border border-white/5"
-                        title="How to Use Study Forge"
+                        className="p-5 bg-white/5 hover:bg-white/10 text-white/40 rounded-3xl transition-colors border border-white/10 shadow-lg"
+                        title="Forge Protocol Documentation"
                     >
-                        <HelpCircle size={24} />
-                    </button>
-                    <button
+                        <HelpCircle size={28} />
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.05, y: -2 }}
+                      whileTap={{ scale: 0.98 }}
                       onClick={() => {
                         setIsForgeOpen(true);
                         soundService.playClick();
                       }}
-                      className="flex items-center gap-3 px-8 py-4 bg-white text-forge-dark rounded-2xl hover:scale-105 transition-all shadow-[0_0_30px_rgba(255,255,255,0.1)] font-display font-extrabold uppercase italic tracking-tighter"
+                      className="group flex items-center gap-4 px-10 py-5 bg-white text-forge-dark rounded-3xl shadow-[0_20px_50px_rgba(255,255,255,0.1)] font-display font-black uppercase italic tracking-tighter text-lg"
                     >
-                      <Sparkles size={20} className="text-forge-accent" />
-                      Lesson Generator
-                    </button>
+                      <Sparkles size={24} className="text-forge-accent group-hover:rotate-12 transition-transform" />
+                      Initialize Forge
+                    </motion.button>
                   </div>
                 )}
               </div>
 
               <Suspense fallback={
-                <div className="flex items-center justify-center py-20">
-                  <Loader2 size={40} className="animate-spin text-forge-accent" />
+                <div className="flex items-center justify-center py-40">
+                  <div className="relative">
+                    <div className="w-16 h-16 border-t-2 border-r-2 border-forge-accent rounded-full animate-spin" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-8 h-8 bg-forge-accent/20 rounded-full animate-pulse" />
+                    </div>
+                  </div>
                 </div>
               }>
                 {renderView()}

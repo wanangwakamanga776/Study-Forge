@@ -224,6 +224,35 @@ export const getAboutMe = async (): Promise<AboutMeData | null> => {
   }
 };
 
+export const getGlobalAnnouncement = async (): Promise<{ message: string; active: boolean } | null> => {
+  const docRef = doc(db, 'global', 'announcement');
+  try {
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return docSnap.data() as { message: string; active: boolean };
+    }
+    return null;
+  } catch (error) {
+    if ((error as FirestoreError).code === 'not-found') return null;
+    handleFirestoreError(error as FirestoreError, 'get', 'global/announcement');
+    return null;
+  }
+};
+
+export const updateGlobalAnnouncement = async (message: string, active: boolean) => {
+  const docRef = doc(db, 'global', 'announcement');
+  try {
+    await setDoc(docRef, {
+      message,
+      active,
+      updatedAt: serverTimestamp(),
+      updatedBy: auth.currentUser?.email || 'Admin'
+    });
+  } catch (error) {
+    handleFirestoreError(error as FirestoreError, 'write', 'global/announcement');
+  }
+};
+
 export const updateAboutMe = async (data: AboutMeData) => {
   const docRef = doc(db, 'global', 'aboutMe');
   try {
@@ -236,11 +265,10 @@ export const updateAboutMe = async (data: AboutMeData) => {
     handleFirestoreError(error as FirestoreError, 'write', 'global/aboutMe');
   }
 };
-
 // Private Content Sync
 export const syncUserCollection = <T>(
   userId: string, 
-  collectionName: 'decks' | 'quizzes' | 'tasks' | 'forgeCasts', 
+  collectionName: 'decks' | 'quizzes' | 'tasks' | 'forgeCasts' | 'lessons' | 'sessions', 
   callback: (data: T[]) => void
 ) => {
   const q = query(collection(db, 'users', userId, collectionName), orderBy('createdAt', 'desc'));
@@ -254,7 +282,7 @@ export const syncUserCollection = <T>(
 
 export const saveUserItem = async (
   userId: string, 
-  collectionName: 'decks' | 'quizzes' | 'tasks' | 'forgeCasts', 
+  collectionName: 'decks' | 'quizzes' | 'tasks' | 'forgeCasts' | 'lessons' | 'sessions', 
   item: any
 ) => {
   const docRef = doc(db, 'users', userId, collectionName, item.id);
@@ -271,7 +299,7 @@ export const saveUserItem = async (
 
 export const deleteUserItem = async (
   userId: string, 
-  collectionName: 'decks' | 'quizzes' | 'tasks' | 'forgeCasts', 
+  collectionName: 'decks' | 'quizzes' | 'tasks' | 'forgeCasts' | 'lessons' | 'sessions', 
   itemId: string
 ) => {
   const docRef = doc(db, 'users', userId, collectionName, itemId);
@@ -318,4 +346,72 @@ export const subscribeAboutMe = (callback: (data: AboutMeData | null) => void) =
     }
     handleFirestoreError(error, 'get', 'global/aboutMe');
   });
+};
+
+// Announcement & Feedback Systems
+
+export const publishAnnouncement = async (announcement: any) => {
+  const docRef = doc(db, 'announcements', announcement.id);
+  try {
+    await setDoc(docRef, {
+      ...announcement,
+      updatedAt: serverTimestamp(),
+      createdAt: announcement.createdAt || Date.now()
+    });
+  } catch (error) {
+    handleFirestoreError(error as FirestoreError, 'write', `announcements/${announcement.id}`);
+  }
+};
+
+export const subscribeAnnouncements = (callback: (data: any[]) => void) => {
+  const q = query(collection(db, 'announcements'), orderBy('createdAt', 'desc'));
+  return onSnapshot(q, (snapshot) => {
+    const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+    callback(items);
+  }, (error) => {
+    handleFirestoreError(error, 'list', 'announcements');
+  });
+};
+
+export const deleteAnnouncement = async (id: string) => {
+  const docRef = doc(db, 'announcements', id);
+  try {
+    const { deleteDoc } = await import('firebase/firestore');
+    await deleteDoc(docRef);
+  } catch (error) {
+    handleFirestoreError(error as FirestoreError, 'write', `announcements/${id}`);
+  }
+};
+
+export const submitFeedback = async (feedback: any) => {
+  const feedbackId = generateId();
+  const docRef = doc(db, 'feedback', feedbackId);
+  try {
+    await setDoc(docRef, {
+      ...feedback,
+      id: feedbackId,
+      createdAt: Date.now()
+    });
+  } catch (error) {
+    handleFirestoreError(error as FirestoreError, 'write', `feedback/${feedbackId}`);
+  }
+};
+
+export const subscribeFeedback = (callback: (data: any[]) => void) => {
+  const q = query(collection(db, 'feedback'), orderBy('createdAt', 'desc'));
+  return onSnapshot(q, (snapshot) => {
+    const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+    callback(items);
+  }, (error) => {
+    handleFirestoreError(error, 'list', 'feedback');
+  });
+};
+
+export const updateFeedbackStatus = async (id: string, status: 'pending' | 'resolved' | 'archived', isPinned: boolean = false) => {
+  const docRef = doc(db, 'feedback', id);
+  try {
+    await updateDoc(docRef, { status, isPinned });
+  } catch (error) {
+    handleFirestoreError(error as FirestoreError, 'update', `feedback/${id}`);
+  }
 };

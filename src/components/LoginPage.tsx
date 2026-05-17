@@ -171,7 +171,7 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
           <Flame size={48} className="text-forge-accent" />
         </div>
         <h1 className="text-6xl sm:text-7xl font-display font-black uppercase italic tracking-tighter text-white drop-shadow-[0_0_30px_rgba(251,146,60,0.4)]">
-          Study Forge <span className="text-[14px] bg-forge-accent text-forge-dark px-2 py-0.5 rounded-sm not-italic align-middle ml-2">BETA</span>
+          Study Forge <span className="text-[12px] bg-forge-accent text-stone-900 px-8 py-1 rounded-full font-black not-italic align-middle ml-3 tracking-widest shadow-[0_0_15px_rgba(251,146,60,0.5)]">BETA (UPDATE 2.0)</span>
         </h1>
         <p className="text-forge-accent/60 font-black uppercase tracking-[0.4em] text-[8px] mt-3">
           Deep Learning • Academic Excellence
@@ -249,7 +249,7 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-600 group-focus-within/input:text-forge-accent transition-colors" size={18} />
                   <input
                     type="email"
-                    placeholder="Email Address"
+                    placeholder="Email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -260,7 +260,7 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-600 group-focus-within/input:text-forge-accent transition-colors" size={18} />
                   <input
                     type="password"
-                    placeholder="Access Token"
+                    placeholder="Password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -298,7 +298,7 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
 
               <div className="pt-6 flex items-center gap-4">
                 <div className="flex-1 h-px bg-white/5" />
-                <span className="text-[9px] font-bold text-stone-600 uppercase tracking-[0.3em]">Or Master Access</span>
+                <span className="text-[9px] font-bold text-stone-600 uppercase tracking-[0.3em]">Or Sign In With</span>
                 <div className="flex-1 h-px bg-white/5" />
               </div>
 

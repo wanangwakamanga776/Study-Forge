@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Shield, Lock, Terminal, X, Zap, Star, Flame, Check, Edit3, MessageSquare, Image as ImageIcon, Save } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { motion } from 'motion/react';
+import { Shield, Lock, Terminal, X, Zap, Flame, Check, MessageSquare, Image as ImageIcon, Save, Megaphone, Trash2, Pin, User, Plus, LayoutDashboard, Archive, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { cn, generateId } from '../lib/utils';
 import { soundService } from '../services/soundService';
-import { subscribeAboutMe, updateAboutMe, AboutMeData } from '../services/dataService';
+import { subscribeAboutMe, updateAboutMe, AboutMeData, publishAnnouncement, subscribeAnnouncements, deleteAnnouncement, subscribeFeedback, updateFeedbackStatus, getGlobalAnnouncement, updateGlobalAnnouncement } from '../services/dataService';
+import { useAuthContext } from '../contexts/AuthContext';
+import { Announcement, Feedback } from '../types';
 
 interface AdminPanelProps {
   isOpen: boolean;
@@ -15,345 +17,245 @@ interface AdminPanelProps {
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ 
-  isOpen, 
-  onClose, 
-  onSetMaxLevel, 
-  onSetUnlimitedCurrency,
-  currentXp,
-  currentEmbers
+  isOpen, onClose, onSetMaxLevel, onSetUnlimitedCurrency, currentXp, currentEmbers
 }) => {
+  const { user } = useAuthContext();
   const [passcode, setPasscode] = useState('');
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [error, setError] = useState(false);
-  const [activeTab, setActiveTab] = useState<'cheats' | 'aboutme'>('cheats');
-
+  const [activeTab, setActiveTab] = useState<'cheats' | 'aboutme' | 'activist' | 'feedback' | 'announcement'>('cheats');
   const isMaxLevel = currentXp >= 1000000;
   const isUnlimitedEmbers = currentEmbers >= 1000000;
 
-  // About Me State
   const [aboutMeMessage, setAboutMeMessage] = useState('');
   const [aboutMeImages, setAboutMeImages] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Load About Me when unlocked
+  const [announcement, setAnnouncement] = useState({ message: '', active: false });
+  const [isSavingAnnouncement, setIsSavingAnnouncement] = useState(false);
+
   useEffect(() => {
     if (isUnlocked) {
-      const unsubscribe = subscribeAboutMe((data) => {
+      getGlobalAnnouncement().then(data => data && setAnnouncement(data));
+      const unsubAbout = subscribeAboutMe((data) => {
         if (data && !isSaving) {
           setAboutMeMessage(data.message);
           setAboutMeImages(data.images);
         }
       });
-      return () => unsubscribe();
+      const unsubAnnounce = subscribeAnnouncements((data) => setAnnouncements(data));
+      const unsubFeedback = subscribeFeedback((data) => setFeedbacks(data));
+      return () => { unsubAbout(); unsubAnnounce(); unsubFeedback(); };
     }
   }, [isUnlocked, isSaving]);
+
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [showCreator, setShowCreator] = useState(false);
+  const [newPost, setNewPost] = useState({ title: '', subheading: '', content: '', mediaUrl: '', category: 'Updates', isPinned: false });
+  const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
+  const [feedbackFilter, setFeedbackFilter] = useState<'all' | 'pending' | 'resolved' | 'archived'>('all');
 
   const handleSaveAboutMe = async () => {
     setIsSaving(true);
     soundService.playClick();
+    try { await updateAboutMe({ message: aboutMeMessage, images: aboutMeImages }); soundService.playSuccess(); } 
+    catch (e) { soundService.playError(); } finally { setIsSaving(false); }
+  };
+
+  const handleCreateAnnouncement = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPost.title || !newPost.content) return;
+    setIsSaving(true);
+    soundService.playClick();
     try {
-      await updateAboutMe({
-        message: aboutMeMessage,
-        images: aboutMeImages
-      });
+      await publishAnnouncement({ ...newPost, id: generateId(), createdAt: Date.now(), authorName: user?.displayName || 'Archivist', authorId: user?.uid || 'admin' });
       soundService.playSuccess();
-    } catch (e) {
-      soundService.playError();
-    } finally {
-      setIsSaving(false);
-    }
+      setNewPost({ title: '', subheading: '', content: '', mediaUrl: '', category: 'Updates', isPinned: false });
+      setShowCreator(false);
+    } catch (e) { soundService.playError(); } finally { setIsSaving(false); }
   };
 
-  const addImageUrl = () => {
-    const url = prompt('Enter Image URL:');
-    if (url) setAboutMeImages([...aboutMeImages, url]);
+  const handleSaveAnnouncement = async () => {
+    setIsSavingAnnouncement(true);
+    soundService.playClick();
+    try { await updateGlobalAnnouncement(announcement.message, announcement.active); soundService.playSuccess(); }
+    catch (e) { soundService.playError(); } finally { setIsSavingAnnouncement(false); }
   };
 
-  const removeImage = (idx: number) => {
-    setAboutMeImages(aboutMeImages.filter((_, i) => i !== idx));
-  };
-
-  // Final confirmation to prevent accidental cheat
   const handleUnlock = (e: React.FormEvent) => {
     e.preventDefault();
-    // The "password" for the code panel mentioned by user
-    if (passcode === 'StudyForgeAdmin') {
-      setIsUnlocked(true);
-      setError(false);
-      soundService.playSuccess();
-    } else {
-      setError(true);
-      soundService.playError();
-      setTimeout(() => setError(false), 500);
-    }
+    if (passcode === 'StudyForgeAdmin') { setIsUnlocked(true); setError(false); soundService.playSuccess(); } 
+    else { setError(true); soundService.playError(); setTimeout(() => setError(false), 500); }
   };
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
-      
-      <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        className="w-full max-w-md bg-forge-dark border border-white/10 rounded-[2.5rem] p-8 shadow-2xl relative z-10 overflow-hidden"
-      >
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-forge-accent via-red-500 to-forge-accent animate-pulse" />
-        
-        <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-3">
-                <div className="p-2 bg-forge-accent/20 text-forge-accent rounded-lg">
-                    <Shield size={20} />
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-xl" onClick={onClose} />
+      <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="w-full max-w-5xl h-[85vh] bg-forge-dark border border-white/10 rounded-[3rem] shadow-2xl relative z-10 overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="p-8 border-b border-white/5 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-forge-accent/20 text-forge-accent rounded-2xl flex items-center justify-center shadow-lg">
+                    <Shield size={24} />
                 </div>
-                <h2 className="text-xl font-display font-black uppercase italic tracking-tighter text-white">Security Override</h2>
+                <div>
+                   <h2 className="text-2xl font-display font-black uppercase italic tracking-tighter text-white">Activist Control</h2>
+                   <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20">Forge Protocol Authority Level 4</p>
+                </div>
             </div>
-            <button onClick={onClose} className="text-stone-500 hover:text-white transition-colors">
-                <X size={20} />
+            <button onClick={onClose} className="p-3 bg-white/5 rounded-2xl text-stone-500 hover:text-white transition-all hover:bg-white/10">
+                <X size={24} />
             </button>
         </div>
 
         {!isUnlocked ? (
-          <form onSubmit={handleUnlock} className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-500 ml-1">Access Protocol</label>
-              <div className="relative group">
-                <Lock className={cn(
-                  "absolute left-4 top-1/2 -translate-y-1/2 transition-colors",
-                  error ? "text-red-500" : "text-stone-600 group-focus-within:text-forge-accent"
-                )} size={18} />
-                <input
-                  autoFocus
-                  type="password"
-                  placeholder="Enter Root Passcode"
-                  value={passcode}
-                  onChange={(e) => setPasscode(e.target.value)}
-                  className={cn(
-                    "w-full h-14 bg-white/[0.03] border rounded-2xl pl-12 pr-4 text-white font-bold outline-none transition-all",
-                    error ? "border-red-500 ring-4 ring-red-500/10" : "border-white/5 focus:border-forge-accent focus:ring-4 focus:ring-forge-accent/10"
-                  )}
-                />
+          <div className="flex-1 flex items-center justify-center p-12">
+            <form onSubmit={handleUnlock} className="w-full max-w-md space-y-8">
+              <div className="text-center space-y-2 mb-10">
+                 <Lock size={48} className="mx-auto text-stone-700 mb-4" />
+                 <h3 className="text-xl font-display font-black uppercase italic text-white">Identity Verification Required</h3>
+                 <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">Enter the Master Root Passcode</p>
               </div>
-            </div>
-            
-            <button
-              type="submit"
-              className="w-full py-4 bg-forge-accent text-forge-dark rounded-xl font-black uppercase tracking-widest text-[10px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-            >
-              Verify Identity
-            </button>
-          </form>
+              <div className="space-y-4">
+                <div className="relative group">
+                  <Terminal className={cn(
+                    "absolute left-5 top-1/2 -translate-y-1/2 transition-colors",
+                    error ? "text-red-500" : "text-stone-600 group-focus-within:text-forge-accent"
+                  )} size={20} />
+                  <input
+                    autoFocus
+                    type="password"
+                    placeholder="Enter Root Passcode"
+                    value={passcode}
+                    onChange={(e) => setPasscode(e.target.value)}
+                    className={cn(
+                      "w-full h-16 bg-white/[0.03] border rounded-[1.5rem] pl-14 pr-6 text-white text-lg font-bold outline-none transition-all",
+                      error ? "border-red-500 ring-4 ring-red-500/10" : "border-white/5 focus:border-forge-accent focus:ring-4 focus:ring-forge-accent/10"
+                    )}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full py-5 bg-white text-forge-dark rounded-2xl font-display font-black uppercase italic tracking-tighter text-lg hover:shadow-[0_10px_30px_rgba(255,255,255,0.1)] transition-all"
+                >
+                  Verify Access
+                </button>
+              </div>
+            </form>
+          </div>
         ) : (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-             <div className="flex bg-white/[0.03] p-1 rounded-2xl border border-white/5">
-                <button 
-                  onClick={() => setActiveTab('cheats')}
-                  className={cn(
-                    "flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2",
-                    activeTab === 'cheats' ? "bg-white/10 text-white shadow-lg" : "text-stone-500 hover:text-stone-300"
-                  )}
-                >
-                  <Terminal size={14} />
-                  Overrides
-                </button>
-                <button 
-                  onClick={() => setActiveTab('aboutme')}
-                  className={cn(
-                    "flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2",
-                    activeTab === 'aboutme' ? "bg-white/10 text-white shadow-lg" : "text-stone-500 hover:text-stone-300"
-                  )}
-                >
-                  <Edit3 size={14} />
-                  About Me
-                </button>
+          <div className="flex-1 flex flex-col min-h-0">
+             {/* Tabs */}
+             <div className="flex gap-4 p-8 overflow-x-auto no-scrollbar shrink-0">
+                {[
+                  { id: 'cheats', label: 'Cheats', icon: <Terminal size={18} /> },
+                  { id: 'activist', label: 'Activist Desk', icon: <Megaphone size={18} /> },
+                  { id: 'feedback', label: 'User Feedback', icon: <MessageSquare size={18} /> },
+                  { id: 'aboutme', label: 'About Me', icon: <User size={18} /> },
+                  { id: 'announcement', label: 'Announcement', icon: <AlertTriangle size={18} /> },
+                ].map((tab) => (
+                  <button 
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={cn(
+                      "px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 shrink-0",
+                      activeTab === tab.id ? "bg-forge-accent text-forge-dark shadow-xl" : "bg-white/5 text-stone-500 hover:text-white hover:bg-white/10"
+                    )}
+                  >
+                    {tab.icon}
+                    {tab.label}
+                  </button>
+                ))}
              </div>
 
-             {activeTab === 'cheats' ? (
-              <div className="space-y-4">
-                  <div className="p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-3xl text-center space-y-2 mb-4">
-                      <div className="w-12 h-12 bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-2">
-                          <Terminal size={24} />
-                      </div>
-                      <h3 className="text-emerald-500 font-black uppercase italic tracking-tighter text-lg">System Access Granted</h3>
-                      <p className="text-[9px] text-emerald-500/60 font-bold uppercase tracking-widest">Master Authority Level Active</p>
-                  </div>
-                  {/* Max Level Switch */}
-                  <button
-                    onClick={() => onSetMaxLevel(!isMaxLevel)}
-                    className={cn(
-                        "w-full p-5 rounded-[2rem] border transition-all flex items-center gap-4",
-                        isMaxLevel 
-                            ? "bg-forge-accent text-forge-dark border-white/10" 
-                            : "bg-white/[0.03] border-white/5 hover:bg-white/5"
-                    )}
-                  >
-                    <div className={cn(
-                        "p-3 rounded-2xl",
-                        isMaxLevel ? "bg-forge-dark/20" : "bg-forge-accent/10 text-forge-accent"
-                    )}>
-                        <Zap size={22} />
-                    </div>
-                    <div className="text-left flex-1">
-                        <p className={cn("text-xs font-black uppercase italic tracking-tighter", isMaxLevel ? "text-forge-dark" : "text-white")}>
-                            Forge Transcendence
-                        </p>
-                        <p className={cn("text-[8px] font-bold uppercase tracking-widest", isMaxLevel ? "text-forge-dark/60" : "text-stone-500")}>
-                            Max Level Protocol
-                        </p>
-                    </div>
-                    <div className={cn(
-                        "w-10 h-6 rounded-full relative transition-colors duration-300",
-                        isMaxLevel ? "bg-forge-dark/40" : "bg-white/10"
-                    )}>
-                        <motion.div 
-                            animate={{ x: isMaxLevel ? 18 : 2 }}
-                            className={cn(
-                                "absolute top-1 left-1 w-4 h-4 rounded-full",
-                                isMaxLevel ? "bg-forge-dark" : "bg-stone-600"
-                            )}
-                        />
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => onSetUnlimitedCurrency(!isUnlimitedEmbers)}
-                    className={cn(
-                        "w-full p-5 rounded-[2rem] border transition-all flex items-center gap-4",
-                        isUnlimitedEmbers 
-                            ? "bg-orange-500 text-white border-white/10" 
-                            : "bg-white/[0.03] border-white/5 hover:bg-white/5"
-                    )}
-                  >
-                    <div className={cn(
-                        "p-3 rounded-2xl",
-                        isUnlimitedEmbers ? "bg-white/20 text-white" : "bg-orange-500/10 text-orange-500"
-                    )}>
-                        <Flame size={22} />
-                    </div>
-                    <div className="text-left flex-1">
-                        <p className={cn("text-xs font-black uppercase italic tracking-tighter", isUnlimitedEmbers ? "text-white" : "text-white")}>
-                            Ember Infusion
-                        </p>
-                        <p className={cn("text-[8px] font-bold uppercase tracking-widest", isUnlimitedEmbers ? "text-white/60" : "text-stone-500")}>
-                            Unlimited Currency
-                        </p>
-                    </div>
-                    <div className={cn(
-                        "w-10 h-6 rounded-full relative transition-colors duration-300",
-                        isUnlimitedEmbers ? "bg-white/30" : "bg-white/10"
-                    )}>
-                        <motion.div 
-                            animate={{ x: isUnlimitedEmbers ? 18 : 2 }}
-                            className={cn(
-                                "absolute top-1 left-1 w-4 h-4 rounded-full",
-                                isUnlimitedEmbers ? "bg-white" : "bg-stone-600"
-                            )}
-                        />
-                    </div>
-                  </button>
-
-                  <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
-                      <div className="flex items-center gap-3 text-[9px] font-bold text-stone-600 uppercase tracking-widest">
-                          <div className="w-1.5 h-1.5 bg-forge-accent rounded-full animate-ping" />
-                          Real-time Metrics Tracking: Enabled
-                      </div>
-                  </div>
-              </div>
-             ) : (
-               <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between ml-1 text-stone-500">
-                      <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em]">
-                        <MessageSquare size={12} />
-                        Global Broadcast
-                      </label>
-                      <button 
-                        onClick={() => setAboutMeMessage(`Hi, I’m Wana, I’m a 16 year-old student currently in 10th-grade. While studying for tests I realized that the tools we use to study are either too expensive or just don't work the way we actually learn.
-
-The Mission: Why Study Forge?
-
-I built Study Forge because I was tired of hitting paywalls for basic study features. I wanted to create a 'Student OS' (operating system) that focuses on actual understanding, not just memorization.
-
-Using Google AI Studio, I developed the Academic Assistant to act as a tutor guiding you through concepts in Chemistry or Geometry rather than just handing over the answers. My goal is to help us all maintain high grades and understanding essential concepts while actually having time for a life outside of school.
-
-Please keep in mind that Study Forge is currently in its Beta stage. As a student developer, I’m constantly shipping updates, fixing bugs, and adding new features like the Embers Shop and Community Vault.
-
-By using the app now, you are a "Founding Member." Your feedback directly shapes how this tool grows. If you find a bug or have a feature request, let me know—I’m building this for us.`)}
-                        className="text-[8px] font-black uppercase text-forge-accent hover:underline"
+             <div className="flex-1 overflow-y-auto p-8 pt-0 metallic-scrollbar">
+                {activeTab === 'cheats' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-4">
+                     <button
+                        onClick={() => onSetMaxLevel(!isMaxLevel)}
+                        className={cn(
+                            "group p-10 rounded-[3rem] border transition-all text-left relative overflow-hidden",
+                            isMaxLevel ? "bg-forge-accent text-forge-dark border-transparent" : "bg-white/5 border-white/10 hover:border-white/20"
+                        )}
                       >
-                        Load Official Mission
-                      </button>
-                    </div>
-                    <textarea 
-                      value={aboutMeMessage}
-                      onChange={(e) => setAboutMeMessage(e.target.value)}
-                      placeholder="Type your global message..."
-                      className="w-full h-48 bg-white/[0.03] border border-white/5 rounded-2xl p-4 text-white text-sm font-medium outline-none focus:border-white/20 transition-all resize-none"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between ml-1">
-                      <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-stone-500">
-                        <ImageIcon size={12} />
-                        Visual Assets
-                      </label>
-                      <button 
-                        onClick={addImageUrl}
-                        className="text-[9px] font-black uppercase text-forge-accent hover:underline"
-                      >
-                        Add URL
-                      </button>
-                    </div>
-                    
-                    <div className="flex flex-wrap gap-3">
-                      <AnimatePresence>
-                        {aboutMeImages.map((url, idx) => (
-                          <motion.div 
-                            key={idx}
-                            initial={{ scale: 0, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0, opacity: 0 }}
-                            className="relative group w-16 h-16 rounded-xl overflow-hidden border border-white/10"
-                          >
-                            <img src={url} alt="" className="w-full h-full object-cover" />
-                            <button 
-                              onClick={() => removeImage(idx)}
-                              className="absolute inset-0 bg-red-500/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <X size={14} />
-                            </button>
-                          </motion.div>
-                        ))}
-                      </AnimatePresence>
-                      {aboutMeImages.length === 0 && (
-                        <div className="w-full py-8 border border-dashed border-white/5 rounded-2xl flex flex-col items-center justify-center text-stone-600">
-                           <ImageIcon size={24} className="mb-2 opacity-20" />
-                           <p className="text-[9px] font-bold uppercase tracking-widest">No images linked</p>
+                        <div className="flex items-center justify-between mb-8">
+                           <div className={cn("p-4 rounded-2xl", isMaxLevel ? "bg-forge-dark/20" : "bg-white/5 text-forge-accent")}>
+                              <Zap size={32} />
+                           </div>
+                           <div className={cn("px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest", isMaxLevel ? "bg-forge-dark/10" : "bg-white/5")}>
+                              {isMaxLevel ? 'PROTOCOL ACTIVE' : 'LOCKED'}
+                           </div>
                         </div>
-                      )}
-                    </div>
-                  </div>
+                        <h4 className="text-2xl font-display font-black uppercase italic tracking-tighter mb-2">Max Synergy</h4>
+                        <p className={cn("text-xs font-bold uppercase tracking-widest opacity-60", isMaxLevel ? "" : "text-stone-500")}>Instant Ascension to Level 100</p>
+                      </button>
 
-                  <button
-                    disabled={isSaving}
-                    onClick={handleSaveAboutMe}
-                    className="w-full py-4 bg-white text-forge-dark rounded-xl font-black uppercase tracking-widest text-[10px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    {isSaving ? (
-                      <div className="w-3 h-3 border-2 border-forge-dark/30 border-t-forge-dark rounded-full animate-spin" />
-                    ) : (
-                      <Save size={14} />
-                    )}
-                    Deploy Changes
-                  </button>
-               </div>
-             )}
-             
-             <p className="text-center text-[8px] text-stone-700 font-bold uppercase tracking-[0.3em]">
-                 Unauthorized access to academy archives is logged.
-             </p>
+                      <button
+                        onClick={() => onSetUnlimitedCurrency(!isUnlimitedEmbers)}
+                        className={cn(
+                            "group p-10 rounded-[3rem] border transition-all text-left relative overflow-hidden",
+                            isUnlimitedEmbers ? "bg-orange-500 text-white border-transparent" : "bg-white/5 border-white/10 hover:border-white/20"
+                        )}
+                      >
+                        <div className="flex items-center justify-between mb-8">
+                           <div className={cn("p-4 rounded-2xl", isUnlimitedEmbers ? "bg-white/20" : "bg-white/5 text-orange-500")}>
+                              <Flame size={32} />
+                           </div>
+                           <div className={cn("px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest", isUnlimitedEmbers ? "bg-white/10" : "bg-white/5")}>
+                              {isUnlimitedEmbers ? 'SYNERGY HIGH' : 'STABLE'}
+                           </div>
+                        </div>
+                        <h4 className="text-2xl font-display font-black uppercase italic tracking-tighter mb-2">Infinite Embers</h4>
+                        <p className={cn("text-xs font-bold uppercase tracking-widest opacity-60", isUnlimitedEmbers ? "" : "text-stone-500")}>Unlimited Shop Purchasing Power</p>
+                      </button>
+                  </div>
+                )}
+                {activeTab === 'feedback' && (
+                  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                    {feedbacks.map(f => (
+                      <div key={f.id} className="p-6 bg-white/5 border border-white/10 rounded-2xl">
+                        <div className="flex justify-between items-center mb-4">
+                          <h4 className="text-white font-bold">{f.title}</h4>
+                          <span className="text-xs text-stone-500">{new Date(f.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <p className="text-stone-300 text-sm mb-4">{f.message}</p>
+                        <div className="flex gap-2">
+                           <button onClick={() => updateFeedbackStatus(f.id, 'resolved')} className="px-4 py-2 bg-emerald-500/20 text-emerald-500 rounded-lg text-xs font-bold uppercase tracking-widest">Mark Resolved</button>
+                           <button onClick={() => updateFeedbackStatus(f.id, 'archived')} className="px-4 py-2 bg-stone-500/20 text-stone-500 rounded-lg text-xs font-bold uppercase tracking-widest">Archive</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {activeTab === 'announcement' && (
+                  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                      <label className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20">Global Announcement</label>
+                      <textarea 
+                          rows={4}
+                          value={announcement.message}
+                          onChange={(e) => setAnnouncement({...announcement, message: e.target.value})}
+                          className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-medium outline-none focus:border-forge-accent/50 transition-all"
+                      />
+                      <div className="flex items-center justify-between">
+                          <button 
+                              onClick={() => setAnnouncement({...announcement, active: !announcement.active})}
+                              className={cn("px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest", announcement.active ? "bg-emerald-500 text-white" : "bg-white/5 text-stone-500")}
+                          >
+                              {announcement.active ? 'Active' : 'Inactive'}
+                          </button>
+                          <button
+                              onClick={handleSaveAnnouncement}
+                              disabled={isSavingAnnouncement}
+                              className="px-8 py-3 bg-white text-forge-dark rounded-xl font-bold uppercase tracking-widest hover:scale-105 transition-all"
+                          >
+                              {isSavingAnnouncement ? 'Saving...' : 'Save Announcement'}
+                          </button>
+                      </div>
+                  </div>
+                )}
+             </div>
           </div>
         )}
       </motion.div>
