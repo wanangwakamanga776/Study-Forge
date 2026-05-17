@@ -93,6 +93,11 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({
       return;
     }
 
+    if (pastedText.trim().length < 20) {
+      setError('Please provide detailed instructions (at least 20 characters) for how to process the material.');
+      return;
+    }
+
     if (isLimitReached()) {
       setIsOpen(false);
       onOpenPremium();
@@ -422,6 +427,14 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({
                     )}
 
                     <div className="relative group bg-white/[0.03] border border-white/10 rounded-[2rem] overflow-hidden focus-within:border-white/20 transition-all shadow-inner flex flex-col">
+                      <div className="px-8 pt-6 flex justify-between items-center text-[10px] font-bold uppercase tracking-widest">
+                        <span className={cn(pastedText.trim().length < 20 ? "text-red-500" : "text-emerald-500")}>
+                          {pastedText.trim().length} / 20 Characters
+                        </span>
+                        {pastedText.trim().length < 20 && (
+                          <span className="text-red-500">At least 20 characters required</span>
+                        )}
+                      </div>
                       <textarea
                         placeholder="What do you want to learn? Paste material or give instructions (e.g., 'Make 15 hard flashcards about Cellular Respiration' or 'Generate a quiz from this file'...)"
                         value={pastedText}
@@ -487,7 +500,7 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({
                       )}
 
                       <button
-                        disabled={isGenerating || (!pastedText.trim() && !selectedFile && !youtubeUrl.trim())}
+                        disabled={isGenerating || pastedText.trim().length < 20}
                         onClick={generateLessonMaterial}
                         className="w-full py-7 bg-white text-forge-dark rounded-[2rem] hover:scale-[1.02] active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed transition-all font-display font-black uppercase italic tracking-tighter text-3xl flex items-center justify-center gap-4 shadow-[0_0_50px_rgba(255,255,255,0.15)] group"
                       >

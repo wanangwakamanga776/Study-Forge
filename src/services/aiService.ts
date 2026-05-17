@@ -1198,116 +1198,129 @@ TARGET CARD COUNT: ${quantity} (MANDATORY)
 
 Execute the density audit first, then generate exactly the target count. Priority is exhaustive coverage.`;
 
-    try {
-      const resp = await ai.models.generateContent({
-        model: preferredModel,
-        contents: `INPUT PAYLOAD: ${JSON.stringify({ ...inputPayload, audit_data: auditData })}\n\nCONTENT: ${text}`,
-        config: {
-          systemInstruction: materialInstruction,
-          responseMimeType: "application/json",
-          maxOutputTokens: 8192,
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              generation_audit: { 
-                type: Type.OBJECT,
-                properties: {
-                  word_count_processed: { type: Type.NUMBER },
-                  definition_count: { type: Type.NUMBER },
-                  mechanism_count: { type: Type.NUMBER },
-                  cause_effect_count: { type: Type.NUMBER },
-                  comparison_count: { type: Type.NUMBER },
-                  formula_count: { type: Type.NUMBER },
-                  sequence_count: { type: Type.NUMBER },
-                  example_count: { type: Type.NUMBER },
-                  application_count: { type: Type.NUMBER },
-                  raw_card_potential: { type: Type.NUMBER },
-                  target_card_count: { type: Type.NUMBER },
-                  target_derivation: { type: Type.STRING },
-                  batch_strategy: { type: Type.STRING },
-                  mode_applied: { type: Type.STRING },
-                  concepts_coverage_plan: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  self_verification_passed: { type: Type.BOOLEAN },
-                  gap_check_result: { type: Type.STRING }
-                },
-                required: ["word_count_processed", "raw_card_potential", "target_card_count", "self_verification_passed"]
-              },
-              memory_layer: {
-                type: Type.OBJECT,
-                properties: {
-                  flashcard_deck: {
-                    type: Type.ARRAY,
-                    items: {
-                      type: Type.OBJECT,
-                      properties: {
-                        card_id: { type: Type.STRING },
-                        front: { type: Type.STRING },
-                        back: { type: Type.STRING },
-                        explanation: { type: Type.STRING },
-                        card_type: { type: Type.STRING },
-                        difficulty: { type: Type.STRING },
-                        tier: { type: Type.NUMBER },
-                        topic_tag: { type: Type.STRING },
-                        memory_hook: { type: Type.STRING },
-                        hint: { type: Type.STRING },
-                        common_wrong_answer: { type: Type.STRING },
-                        why_wrong_answer_is_wrong: { type: Type.STRING },
-                        sm2_initial_ease_factor: { type: Type.NUMBER },
-                        sm2_initial_interval_days: { type: Type.NUMBER }
-                      },
-                      required: ["card_id", "front", "back", "explanation", "card_type", "difficulty", "tier", "topic_tag", "memory_hook", "hint", "sm2_initial_ease_factor", "sm2_initial_interval_days"]
-                    }
+      let resp;
+      try {
+        resp = await ai.models.generateContent({
+          model: preferredModel,
+          contents: `INPUT PAYLOAD: ${JSON.stringify({ ...inputPayload, audit_data: auditData })}\n\nCONTENT: ${text}`,
+          config: {
+            systemInstruction: materialInstruction,
+            responseMimeType: "application/json",
+            maxOutputTokens: 8192,
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                generation_audit: { 
+                  type: Type.OBJECT,
+                  properties: {
+                    word_count_processed: { type: Type.NUMBER },
+                    definition_count: { type: Type.NUMBER },
+                    mechanism_count: { type: Type.NUMBER },
+                    cause_effect_count: { type: Type.NUMBER },
+                    comparison_count: { type: Type.NUMBER },
+                    formula_count: { type: Type.NUMBER },
+                    sequence_count: { type: Type.NUMBER },
+                    example_count: { type: Type.NUMBER },
+                    application_count: { type: Type.NUMBER },
+                    raw_card_potential: { type: Type.NUMBER },
+                    target_card_count: { type: Type.NUMBER },
+                    target_derivation: { type: Type.STRING },
+                    batch_strategy: { type: Type.STRING },
+                    mode_applied: { type: Type.STRING },
+                    concepts_coverage_plan: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    self_verification_passed: { type: Type.BOOLEAN },
+                    gap_check_result: { type: Type.STRING }
                   },
-                  total_cards: { type: Type.NUMBER }
+                  required: ["word_count_processed", "raw_card_potential", "target_card_count", "self_verification_passed"]
                 },
-                required: ["flashcard_deck"]
-              },
-              application_layer: {
-                type: Type.OBJECT,
-                properties: {
-                  exam_questions: {
-                    type: Type.ARRAY,
-                    items: {
-                      type: Type.OBJECT,
-                      properties: {
-                        question_id: { type: Type.STRING },
-                        question: { type: Type.STRING },
-                        type: { type: Type.STRING },
-                        marks: { type: Type.NUMBER },
-                        difficulty: { type: Type.STRING },
-                        topic_tag: { type: Type.STRING },
-                        correct_answer: { type: Type.STRING },
-                        options: { type: Type.ARRAY, items: { type: Type.STRING } },
-                        mark_scheme: { type: Type.STRING }
+                memory_layer: {
+                  type: Type.OBJECT,
+                  properties: {
+                    flashcard_deck: {
+                      type: Type.ARRAY,
+                      items: {
+                        type: Type.OBJECT,
+                        properties: {
+                          card_id: { type: Type.STRING },
+                          front: { type: Type.STRING },
+                          back: { type: Type.STRING },
+                          explanation: { type: Type.STRING },
+                          card_type: { type: Type.STRING },
+                          difficulty: { type: Type.STRING },
+                          tier: { type: Type.NUMBER },
+                          topic_tag: { type: Type.STRING },
+                          memory_hook: { type: Type.STRING },
+                          hint: { type: Type.STRING },
+                          common_wrong_answer: { type: Type.STRING },
+                          why_wrong_answer_is_wrong: { type: Type.STRING },
+                          sm2_initial_ease_factor: { type: Type.NUMBER },
+                          sm2_initial_interval_days: { type: Type.NUMBER }
+                        },
+                        required: ["card_id", "front", "back", "explanation", "card_type", "difficulty", "tier", "topic_tag", "memory_hook", "hint", "sm2_initial_ease_factor", "sm2_initial_interval_days"]
+                      }
+                    },
+                    total_cards: { type: Type.NUMBER }
+                  },
+                  required: ["flashcard_deck"]
+                },
+                application_layer: {
+                  type: Type.OBJECT,
+                  properties: {
+                    exam_questions: {
+                      type: Type.ARRAY,
+                      items: {
+                        type: Type.OBJECT,
+                        properties: {
+                          question_id: { type: Type.STRING },
+                          question: { type: Type.STRING },
+                          type: { type: Type.STRING },
+                          marks: { type: Type.NUMBER },
+                          difficulty: { type: Type.STRING },
+                          topic_tag: { type: Type.STRING },
+                          correct_answer: { type: Type.STRING },
+                          options: { type: Type.ARRAY, items: { type: Type.STRING } },
+                          mark_scheme: { type: Type.STRING }
+                        }
                       }
                     }
                   }
+                },
+                generation_summary: { 
+                  type: Type.OBJECT,
+                  properties: {
+                    total_flashcards_generated: { type: Type.NUMBER },
+                    total_quiz_questions_generated: { type: Type.NUMBER },
+                    target_was_met: { type: Type.BOOLEAN },
+                    shortfall: { type: Type.NUMBER },
+                    shortfall_reason: { type: Type.STRING },
+                    variant_cards_generated: { type: Type.NUMBER }
+                  },
+                  required: ["total_flashcards_generated", "target_was_met"]
                 }
               },
-              generation_summary: { 
-                type: Type.OBJECT,
-                properties: {
-                  total_flashcards_generated: { type: Type.NUMBER },
-                  total_quiz_questions_generated: { type: Type.NUMBER },
-                  target_was_met: { type: Type.BOOLEAN },
-                  shortfall: { type: Type.NUMBER },
-                  shortfall_reason: { type: Type.STRING },
-                  variant_cards_generated: { type: Type.NUMBER }
-                },
-                required: ["total_flashcards_generated", "target_was_met"]
-              }
-            },
-            required: ["generation_audit", "memory_layer", "generation_summary"]
+              required: ["generation_audit", "memory_layer", "generation_summary"]
+            }
           }
-        }
-      });
+        });
 
-      const data = JSON.parse(resp.text || '{}');
-      return data;
-    } catch (err) {
-      console.error("Exhaustive generation failed:", err);
-      return { memory_layer: { flashcard_deck: [] }, application_layer: { exam_questions: [] } };
-    }
+        // Robust cleaning before parsing.
+        const rawText = resp.text || '{}';
+        const cleanedText = rawText
+          .replace(/```json/g, '')
+          .replace(/```/g, '')
+          .replace(/[\u0000-\u0019]+/g, "") // Remove control characters
+          .trim();
+          
+        const data = JSON.parse(cleanedText);
+        return data;
+      } catch (err) {
+        console.error("Exhaustive generation failed:", err);
+        // Attempt to salvage partially parsable JSON if possible
+        if (resp && resp.text) {
+          console.error("Raw AI response text:", resp.text);
+        }
+        return { memory_layer: { flashcard_deck: [] }, application_layer: { exam_questions: [] } };
+      }
   };
 
   try {

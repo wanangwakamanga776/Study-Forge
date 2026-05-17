@@ -139,12 +139,15 @@ function AppContent() {
     }
   }, [user]);
 
+  const [isAdminApplied, setIsAdminApplied] = useState(false);
+
   // Apply admin privileges when status is active (handles both real user and guest admin)
   useEffect(() => {
-    if (isAdmin && state.stats.embers < 500000) {
+    if (isAdmin && state.stats.embers < 500000 && !isAdminApplied) {
       setAdminMaxEverything();
+      setIsAdminApplied(true);
     }
-  }, [isAdmin, state.stats.embers, setAdminMaxEverything]);
+  }, [isAdmin, state.stats.embers, setAdminMaxEverything, isAdminApplied]);
 
   // Auto-reset visuals when logged out and on home screen (LoginPage)
   useEffect(() => {
