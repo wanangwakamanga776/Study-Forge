@@ -130,7 +130,7 @@ class ImageQueue {
       console.log(`AI Request Sent - Generating image (Queued): ${prompt.substring(0, 50)}...`);
       
       const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash-exp", // Updated flash model
+        model: "gemini-1.5-flash",
         contents: `Create a high-quality educational visualization for: ${prompt}. The image should be clear, detailed, and pedagogically useful.`,
         config: {
           imageConfig: {
@@ -167,7 +167,7 @@ class ImageQueue {
 const imageQueue = new ImageQueue();
 
 /**
- * Generates an image using gemini-2.5-flash-image based on a prompt.
+ * Generates an image using gemini-1.5-flash based on a prompt.
  * Uses a singleton queue to manage API quota and prevent 429s.
  */
 export async function generateImage(prompt: string): Promise<string | null> {
@@ -200,7 +200,7 @@ export async function generateForgeCast(
     ${text}`;
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
+    model: "gemini-1.5-flash",
     contents: prompt,
     config: {
       systemInstruction: `You are the Lead Pedagogical Architect and "Greatest Teacher" for Study Forge.
@@ -296,7 +296,7 @@ export async function generateForgeCastFromChat(
   console.log(`AI Request Sent - Generating ForgeCast blueprint from chat...`);
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
+    model: "gemini-1.5-flash",
     contents: `User Input: ${input}\n${fileContent ? `File Content: ${fileContent}` : ''}`,
     config: {
       systemInstruction: `You are the Lead Pedagogical Architect and "Greatest Teacher". Follow Precision Educator protocols:
@@ -534,7 +534,7 @@ ${fileContent ? `Additional Context from files: ${fileContent}` : ''}`;
 
     const ai = getAI();
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-1.5-flash",
       contents: contents,
       config: {
         systemInstruction: systemInstruction
@@ -575,7 +575,7 @@ Text to analyze:
 ${text}`;
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
+    model: "gemini-1.5-flash",
     contents: prompt,
     config: {
       systemInstruction: `You are the Lead Pedagogical Architect. Your goal is to move users to mastery.
@@ -1100,7 +1100,7 @@ export async function generateStudyMaterial(
     const effectiveYoutubeUrl = isAdmin ? youtubeUrl : undefined;
     try {
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-1.5-flash",
         contents: `INPUT PAYLOAD: ${JSON.stringify(inputPayload)}\n\nUSER INSTRUCTIONS: ${instructions}\nWORD_COUNT: ${wordCount}`,
         config: {
           tools: effectiveYoutubeUrl ? [{ googleSearch: {} }] : undefined,
@@ -1187,16 +1187,17 @@ export async function generateStudyMaterial(
     console.log(`AI Request Sent - Exhaustive Material Extraction for ${title}...`);
     
     // Determine target model
-    const preferredModel = wordCount > 2000 ? "gemini-2.5-pro" : "gemini-2.5-flash"; 
-    // AI Studio uses gemini-2.5-flash as the top model, but if user suggested 1.5-pro for long content, I should respect that if I have it. 
-    // In this env gemini-2.5-flash is the standard top tier model.
-
+    const preferredModel = "gemini-1.5-flash"; // Standardized to flash for reliability and quota
+    
+    // Increased maxOutputTokens and added better instructions for the exhaustive engine
     const materialInstruction = `${STUDY_FORGE_GENERATOR_PROMPT}
 
 USER INSTRUCTIONS: ${instructions}
 TARGET CARD COUNT: ${quantity} (MANDATORY)
 
-Execute the density audit first, then generate exactly the target count. Priority is exhaustive coverage.`;
+Execute the density audit first, then generate exactly the target count. Priority is exhaustive coverage.
+IMPORTANT: ALWAYS return a VALID JSON object. If you are running out of tokens, shorten the explanations but DO NOT truncate the JSON structure.
+DO NOT use code blocks like \`\`\`json. Just return the raw JSON object.`;
 
       let resp;
       try {
@@ -1206,7 +1207,7 @@ Execute the density audit first, then generate exactly the target count. Priorit
           config: {
             systemInstruction: materialInstruction,
             responseMimeType: "application/json",
-            maxOutputTokens: 8192,
+            maxOutputTokens: 8192, // 8k is usually the limit for Flash before it starts truncating or getting flaky
             responseSchema: {
               type: Type.OBJECT,
               properties: {
@@ -1304,15 +1305,41 @@ Execute the density audit first, then generate exactly the target count. Priorit
         });
 
         // Robust cleaning before parsing.
-        const rawText = resp.text || '{}';
+        let rawText = resp.text || '{}';
+        
+        // Handle potential truncation by attempting to fix the JSON if it looks cut off
+        if (!rawText.trim().endsWith('}')) {
+          console.warn("JSON response appears truncated, attempting to close blocks...");
+          // Simple heuristic to close a few common blocks if they are missing
+          const openBraces = (rawText.match(/\{/g) || []).length;
+          const closeBraces = (rawText.match(/\}/g) || []).length;
+          const openBrackets = (rawText.match(/\[/g) || []).length;
+          const closeBrackets = (rawText.match(/\]/g) || []).length;
+          
+          let suffix = '';
+          for (let i = 0; i < openBrackets - closeBrackets; i++) suffix += ']';
+          for (let i = 0; i < openBraces - closeBraces; i++) suffix += '}';
+          rawText += suffix;
+        }
+
         const cleanedText = rawText
           .replace(/```json/g, '')
           .replace(/```/g, '')
-          .replace(/[\u0000-\u0019]+/g, "") // Remove control characters
+          .replace(/[\u0000-\u0019]+/g, " ") // Replace control characters with spaces instead of removing to preserve spacing if needed
           .trim();
           
-        const data = JSON.parse(cleanedText);
-        return data;
+        try {
+          return JSON.parse(cleanedText);
+        } catch (parseErr) {
+           // Fallback: If standard cleaning fails, try to find the start and end of the JSON object
+           const startIndex = cleanedText.indexOf('{');
+           const endIndex = cleanedText.lastIndexOf('}');
+           if (startIndex !== -1 && endIndex !== -1) {
+             const sliced = cleanedText.substring(startIndex, endIndex + 1);
+             return JSON.parse(sliced);
+           }
+           throw parseErr;
+        }
       } catch (err) {
         console.error("Exhaustive generation failed:", err);
         // Attempt to salvage partially parsable JSON if possible
@@ -1445,7 +1472,7 @@ export async function generateModeSession(
   };
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
+    model: "gemini-1.5-flash",
     contents: `AUDIT DATA (PRUNED): ${JSON.stringify(leanAudit)}\n\nSELECTED MODE: ${selectedMode}\nSTUDENT CONTEXT: ${JSON.stringify(studentContext)}`,
     config: {
       temperature: 0,
@@ -1558,7 +1585,7 @@ export async function analyzeSRSSession(
   console.log(`AI Request Sent - Performing SRS Intelligence Analysis for ${studentName} on ${subject}...`);
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
+    model: "gemini-1.5-flash",
     contents: `STUDENT: ${studentName}\nSUBJECT: ${subject}\nSESSION DATA: ${JSON.stringify(sessionData)}\nDECK STATS: ${JSON.stringify(fullDeckStats)}`,
     config: {
       systemInstruction: `You are the Study Forge SRS Intelligence Layer. You work alongside the SM-2 algorithm already running in the app — you do not replace it. Your job is to analyse patterns in a student's card performance that pure mathematics cannot detect, and to take intelligent actions based on those patterns.
@@ -1708,7 +1735,7 @@ export async function generateExamSimulatorAction(
   console.log(`AI Request Sent - Exam Simulator Engine action: ${action}...`);
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
+    model: "gemini-1.5-flash",
     contents: `INPUT PAYLOAD: ${JSON.stringify({ action, ...payload })}`,
     config: {
       temperature: 0,
@@ -1969,10 +1996,10 @@ export async function generateAdaptiveDeck(
   const cardsData = missedCards.map(c => `Term: ${c.term}\nDefinition: ${c.definition}\nMissed Count: ${c.wrongCount}`).join('\n---\n');
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
+    model: "gemini-1.5-flash",
     contents: `Topic: ${topic}\n\nMissed Concepts/Cards:\n${cardsData}`,
     config: {
-      maxOutputTokens: 4096,
+      maxOutputTokens: 8192,
       systemInstruction: `You are the Lead Pedagogical Architect. 
         - Goal: Reinforce weak areas identified by a user's missed flashcards. 
         - Task: Generate NEW, complementary flashcards that approach the missed concepts from different angles (analogies, practical applications, related sub-concepts).
@@ -2037,10 +2064,10 @@ export async function generateExam(
   console.log(`AI Request Sent - Generating formal exam for ${title}...`);
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
+    model: "gemini-1.5-flash",
     contents: `Source Material: ${text}\nTitle: ${title}\nTime Limit: ${timeLimit} minutes`,
     config: {
-      maxOutputTokens: 8192,
+      maxOutputTokens: 20000,
       systemInstruction: `You are the Lead Psychometrician and Chief Examiner.
         - Goal: Create a high-stakes competitive exam paper.
         - Task: Generate 10-15 rigorous questions.
@@ -2114,7 +2141,7 @@ export async function generateRewardContent(
   console.log(`AI Request Sent - Academic Emporium generating: ${purchase.item_id}...`);
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
+    model: "gemini-1.5-flash",
     contents: `INPUT PAYLOAD: ${JSON.stringify({ 
       item_id: purchase.item_id, 
       student_context: {
@@ -2234,7 +2261,7 @@ export async function generateAtmosphere(req: AtmosphereRequest): Promise<Atmosp
 
   try {
     const response = await withRetries(async () => await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-1.5-flash",
       contents: `INPUT PAYLOAD: ${JSON.stringify(req)}`,
       config: {
         temperature: 0.7,

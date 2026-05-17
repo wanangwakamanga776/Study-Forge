@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Upload, FileText, Sparkles, Loader2, CheckCircle2, AlertCircle, X, BrainCircuit, Trash2, Send, Zap, ShieldCheck, Baby } from 'lucide-react';
+import { Upload, FileText, Sparkles, Loader2, CheckCircle2, AlertCircle, X, BrainCircuit, Trash2, Send, Zap, ShieldCheck, Baby, CircleAlert } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { UserStats } from '../types';
 import { extractTextFromFile } from '../lib/extraction';
@@ -426,15 +426,30 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({
                     </div>
                     )}
 
-                    <div className="relative group bg-white/[0.03] border border-white/10 rounded-[2rem] overflow-hidden focus-within:border-white/20 transition-all shadow-inner flex flex-col">
-                      <div className="px-8 pt-6 flex justify-between items-center text-[10px] font-bold uppercase tracking-widest">
-                        <span className={cn(pastedText.trim().length < 20 ? "text-red-500" : "text-emerald-500")}>
-                          {pastedText.trim().length} / 20 Characters
-                        </span>
-                        {pastedText.trim().length < 20 && (
-                          <span className="text-red-500">At least 20 characters required</span>
-                        )}
-                      </div>
+                    <div className="flex flex-col gap-4">
+                       <div className="flex justify-between items-center px-4">
+                         <div className="flex items-center gap-4">
+                           <span className={cn(
+                             "text-[10px] font-black uppercase tracking-[0.3em] px-4 py-1.5 rounded-full border transition-all",
+                             pastedText.trim().length < 20 ? "bg-red-500/10 text-red-500 border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.2)]" : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                           )}>
+                             {pastedText.trim().length} / 20 Characters
+                           </span>
+                           {pastedText.trim().length < 20 && (
+                             <span className="text-[10px] font-black text-red-500 uppercase tracking-widest animate-pulse">
+                               Minimum 20 instructions required
+                             </span>
+                           )}
+                         </div>
+                         {selectedFile && pastedText.trim().length === 0 && (
+                           <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest flex items-center gap-2">
+                             <CircleAlert size={12} />
+                             Instructions required for file
+                           </span>
+                         )}
+                       </div>
+
+                       <div className="relative group bg-white/[0.03] border border-white/10 rounded-[2rem] overflow-hidden focus-within:border-white/20 transition-all shadow-inner flex flex-col">
                       <textarea
                         placeholder="What do you want to learn? Paste material or give instructions (e.g., 'Make 15 hard flashcards about Cellular Respiration' or 'Generate a quiz from this file'...)"
                         value={pastedText}
@@ -490,8 +505,9 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({
                         </div>
                       </div>
                     </div>
+                  </div>
 
-                    <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-4">
                       {error && (
                         <div className="flex items-center gap-3 p-4 bg-red-500/10 text-red-400 rounded-2xl text-xs font-bold uppercase tracking-widest border border-red-500/20">
                           <AlertCircle size={18} />
