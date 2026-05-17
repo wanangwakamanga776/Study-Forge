@@ -8,6 +8,7 @@ import { Announcement } from '../types';
 
 export const ActivistDesk: React.FC = () => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeIdx, setActiveIdx] = useState(0);
 
@@ -119,7 +120,11 @@ export const ActivistDesk: React.FC = () => {
 
                    <div className="flex flex-wrap items-center gap-6 pt-8">
                       <button 
-                        onClick={() => soundService.playClick()}
+                        onClick={() => {
+                          setSelectedAnnouncement(current);
+                          soundService.playClick();
+                          // Ensure we are viewing this specific announcement
+                        }}
                         className="group flex items-center gap-3 px-8 py-3.5 bg-white text-forge-dark rounded-2xl font-display font-black uppercase italic tracking-tighter hover:shadow-[0_10px_30px_rgba(255,255,255,0.2)] transition-all"
                       >
                          Read Full Broadcast
@@ -136,6 +141,29 @@ export const ActivistDesk: React.FC = () => {
             </div>
           </motion.div>
         </AnimatePresence>
+        
+        {/* Full Announcement View Area */}
+        {selectedAnnouncement && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-8 glass-panel rounded-[3.5rem] border border-white/10 p-10 md:p-16 text-white"
+          >
+             <button 
+                onClick={() => setSelectedAnnouncement(null)}
+                className="mb-8 px-6 py-2 bg-white/10 text-white rounded-lg text-sm font-bold uppercase tracking-widest hover:bg-white/20 transition-all flex items-center gap-2"
+              >
+                <ArrowRight size={16} className="rotate-180" />
+                Back to Desk
+              </button>
+              <h2 className="text-4xl md:text-6xl font-display font-black uppercase italic tracking-tighter text-white mb-6">
+                {selectedAnnouncement.title}
+              </h2>
+              <div className="text-stone-300 leading-relaxed italic text-lg md:text-xl font-medium whitespace-pre-line">
+                {selectedAnnouncement.content}
+              </div>
+          </motion.div>
+        )}
 
         {/* Navigation Arrows */}
         <button 

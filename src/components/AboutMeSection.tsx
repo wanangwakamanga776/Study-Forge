@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { User, Image as ImageIcon, Heart, Send, Sparkles, HelpCircle, X } from 'lucide-react';
 import { subscribeAboutMe, AboutMeData } from '../services/dataService';
 import { cn } from '../lib/utils';
+import { ActivistDesk } from './ActivistDesk';
 
 export function AboutMeSection() {
   const [data, setData] = useState<AboutMeData | null>(null);
@@ -37,72 +38,64 @@ export function AboutMeSection() {
       <div className="max-w-6xl mx-auto px-6 relative z-10">
         <div className="flex flex-col items-center mb-16 text-center">
             <div className="w-px h-12 bg-gradient-to-b from-transparent to-stone-300 mb-8" />
-            <h2 className="text-4xl md:text-6xl font-display font-black uppercase italic tracking-tighter text-stone-900 mb-4">
+             <h2 className="text-4xl md:text-6xl font-display font-black uppercase italic tracking-tighter text-black mb-4">
               The Archivist's Desk
             </h2>
-            <div className="flex items-center gap-4 text-xs font-bold uppercase tracking-[0.4em] text-stone-400">
-              <span className="w-8 h-px bg-stone-300" />
+            <div className="flex items-center gap-4 text-xs font-bold uppercase tracking-[0.4em] text-stone-900">
+              <span className="w-8 h-px bg-stone-900" />
               Official Project Transmission
-              <span className="w-8 h-px bg-stone-300" />
+              <span className="w-8 h-px bg-stone-900" />
             </div>
         </div>
 
         <div className="bg-white border border-stone-100 rounded-[3rem] p-8 md:p-16 lg:p-20 shadow-2xl shadow-stone-200/40 relative overflow-hidden">
-          <div className="absolute -top-12 -right-12 text-stone-50/50 pointer-events-none">
+          <div className="absolute -top-12 -right-12 text-stone-900/5 pointer-events-none">
             <User size={400} strokeWidth={1} />
           </div>
           
           <div className="relative z-10">
             <div className="grid lg:grid-cols-[1.5fr,1fr] gap-16 lg:gap-24 items-start">
               <div className="space-y-10">
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-forge-accent/10 text-forge-accent rounded-full mb-4">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-stone-100 text-black rounded-full mb-4">
                   <Sparkles size={14} />
                   <span className="text-[10px] font-black uppercase tracking-widest">Master Authority Verified</span>
                 </div>
 
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="space-y-4">
-                    <p className="text-5xl md:text-7xl font-display font-black tracking-[0.3em] uppercase italic text-stone-100 select-none">
-                      COMING SOON
-                    </p>
-                    <div className="flex items-center justify-center gap-3">
-                      <div className="w-1.5 h-1.5 bg-forge-accent rounded-full animate-ping" />
-                      <p className="text-[10px] font-black uppercase tracking-[0.4em] text-stone-300">Archive Expansion in Progress</p>
-                    </div>
-                  </div>
+                <div className="flex flex-col items-center justify-center py-6">
+                    <ActivistDesk />
                 </div>
 
-                <div className="flex flex-wrap items-center gap-8 pt-10 border-t border-stone-100 opacity-20 grayscale pointer-events-none">
+                <div className="flex flex-wrap items-center gap-8 pt-10 border-t border-stone-100 opacity-60 grayscale pointer-events-none">
                   <div className="flex items-center gap-4">
                     <div className="flex -space-x-4">
                       {[1,2,3,4].map(i => (
-                        <div key={i} className="w-12 h-12 rounded-full border-4 border-white bg-stone-100 flex items-center justify-center text-xs font-black text-stone-400 shadow-sm relative group overflow-hidden">
-                          <div className="absolute inset-0 bg-forge-accent/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                        <div key={i} className="w-12 h-12 rounded-full border-4 border-white bg-stone-100 flex items-center justify-center text-xs font-black text-stone-900 shadow-sm relative group overflow-hidden">
+                          <div className="absolute inset-0 bg-stone-200 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
                           <span className="relative z-10">{String.fromCharCode(64 + i)}</span>
                         </div>
                       ))}
                     </div>
                     <div>
-                       <p className="text-[11px] font-black uppercase tracking-[0.2em] text-stone-900">Founding Members</p>
-                       <p className="text-[10px] font-bold text-stone-400">Join the Forge Elite</p>
+                       <p className="text-[11px] font-black uppercase tracking-[0.2em] text-black">Founding Members</p>
+                       <p className="text-[10px] font-bold text-stone-900">Join the Forge Elite</p>
                     </div>
                   </div>
 
                   <div className="h-10 w-px bg-stone-100 hidden md:block" />
 
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-stone-900 text-white flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-2xl bg-black text-white flex items-center justify-center">
                       <Send size={18} />
                     </div>
                     <div>
-                       <p className="text-[11px] font-black uppercase tracking-[0.2em] text-stone-900">Get in Touch</p>
-                       <p className="text-[10px] font-bold text-stone-400">Feedback Loop: Open</p>
+                       <p className="text-[11px] font-black uppercase tracking-[0.2em] text-black">Get in Touch</p>
+                       <p className="text-[10px] font-bold text-stone-900">wanangwakamanga360@gmail.com</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-8 lg:sticky lg:top-24 opacity-10 grayscale pointer-events-none">
+              <div className="space-y-8 lg:sticky lg:top-24 opacity-40 grayscale pointer-events-none">
                 {false && data?.images && data.images.length > 0 ? (
                   <div className="grid grid-cols-1 gap-6">
                     {data.images.map((url, idx) => (
@@ -115,14 +108,14 @@ export function AboutMeSection() {
                         )}
                       >
                         <img src={url} alt="" className="w-full h-full object-cover grayscale-[0.5] group-hover:grayscale-0 transition-all duration-500" />
-                        <div className="absolute inset-0 bg-stone-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                            <ImageIcon size={32} className="text-white" />
                         </div>
                       </motion.div>
                     ))}
                   </div>
                 ) : (
-                  <div className="aspect-square bg-stone-50 rounded-[3rem] border-2 border-dashed border-stone-200 flex flex-col items-center justify-center p-12 text-center text-stone-300">
+                  <div className="aspect-square bg-stone-50 rounded-[3rem] border-2 border-dashed border-stone-200 flex flex-col items-center justify-center p-12 text-center text-stone-500">
                     <ImageIcon size={48} strokeWidth={1} className="mb-4" />
                     <p className="text-xs font-bold uppercase tracking-widest leading-loose">
                       Visual Archive Empty<br/>
@@ -133,7 +126,7 @@ export function AboutMeSection() {
                 
                 <div className="p-6 bg-stone-50 rounded-3xl border border-stone-100 text-center">
                    <Heart size={20} className="mx-auto mb-3 text-red-500 fill-red-500 animate-pulse" />
-                   <p className="text-[10px] font-black uppercase tracking-widest text-stone-400">
+                   <p className="text-[10px] font-black uppercase tracking-widest text-stone-900">
                      Built for students,<br/>by a student.
                    </p>
                 </div>
