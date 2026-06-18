@@ -5,6 +5,8 @@ import {defineConfig, loadEnv} from 'vite';
 
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
+  const geminiKey = env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY || '';
+
   return {
     plugins: [react(), tailwindcss()],
     build: {
@@ -25,7 +27,12 @@ export default defineConfig(({mode}) => {
       chunkSizeWarningLimit: 1000
     },
     define: {
-      'import.meta.env.VITE_GEMINI_API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY),
+      // FIX: Expose API key via BOTH names so every code path works.
+      // process.env.GEMINI_API_KEY  → AI Studio injection + some service files
+      // import.meta.env.VITE_GEMINI_API_KEY → Standard Vite browser builds
+      'import.meta.env.VITE_GEMINI_API_KEY': JSON.stringify(geminiKey),
+      'process.env.GEMINI_API_KEY': JSON.stringify(geminiKey),
+      'process.env.NODE_ENV': JSON.stringify(mode),
       'global': 'globalThis',
     },
     resolve: {

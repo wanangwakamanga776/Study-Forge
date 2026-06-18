@@ -175,6 +175,8 @@ export interface UserStats {
     quizzes: number;
     flashcards: number;
     forgeCasts: number;
+    studyGuides: number;
+    lessons: number;
     lastResetDate: string | null;
   };
 }

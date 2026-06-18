@@ -5,10 +5,12 @@ import { soundService } from '../services/soundService';
 import { motion, AnimatePresence } from 'motion/react';
 import { Trophy, Star, Flame, CloudCheck, CloudOff, RefreshCw } from 'lucide-react';
 import { ProgressionEngine } from '../services/progressionEngine';
+import { generateAtmosphere, generateRewardContent } from '../services/aiService';
 import { useAuthContext } from './AuthContext';
 import { incrementUserStats } from '../services/dataService';
 import { UserStats, EmberSessionData, EmberStudentData, EmberEarningsResponse, EmberRewardResponse, AtmosphereRequest, AtmosphereResponse } from '../types';
 import { emberService } from '../services/emberService';
+import { getGenericLocalDB, saveGenericLocalDB } from '../services/storageManager';
 
 interface ForgeStoreContextType {
   xp: number;
@@ -73,6 +75,11 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
 
   const { xp, level, embers, currentTheme, unlockedThemes, activeAssistantSkin = 'Default', unlockedSkins = ['Default'], unlockedItems = [], badges = [], activeBoosters = [] } = state.stats;
   const [atmosphere, setAtmosphere] = useState<AtmosphereResponse | null>(null);
+  const statsRef = useRef(state.stats);
+
+  useEffect(() => {
+    statsRef.current = state.stats;
+  }, [state.stats]);
 
   // Level Up logic to credit Embers
   const [lastLevelCredit, setLastLevelCredit] = useState(level);
@@ -227,10 +234,9 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
       
       const themeToUse = themeOverride || currentTheme;
       
-      const { generateAtmosphere } = await import('../services/aiService');
       const response = await generateAtmosphere({
         active_theme: idMap[themeToUse] || 'default',
-        student_name: state.stats.studentName || state.stats.name || 'Student',
+        student_name: statsRef.current.studentName || statsRef.current.name || 'Student',
         subject_context: subject,
         trigger
       });
@@ -240,10 +246,14 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
       setTimeout(() => {
         setAtmosphere(null);
       }, 60000);
-    } catch (error) {
-      console.error("Atmosphere Engine failed to generate:", error);
+    } catch (error: any) {
+      if (error.message === 'QUOTA_EXCEEDED') {
+        console.warn("Atmosphere Engine: Quota exceeded");
+      } else {
+        console.error("Atmosphere Engine failed to generate:", error);
+      }
     }
-  }, [currentTheme, state.stats]);
+  }, [currentTheme]);
 
   const clearAtmosphere = useCallback(() => {
     setAtmosphere(null);
@@ -335,7 +345,6 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
   }, [setState]);
 
   const trackQuestProgress = useCallback(async (id: string, amount: number = 1) => {
-    const { getGenericLocalDB, saveGenericLocalDB } = await import('../services/storageManager');
     const quests = await getGenericLocalDB('forge_quests_data');
     if (quests) {
       let awarded = false;
@@ -407,8 +416,7 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
     const { total_earned } = result.embers_earned;
 
     // Evaluate Progression
-    import('../services/progressionEngine').then(({ ProgressionEngine }) => {
-      const progStudent = {
+    const progStudent = {
         id: user?.uid || 'guest',
         name: state.stats.studentName || state.stats.name || 'Student',
         level: 'a_level' as const, // default for now
@@ -541,7 +549,6 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
       } else if (result.embers_earned.total_earned > 0) {
         triggerReward(output.forge_score.delta, result.embers_earned.total_earned, result.earn_message);
       }
-    });
 
     return result;
   }, [state.decks, state.stats, user, triggerReward, setState]);
@@ -581,7 +588,6 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
       context: context
     };
 
-    const { generateRewardContent } = await import('../services/aiService');
     const reward = await generateRewardContent(purchaseData, studentData, activeAssistantSkin);
 
     // Spend the embers
@@ -590,39 +596,48 @@ export function ForgeStoreProvider({ children }: { children: React.ReactNode }) 
     return reward;
   }, [state.stats, spendEmbers]);
 
+  const contextValue = React.useMemo(() => ({
+    xp,
+    level,
+    embers,
+    awardXP,
+    spendEmbers,
+    completeFocusSession,
+    processSessionCompletion,
+    purchaseEmberItem,
+    currentTheme,
+    setTheme,
+    unlockedThemes,
+    unlockTheme,
+    unlockSkin,
+    setSkin,
+    unlockItem,
+    addBadge,
+    activateBooster,
+    trackQuestProgress,
+    activeAssistantSkin,
+    unlockedSkins,
+    unlockedItems,
+    badges,
+    atmosphere,
+    updateAtmosphere,
+    clearAtmosphere,
+    isSyncing,
+    syncError,
+    stats: state.stats,
+    decks: state.decks,
+    lessons: state.lessons
+  }), [
+    xp, level, embers, awardXP, spendEmbers, completeFocusSession,
+    processSessionCompletion, purchaseEmberItem, currentTheme, setTheme,
+    unlockedThemes, unlockTheme, unlockSkin, setSkin, unlockItem,
+    addBadge, activateBooster, trackQuestProgress, activeAssistantSkin,
+    unlockedSkins, unlockedItems, badges, atmosphere, updateAtmosphere,
+    clearAtmosphere, isSyncing, syncError, state.stats, state.decks, state.lessons
+  ]);
+
   return (
-    <ForgeStoreContext.Provider value={{
-      xp,
-      level,
-      embers,
-      awardXP,
-      spendEmbers,
-      completeFocusSession,
-      processSessionCompletion,
-      purchaseEmberItem,
-      currentTheme,
-      setTheme,
-      unlockedThemes,
-      unlockTheme,
-      unlockSkin,
-      setSkin,
-      unlockItem,
-      addBadge,
-      activateBooster,
-      trackQuestProgress,
-      activeAssistantSkin,
-      unlockedSkins,
-      unlockedItems,
-      badges,
-      atmosphere,
-      updateAtmosphere,
-      clearAtmosphere,
-      isSyncing,
-      syncError,
-      stats: state.stats,
-      decks: state.decks,
-      lessons: state.lessons
-    }}>
+    <ForgeStoreContext.Provider value={contextValue}>
       {children}
       
       <AnimatePresence>

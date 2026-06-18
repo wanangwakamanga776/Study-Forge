@@ -19,10 +19,25 @@ interface ExamSimulatorProps {
 }
 
 export const ExamSimulator: React.FC<ExamSimulatorProps> = ({ exam, auditData, onComplete, onClose, onAddRevisionPlan }) => {
+  if (!exam) {
+    return (
+      <div className="max-w-4xl mx-auto p-4 py-20 text-center">
+        <div className="glass-card rounded-[3rem] p-12">
+          <AlertCircle size={48} className="text-red-400 mx-auto mb-6" />
+          <h2 className="text-2xl font-bold text-white mb-4">Exam Data Missing</h2>
+          <p className="text-stone-400 mb-8">The AI engine failed to generate a valid exam structure. Please try again.</p>
+          <button onClick={onClose} className="px-8 py-3 bg-white text-stone-900 rounded-xl font-bold">
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [timeLeft, setTimeLeft] = useState((exam.time_limit_minutes || 15) * 60);
+  const [timeLeft, setTimeLeft] = useState((exam?.time_limit_minutes || 15) * 60);
   const [isFinished, setIsFinished] = useState(false);
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
   const [revisionPlan, setRevisionPlan] = useState<ForgeRevisionPlan | null>(null);
@@ -89,7 +104,7 @@ export const ExamSimulator: React.FC<ExamSimulatorProps> = ({ exam, auditData, o
 
       setRevisionPlan(plan);
       onAddRevisionPlan?.(plan);
-      awardXP(plan.results.total_marks_awarded * 10 + 100);
+      awardXP((plan?.results?.total_marks_awarded ?? 0) * 10 + 100);
       soundService.playSuccess();
     } catch (error) {
       console.error("Revision plan generation failed:", error);
@@ -153,7 +168,7 @@ export const ExamSimulator: React.FC<ExamSimulatorProps> = ({ exam, auditData, o
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-stone-500">Time Used</span>
-                    <span className="text-white font-bold">{formatTime((exam.time_limit_minutes * 60) - timeLeft)}</span>
+                    <span className="text-white font-bold">{formatTime(((exam?.time_limit_minutes || 15) * 60) - timeLeft)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-stone-500">Questions Answered</span>

@@ -16,6 +16,7 @@ import {
   onSnapshot
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import { UserStats, Deck } from '../types';
 import { generateId } from '../lib/utils';
 
@@ -412,3 +413,91 @@ export const updateFeedbackStatus = async (id: string, status: 'pending' | 'reso
     handleFirestoreError(error as FirestoreError, 'update', `feedback/${id}`);
   }
 };
+
+/**
+ * Saves a study session to Supabase
+ */
+export async function saveStudySession(session: {
+  subject: string;
+  duration_minutes: number;
+  notes?: string;
+  metadata?: any;
+}) {
+  try {
+    const { data: { session: authSession } } = await supabase.auth.getSession();
+    if (!authSession?.user) return null;
+
+    const { data, error } = await supabase
+      .from('study_sessions')
+      .insert([{
+        user_id: authSession.user.id,
+        subject: session.subject,
+        duration_minutes: session.duration_minutes,
+        notes: session.notes,
+        metadata: session.metadata || {}
+      }])
+      .select();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error in saveStudySession:', error);
+    throw error;
+  }
+}
+
+/**
+ * Saves a quiz result to Supabase for analytics
+ */
+export async function saveQuizResult(payload: {
+  quiz_id?: string;
+  score_percentage: number;
+  subject: string;
+  metadata?: any;
+}) {
+  try {
+    const { data: { session: authSession } } = await supabase.auth.getSession();
+    if (!authSession?.user) return null;
+
+    const { data, error } = await supabase
+      .from('quiz_results')
+      .insert([{
+        user_id: authSession.user.id,
+        quiz_id: payload.quiz_id,
+        score_percentage: payload.score_percentage,
+        subject: payload.subject,
+        metadata: payload.metadata || {}
+      }])
+      .select();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error in saveQuizResult:', error);
+    throw error;
+  }
+}
+
+/**
+ * Fetches all study data for the user to power AI insights
+ */
+export async function getUserStudyAnalytics() {
+  try {
+    const { data: { session: authSession } } = await supabase.auth.getSession();
+    if (!authSession?.user) return null;
+
+    // Fetch parallel data
+    const [sessions, quizResults] = await Promise.all([
+      supabase.from('study_sessions').select('*').eq('user_id', authSession.user.id).order('created_at', { ascending: false }).limit(20),
+      supabase.from('quiz_results').select('*').eq('user_id', authSession.user.id).order('created_at', { ascending: false }).limit(20)
+    ]);
+
+    return {
+      sessions: sessions.data || [],
+      quizResults: quizResults.data || []
+    };
+  } catch (error) {
+    console.error('Error in getUserStudyAnalytics:', error);
+    throw error;
+  }
+}

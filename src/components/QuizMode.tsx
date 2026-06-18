@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useAppStateContext } from '../contexts/AppStateContext';
+import { FREE_LIMITS } from '../constants';
 import { Plus, Trash2, ChevronLeft, BrainCircuit, CheckCircle2, XCircle, Trophy, Flame, Star, ShieldCheck, History, Clock, HelpCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
@@ -25,6 +27,7 @@ interface QuizModeProps {
 }
 
 export const QuizMode: React.FC<QuizModeProps> = ({ quizzes, onUpdate, onComplete, onStartExam }) => {
+  const { state, setState } = useAppStateContext();
   const { trackQuestProgress, processSessionCompletion } = useForgeStore();
   const [activeQuizId, setActiveQuizId] = useState<string | null>(null);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
@@ -202,6 +205,18 @@ export const QuizMode: React.FC<QuizModeProps> = ({ quizzes, onUpdate, onComplet
 
           const finalScore = gradingResult.results.percentage;
           setScore(gradingResult.results.total_marks_awarded);
+
+          // Save to Supabase for advanced analytics
+          try {
+            const { saveQuizResult } = await import('../services/dataService');
+            await saveQuizResult({
+              quiz_id: activeQuiz.id,
+              score_percentage: finalScore,
+              subject: activeQuiz.title
+            });
+          } catch (e) {
+            console.error("Supabase Save Error:", e);
+          }
           setDetailedResults(gradingResult.question_marking.map(m => ({
             questionId: m.question_id,
             marksAwarded: m.marks_awarded,
@@ -211,6 +226,14 @@ export const QuizMode: React.FC<QuizModeProps> = ({ quizzes, onUpdate, onComplet
             missing: m.what_was_missing,
             correctAnswer: m.the_correct_answer
           })));
+
+          setState(prev => ({
+            ...prev,
+            stats: {
+              ...prev.stats,
+              aiUsage: { ...prev.stats.aiUsage, quizzes: (prev.stats.aiUsage.quizzes || 0) + 1 }
+            }
+          }));
 
           if (finalScore === 100) {
             trackQuestProgress('quiz_master', 1);
@@ -227,6 +250,19 @@ export const QuizMode: React.FC<QuizModeProps> = ({ quizzes, onUpdate, onComplet
         } else {
           // Standard MCQ only quiz
           const finalScore = Math.round((score / activeQuiz.questions.length) * 100);
+          
+          // Save to Supabase for advanced analytics
+          try {
+            const { saveQuizResult } = await import('../services/dataService');
+            await saveQuizResult({
+              quiz_id: activeQuiz.id,
+              score_percentage: finalScore,
+              subject: activeQuiz.title
+            });
+          } catch (e) {
+            console.error("Supabase Save Error:", e);
+          }
+
           if (finalScore === 100) trackQuestProgress('quiz_master', 1);
           
           const earningsRes = await processSessionCompletion({
@@ -561,9 +597,9 @@ export const QuizMode: React.FC<QuizModeProps> = ({ quizzes, onUpdate, onComplet
                   e.stopPropagation();
                   onUpdate(quizzes.filter(q => q.id !== quiz.id));
                 }}
-                className="opacity-0 group-hover:opacity-100 p-2 text-stone-600 hover:text-red-500 transition-all"
+                className="opacity-0 group-hover:opacity-100 p-2 text-stone-600 hover:text-red-500 transition-all font-mono text-xs"
               >
-                <Trash2 size={20} />
+                [x]
               </button>
             </div>
             <h3 className="text-xl font-bold text-white mb-2">{quiz.title}</h3>

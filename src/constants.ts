@@ -43,6 +43,8 @@ export const INITIAL_STATE: AppState = {
       quizzes: 0,
       flashcards: 0,
       forgeCasts: 0,
+      studyGuides: 0,
+      lessons: 0,
       lastResetDate: null,
     },
   },
@@ -50,9 +52,11 @@ export const INITIAL_STATE: AppState = {
 };
 
 export const FREE_LIMITS = {
-  quizzes: 3,
-  flashcards: 5,
+  quizzes: 2,
+  flashcards: 3,
   forgeCasts: 2,
+  studyGuides: 6,
+  lessons: 7,
 };
 
 export const PREMIUM_PRICES = {

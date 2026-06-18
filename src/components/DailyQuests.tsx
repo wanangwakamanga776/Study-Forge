@@ -5,6 +5,7 @@ import { useForgeStore } from '../contexts/ForgeStoreContext';
 import { cn } from '../lib/utils';
 import { soundService } from '../services/soundService';
 import { PyraMascot } from './PyraMascot';
+import { getGenericLocalDB, saveGenericLocalDB, clearGenericLocalDB } from '../services/storageManager';
 
 interface Quest {
   id: string;
@@ -33,22 +34,20 @@ export function DailyQuests() {
   };
 
   const refreshQuests = useCallback(() => {
-    import('../services/storageManager').then(({ getGenericLocalDB }) => {
-      getGenericLocalDB('forge_quests_data').then(saved => {
-        if (saved) {
-          try {
-            // Migration: if missing new iconType field, clear and restart
-            if (saved.length > 0 && !saved[0].iconType) {
-              import('../services/storageManager').then(({ clearGenericLocalDB }) => clearGenericLocalDB('forge_quests_data'));
-              setQuests([]);
-              return;
-            }
-            setQuests(saved);
-          } catch (e) {
-            import('../services/storageManager').then(({ clearGenericLocalDB }) => clearGenericLocalDB('forge_quests_data'));
+    getGenericLocalDB('forge_quests_data').then(saved => {
+      if (saved) {
+        try {
+          // Migration: if missing new iconType field, clear and restart
+          if (saved.length > 0 && !saved[0].iconType) {
+            clearGenericLocalDB('forge_quests_data');
+            setQuests([]);
+            return;
           }
+          setQuests(saved);
+        } catch (e) {
+          clearGenericLocalDB('forge_quests_data');
         }
-      });
+      }
     });
   }, []);
 
@@ -56,56 +55,54 @@ export function DailyQuests() {
     let isMounted = true;
     const today = new Date().toISOString().split('T')[0];
     
-    import('../services/storageManager').then(({ getGenericLocalDB, saveGenericLocalDB }) => {
-      getGenericLocalDB('forge_quests_reset').then(reset => {
-        if (!isMounted) return;
-        setLastReset(reset as string | null);
+    getGenericLocalDB('forge_quests_reset').then(reset => {
+      if (!isMounted) return;
+      setLastReset(reset as string | null);
 
-        if (reset !== today) {
-          // Generate new quests for the day
-          const dailyQuests: Quest[] = [
-            {
-              id: 'focus_session',
-              title: 'Deep Work',
-              description: 'Focus for 25 minutes',
-              rewardXP: 100,
-              rewardEmbers: 20,
-              iconType: 'timer',
-              target: 1,
-              current: 0,
-              completed: false
-            },
-            {
-              id: 'quiz_master',
-              title: 'Brain Probe',
-              description: 'Score 100% on any quiz',
-              rewardXP: 150,
-              rewardEmbers: 30,
-              iconType: 'brain',
-              target: 1,
-              current: 0,
-              completed: false
-            },
-            {
-              id: 'card_flip',
-              title: 'Memory Lane',
-              description: 'Review 10 flashcards',
-              rewardXP: 50,
-              rewardEmbers: 10,
-              iconType: 'layers',
-              target: 10,
-              current: 0,
-              completed: false
-            }
-          ];
-          setQuests(dailyQuests);
-          setLastReset(today);
-          saveGenericLocalDB('forge_quests_reset', today);
-          saveGenericLocalDB('forge_quests_data', dailyQuests);
-        } else {
-          refreshQuests();
-        }
-      });
+      if (reset !== today) {
+        // Generate new quests for the day
+        const dailyQuests: Quest[] = [
+          {
+            id: 'focus_session',
+            title: 'Deep Work',
+            description: 'Focus for 25 minutes',
+            rewardXP: 100,
+            rewardEmbers: 20,
+            iconType: 'timer',
+            target: 1,
+            current: 0,
+            completed: false
+          },
+          {
+            id: 'quiz_master',
+            title: 'Brain Probe',
+            description: 'Score 100% on any quiz',
+            rewardXP: 150,
+            rewardEmbers: 30,
+            iconType: 'brain',
+            target: 1,
+            current: 0,
+            completed: false
+          },
+          {
+            id: 'card_flip',
+            title: 'Memory Lane',
+            description: 'Review 10 flashcards',
+            rewardXP: 50,
+            rewardEmbers: 10,
+            iconType: 'layers',
+            target: 10,
+            current: 0,
+            completed: false
+          }
+        ];
+        setQuests(dailyQuests);
+        setLastReset(today);
+        saveGenericLocalDB('forge_quests_reset', today);
+        saveGenericLocalDB('forge_quests_data', dailyQuests);
+      } else {
+        refreshQuests();
+      }
     });
 
     window.addEventListener('forge_quests_updated', refreshQuests);

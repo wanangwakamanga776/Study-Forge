@@ -11,6 +11,8 @@ import { cn, generateId } from '../lib/utils';
 import { soundService } from '../services/soundService';
 import { ForgePersona, LessonArchitectAudit } from '../types';
 import { PyraMascot } from './PyraMascot';
+import { chatWithAcademicAssistant } from '../services/aiService';
+import { getGenericLocalDB, saveGenericLocalDB } from '../services/storageManager';
 
 interface Message {
   role: 'user' | 'model';
@@ -68,25 +70,19 @@ export function ForgeChat({ onNavigate, onOpenForge, onSaveData, onEditData, onA
 
   useEffect(() => {
     let isMounted = true;
-    import('../services/storageManager').then(({ getGenericLocalDB }) => {
-      getGenericLocalDB('forge_chat_history').then(saved => {
-        if (isMounted) {
-          if (saved && saved.length > 0) {
-            setMessages(saved);
-          } else {
-            // Initialization happens in the other useEffect
-          }
+    getGenericLocalDB('forge_chat_history').then(saved => {
+      if (isMounted) {
+        if (saved && saved.length > 0) {
+          setMessages(saved);
         }
-      });
+      }
     });
     return () => { isMounted = false; };
   }, []);
 
   useEffect(() => {
     if (messages.length > 0) {
-      import('../services/storageManager').then(({ saveGenericLocalDB }) => {
-        saveGenericLocalDB('forge_chat_history', messages);
-      });
+      saveGenericLocalDB('forge_chat_history', messages);
     }
   }, [messages]);
   const [input, setInput] = useState('');
@@ -192,7 +188,6 @@ export function ForgeChat({ onNavigate, onOpenForge, onSaveData, onEditData, onA
         parts: [{ text: m.content }]
       }));
 
-      const { chatWithAcademicAssistant } = await import('../services/aiService');
       const studentProfile = getStudentProfile();
       const response = await chatWithAcademicAssistant(
         userMessage, 

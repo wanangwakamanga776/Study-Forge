@@ -5,6 +5,13 @@ import { useForgeStore } from '../contexts/ForgeStoreContext';
 export function ThemeVisuals() {
   const { currentTheme, atmosphere, decks, stats } = useForgeStore();
   const [ripples, setRipples] = useState<{ id: number; x: number; y: number; color: string }[]>([]);
+  const [quotaLow, setQuotaLow] = useState(false);
+
+  useEffect(() => {
+    const handle = (e: any) => setQuotaLow(e.detail.isQuotaLow);
+    window.addEventListener('forge_quota_status_changed', handle);
+    return () => window.removeEventListener('forge_quota_status_changed', handle);
+  }, []);
   
   // Dynamic assets based on theme
   const [assets, setAssets] = useState<any[]>([]);
@@ -286,7 +293,10 @@ export function ThemeVisuals() {
       return;
     }
 
-    const newAssets = Array.from({ length: themeConfig.particleCount }).map((_, i) => ({
+    const baseCount = themeConfig.particleCount;
+    const finalCount = quotaLow ? Math.ceil(baseCount * 0.3) : baseCount;
+
+    const newAssets = Array.from({ length: finalCount }).map((_, i) => ({
       id: i,
       left: `${Math.random() * 100}%`,
       top: (themeConfig.particleClass === 'singularity' || themeConfig.particleClass === 'ember' || themeConfig.particleClass === 'ink-blot') ? `${Math.random() * 100}%` : undefined,

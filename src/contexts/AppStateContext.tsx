@@ -11,6 +11,7 @@ import {
   syncUserStats 
 } from '../services/dataService';
 import { storageService } from '../services/storageService';
+import { clearGenericLocalDB } from '../services/storageManager';
 
 interface AppStateContextType {
   state: AppState;
@@ -95,7 +96,6 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     setState(INITIAL_STATE);
     await storageService.clearAll();
     try {
-      const { clearGenericLocalDB } = await import('../services/storageManager');
       await clearGenericLocalDB('forge_chat_history');
     } catch (e) {}
   }, [setState]);
@@ -322,6 +322,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
               quizzes: 0,
               flashcards: 0,
               forgeCasts: 0,
+              studyGuides: 0,
+              lessons: 0,
               lastResetDate: today,
             }
           }

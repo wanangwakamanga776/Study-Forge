@@ -75,14 +75,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onNavigate, onSelec
           
           <div className="relative z-10 flex flex-col md:flex-row items-center gap-12">
             <div className="flex-1 space-y-8">
-              <motion.div 
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="inline-flex items-center gap-3 px-4 py-1.5 bg-white/5 rounded-full border border-white/10 backdrop-blur-md"
-              >
-                <div className="w-2 h-2 rounded-full bg-forge-accent animate-ping" />
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/50">Ready to Learn</span>
-              </motion.div>
+              <div className="flex items-center gap-4">
+                <motion.div 
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="inline-flex items-center gap-3 px-4 py-1.5 bg-white/5 rounded-full border border-white/10 backdrop-blur-md"
+                >
+                  <div className="w-2 h-2 rounded-full bg-forge-accent animate-ping" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/50">Ready to Learn</span>
+                </motion.div>
+              </div>
               <h2 className="text-5xl md:text-7xl font-black font-display uppercase italic tracking-tighter text-white leading-[0.85] drop-shadow-2xl">
                 Master Your <br/> <span className="text-forge-accent text-glow">Topics</span>
               </h2>

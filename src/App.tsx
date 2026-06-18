@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, lazy, Suspense, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, lazy, Suspense, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Layout, Timer, ListTodo, Layers, BrainCircuit, Menu, X, Star, Sparkles, Zap, Loader2, Video, Play, SkipBack, Monitor, RotateCcw, Trash2, Flame, LogOut, Trophy, BookOpen, Target, MessageSquare, HelpCircle, Store, Shield, ChevronRight, FileText } from 'lucide-react';
 import { useAppState } from './hooks/useAppState';
@@ -53,7 +53,7 @@ const AIGenerator = lazy(() => import('./components/AIGenerator.tsx').then(m => 
 const ForgeCast = lazy(() => import('./components/ForgeCast.tsx').then(m => ({ default: m.ForgeCast })));
 const Leaderboard = lazy(() => import('./components/Leaderboard.tsx').then(m => ({ default: m.Leaderboard })));
 const ForgeTutorial = lazy(() => import('./components/ForgeTutorial.tsx').then(m => ({ default: m.ForgeTutorial })));
-const ForgeShop = lazy(() => import('./components/ForgeShop.tsx').then(m => ({ default: m.ForgeShop })));
+const ForgeShop = lazy(() => import('./components/ForgeShop').then(m => ({ default: m.ForgeShop })));
 const AccountSettings = lazy(() => import('./components/AccountSettings.tsx').then(m => ({ default: m.AccountSettings })));
 const AdminPanel = lazy(() => import('./components/AdminPanel.tsx').then(m => ({ default: m.AdminPanel })));
 const StudyGuideViewer = lazy(() => import('./components/StudyGuideViewer.tsx').then(m => ({ default: m.StudyGuideViewer })));
@@ -156,7 +156,8 @@ function AppContent() {
             newState.stats.aiUsage.forgeCasts += 1;
           } else if (type === 'lesson') {
             newState.lessons = [...(prev.lessons || []), dataWithId as LessonArchitectAudit];
-            setCurrentView('lessons');
+            // Move setCurrentView out of updater to prevent "Cannot update a component while rendering"
+            setTimeout(() => setCurrentView('lessons'), 0);
           } else if (type === 'session') {
             newState.sessions = [...(prev.sessions || []), dataWithId as ModeEngineSession];
           }
@@ -243,7 +244,12 @@ function AppContent() {
     }
   }, [setState]);
 
+  const hasInitialized = useRef(false);
+
   useEffect(() => {
+    if (hasInitialized.current) return;
+    hasInitialized.current = true;
+
     testArchivesConnection();
     // Trigger initial atmosphere
     updateAtmosphere('session_start');
@@ -1179,11 +1185,11 @@ function AppContent() {
               animate={{ opacity: 1, y: 0 }}
               className="glass-card pl-6 pr-2 py-2 rounded-full flex items-center gap-4"
             >
-              <div className="flex items-center gap-3 mr-4">
-                <div className="w-2 h-2 rounded-full bg-forge-accent animate-pulse" />
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/50">Forge OS 3.1 Online</span>
-              </div>
-              <ProfileHeader onOpenSettings={() => setIsSettingsOpen(true)} />
+                <div className="flex items-center gap-3 mr-4">
+                  <div className="w-2 h-2 rounded-full bg-forge-accent animate-pulse" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/50">Forge OS 3.1 Online</span>
+                </div>
+                <ProfileHeader onOpenSettings={() => setIsSettingsOpen(true)} />
             </motion.div>
           </div>
           

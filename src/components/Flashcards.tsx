@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { FREE_LIMITS } from '../constants';
 import { Plus, Trash2, ChevronLeft, ChevronRight, Layers, RotateCw, Globe, Lock, Check, Edit2, Save, X as CloseIcon, Sparkles, Brain, Zap, Clock, Star, CheckCircle2, XCircle, Loader2, AlertCircle, TrendingUp, Target, MessageSquareQuote, HelpCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
@@ -15,6 +16,7 @@ import { useAppState } from '../hooks/useAppState';
 import { PyraMascot } from './PyraMascot';
 import { HelpModal } from './HelpModal';
 import { PowerUpPanel } from './PowerUpPanel';
+import { ButtonGuard } from '../services/apiManager';
 
 interface FlashcardsProps {
   decks: Deck[];
@@ -42,7 +44,9 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const { trackQuestProgress, awardXP, processSessionCompletion, purchaseEmberItem, embers, currentTheme } = useForgeStore();
-  const { state } = useAppState();
+  const { state, setState } = useAppState();
+
+  const [isGeneratingImage, setIsGeneratingImage] = useState<string | null>(null);
 
   const activeDeck = decks.find(d => d.id === activeDeckId);
 
@@ -318,14 +322,27 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
   const regenerateCardImage = async (cardId: string) => {
     if (!activeDeck) return;
     const card = activeDeck.cards.find(c => c.id === cardId);
-    if (!card || !card.imagePrompt) return;
+    if (!card) return;
 
-    const { generateImage } = await import('../services/aiService');
-    const imageUrl = await generateImage(card.imagePrompt);
-    
-    if (imageUrl) {
-      updateCard(cardId, card.term, card.definition, card.imagePrompt, imageUrl);
-      soundService.playSuccess();
+    setIsGeneratingImage(cardId);
+    try {
+      const canProceed = ButtonGuard.checkAndSet('image_gen_' + cardId);
+      if (!canProceed) {
+        // Silent fail or toast could be added here
+        return;
+      }
+      const { generateImage } = await import('../services/aiService');
+      const prompt = card.imagePrompt || `Highly detailed educational diagram of ${card.term}: ${card.definition.substring(0, 50)}`;
+      const imageUrl = await generateImage(prompt, true);
+      
+      if (imageUrl) {
+        updateCard(cardId, card.term, card.definition, card.explanation, prompt, imageUrl);
+        soundService.playSuccess();
+      }
+    } catch (err) {
+      console.error("Failed to generate card image:", err);
+    } finally {
+      setIsGeneratingImage(null);
     }
   };
 
@@ -680,9 +697,9 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
                       <span className="text-[10px] font-black uppercase tracking-widest text-stone-500">Meaning</span>
                     </div>
 
-                    {currentCard.imageUrl && (
+                    {currentCard.imageUrl ? (
                       <div 
-                        className="w-20 h-20 rounded-2xl overflow-hidden border border-white/10 hover:scale-110 transition-transform shadow-2xl group/img"
+                        className="w-20 h-20 rounded-2xl overflow-hidden border border-white/10 hover:scale-110 transition-transform shadow-2xl group/img relative"
                         onClick={(e) => {
                           e.stopPropagation();
                           setExpandedImageUrl(currentCard.imageUrl!);
@@ -698,6 +715,22 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
                           <Plus size={16} className="text-white" />
                         </div>
                       </div>
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          regenerateCardImage(currentCard.id);
+                        }}
+                        disabled={!!isGeneratingImage}
+                        className="flex items-center gap-2 px-6 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-stone-400 hover:text-white transition-all"
+                      >
+                        {isGeneratingImage === currentCard.id ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          <Sparkles size={14} className="text-forge-accent" />
+                        )}
+                        {isGeneratingImage === currentCard.id ? "Forging Visual..." : "Generate Visual"}
+                      </button>
                     )}
                     
                     <div className="text-xl md:text-2xl text-white leading-relaxed markdown-content prose prose-invert font-medium max-w-lg mb-4">
@@ -905,6 +938,12 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
                  {cards.map((card, i) => (
                    <div key={card.id} className="group p-4 bg-white/5 border border-white/10 rounded-2xl flex flex-col gap-4">
                      <div className="flex items-center justify-between gap-4">
+                        <button
+                          onClick={() => removeCard(card.id)}
+                          className="px-2 text-stone-600 hover:text-red-500 transition-colors text-xs font-mono"
+                        >
+                          [x]
+                        </button>
                         <div className="flex-1 grid grid-cols-2 gap-4">
                           <input
                             type="text"
