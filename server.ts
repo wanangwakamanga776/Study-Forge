@@ -195,7 +195,8 @@ async function startServer() {
 
     if (mode === "subscribe" && isMatched) {
       console.log(`[WhatsApp Webhook GET] Verification Match Succeeded! Sending challenge back: ${challenge}`);
-      res.status(200).send(challenge);
+      res.set("Content-Type", "text/plain");
+      res.status(200).send(String(challenge));
     } else {
       console.error("[WhatsApp Webhook GET] Verification failed. Expected matches did not satisfy security check.");
       res.status(403).send("Verification failed. Please configure WHATSAPP_VERIFY_TOKEN correctly.");
