@@ -3,7 +3,9 @@ const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/icon.jpg'
+  '/icon-192.png',
+  '/icon-512.png',
+  '/icon-maskable.png'
 ];
 
 // Install event - caching basic shell assets
