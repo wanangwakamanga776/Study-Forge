@@ -1,0 +1,19 @@
+{
+  "name": "Study Forge",
+  "short_name": "Study Forge",
+  "description": "The ultimate AI-powered study companion. Build knowledge, master subjects, and earn rewards while you study.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0F0F12",
+  "theme_color": "#0F0F12",
+  "orientation": "portrait-primary",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "/icon.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}
