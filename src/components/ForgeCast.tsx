@@ -314,7 +314,7 @@ export const ForgeCast: React.FC<ForgeCastProps> = ({
                   <div className="absolute inset-0 opacity-40">
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black z-10" />
                     <img 
-                      src={currentChapter.image_url || `https://picsum.photos/seed/${currentChapter.title}/1920/1080?blur=2`}
+                      src={currentChapter.image_url || `https://picsum.photos/seed/${encodeURIComponent(currentChapter.title)}/1920/1080?blur=2`}
                       alt="Cinematic Background"
                       className="w-full h-full object-cover"
                       referrerPolicy="no-referrer"
@@ -463,9 +463,10 @@ export const ForgeCast: React.FC<ForgeCastProps> = ({
                         >
                           <div className="aspect-video relative bg-stone-900">
                             <img 
-                              src={msg.blueprint.chapters[0]?.image_url || `https://picsum.photos/seed/${msg.blueprint.metadata.title}/800/450`} 
+                              src={msg.blueprint.chapters[0]?.image_url || `https://picsum.photos/seed/${encodeURIComponent(msg.blueprint.metadata.title)}/800/450`} 
                               alt="Blueprint Preview"
                               className="w-full h-full object-cover opacity-50 group-hover:scale-105 transition-transform duration-700"
+                              referrerPolicy="no-referrer"
                             />
                             <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center bg-gradient-to-t from-black/80 to-transparent">
                               <h3 className="text-2xl font-display font-black uppercase italic tracking-tighter text-white mb-6">
