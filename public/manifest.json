@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Study Forge",
+  "name": "Study Forge Pro",
   "short_name": "Study Forge",
-  "description": "The ultimate AI-powered study companion. Build knowledge, master subjects, and earn rewards while you study.",
+  "description": "Study Forge - Build academic knowledge, master school subjects, and earn rewards while you study.",
   "start_url": "/",
   "display": "standalone",
   "lang": "en",
