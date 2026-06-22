@@ -1284,7 +1284,7 @@ function AppContent() {
         </div>
       </main>
 
-      {/* Mobile Menu Overlay */}
+      {/* Mobile Menu Overlay - Study Forge PWA Optimized */}
       {isMobileMenuOpen && (
         <div 
           className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm lg:hidden"
