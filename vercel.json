@@ -1,8 +1,0 @@
-{
-  "rewrites": [
-    {
-      "source": "/((?!api/|sw\\.js|manifest\\.json|icon-.*\\.png|icon-maskable\\.png|icon\\.jpg|sitemap\\.xml).*)",
-      "destination": "/index.html"
-    }
-  ]
-}
