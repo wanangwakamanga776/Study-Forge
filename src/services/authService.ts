@@ -13,6 +13,11 @@ import { auth, googleProvider } from '../lib/firebase';
 import { flushPendingSync, saveProgress, getPurchases, getAllCards, saveCardsBatch } from './storageManager';
 
 export const signInWithGoogle = async () => {
+  const isCapacitor = typeof window !== 'undefined' && (window as any).Capacitor !== undefined;
+  if (isCapacitor) {
+    throw new Error("Google Sign-In is restricted inside native Android WebViews. Please use Email & Password for 100% reliable cloud sync in your APK.");
+  }
+
   try {
     const result = await signInWithPopup(auth, googleProvider);
     return result.user;

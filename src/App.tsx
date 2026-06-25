@@ -27,6 +27,7 @@ import { AboutMePopup } from './components/AboutMeSection';
 import { AuthProvider, useAuthContext } from './contexts/AuthContext';
 import { useScrollControls } from './hooks/useScrollControls';
 import { FeedbackSection } from './components/FeedbackSystem';
+import { AIGenerator } from './components/AIGenerator';
 
 // Announcement popup component
 const AnnouncementPopup: React.FC<{ announcement: { message: string }, onClose: () => void }> = ({ announcement, onClose }) => (
@@ -49,7 +50,6 @@ const FocusTimer = lazy(() => import('./components/FocusTimer.tsx').then(m => ({
 const Flashcards = lazy(() => import('./components/Flashcards'));
 const QuizMode = lazy(() => import('./components/QuizMode.tsx').then(m => ({ default: m.QuizMode })));
 const MatchGame = lazy(() => import('./components/MatchGame.tsx').then(m => ({ default: m.MatchGame })));
-const AIGenerator = lazy(() => import('./components/AIGenerator.tsx').then(m => ({ default: m.AIGenerator })));
 const ForgeCast = lazy(() => import('./components/ForgeCast.tsx').then(m => ({ default: m.ForgeCast })));
 const Leaderboard = lazy(() => import('./components/Leaderboard.tsx').then(m => ({ default: m.Leaderboard })));
 const ForgeTutorial = lazy(() => import('./components/ForgeTutorial.tsx').then(m => ({ default: m.ForgeTutorial })));
@@ -109,6 +109,7 @@ function AppContent() {
   const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
   const [selectedForgeCast, setSelectedForgeCast] = useState<ForgeCastBlueprint | null>(null);
   const [isForgeOpen, setIsForgeOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => localStorage.getItem('sidebar-collapsed') === 'true');
   const [forgeTopic, setForgeTopic] = useState<string>();
   const [showTutorial, setShowTutorial] = useState(false);
   const [globalAnnouncement, setGlobalAnnouncement] = useState<{ message: string } | null>(null);
@@ -117,6 +118,20 @@ function AppContent() {
   const [activeSession, setActiveSession] = useState<ModeEngineSession | null>(null);
   const [activeAIExam, setActiveAIExam] = useState<{ exam: any; audit: any } | null>(null);
   const [isAdminApplied, setIsAdminApplied] = useState(false);
+
+  // Close lessons page if user clicks/navigates to any other tab/section
+  useEffect(() => {
+    if (currentView !== 'lessons') {
+      setShowLessons(false);
+    }
+  }, [currentView]);
+
+  // Close lessons page if global overlays like Shop, settings, or admin panel open
+  useEffect(() => {
+    if (isShopOpen || isSettingsOpen || isAdminPanelOpen) {
+      setShowLessons(false);
+    }
+  }, [isShopOpen, isSettingsOpen, isAdminPanelOpen]);
 
   const handleAIGenerated = useCallback(async (type: 'flashcards' | 'quiz' | 'forgeCast' | 'lesson' | 'session', data: any) => {
     // Wrap in setTimeout to prevent "Cannot update a component while rendering a different component" error
@@ -157,7 +172,10 @@ function AppContent() {
           } else if (type === 'lesson') {
             newState.lessons = [...(prev.lessons || []), dataWithId as LessonArchitectAudit];
             // Move setCurrentView out of updater to prevent "Cannot update a component while rendering"
-            setTimeout(() => setCurrentView('lessons'), 0);
+            setTimeout(() => {
+              setCurrentView('lessons');
+              setShowLessons(true);
+            }, 0);
           } else if (type === 'session') {
             newState.sessions = [...(prev.sessions || []), dataWithId as ModeEngineSession];
           }
@@ -787,7 +805,7 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-forge-dark text-stone-200 font-sans selection:bg-forge-accent/20">
-          <ThemeVisuals />
+          <ThemeVisuals isSidebarCollapsed={isSidebarCollapsed} />
           <AboutMePopup />
           <AnimatePresence>
             {globalAnnouncement && (
@@ -845,18 +863,19 @@ function AppContent() {
                   }));
                   if (type === 'flashcards') {
                     // Start a specific deck view or match
+                    const cardsArray = Array.isArray(data) ? data : [];
                     const deck: Deck = {
-                      id: 'session-' + activeSession.id,
-                      title: activeSession.session_title,
-                      cards: data.map((c: any) => ({
-                        id: c.card_id,
-                        term: c.front,
-                        definition: c.back,
-                        explanation: c.mode_specific_tip,
-                        hint: c.hint,
-                        ease: c.sm2_initial_ease_factor,
-                        interval: c.sm2_initial_interval_days,
-                        memoryHook: c.memory_hook
+                      id: 'session-' + (activeSession.id || generateId()),
+                      title: activeSession.session_title || 'Flashcards Session',
+                      cards: cardsArray.map((c: any) => ({
+                        id: c.card_id || generateId(),
+                        term: c.front || 'Term',
+                        definition: c.back || 'Definition',
+                        explanation: c.mode_specific_tip || '',
+                        hint: c.hint || '',
+                        ease: Number(c.sm2_initial_ease_factor) || 2.5,
+                        interval: Number(c.sm2_initial_interval_days) || 1,
+                        memoryHook: c.memory_hook || ''
                       }))
                     };
                     setState(prev => ({
@@ -865,27 +884,38 @@ function AppContent() {
                     }));
                     setCurrentView('flashcards');
                   } else {
-                    let questionsData = data;
-                    if (!questionsData || questionsData.length === 0) {
+                    let questionsData = Array.isArray(data) ? data : [];
+                    if (questionsData.length === 0) {
                       const lesson = state.lessons?.find(l => l.id === activeSession.lessonId);
                       if (lesson && lesson.application_layer?.exam_questions) {
                         questionsData = lesson.application_layer.exam_questions;
                       }
                     }
+                    if (!Array.isArray(questionsData)) {
+                      questionsData = [];
+                    }
                     
                     const quiz: Quiz = {
-                      id: 'session-quiz-' + activeSession.id,
-                      title: activeSession.session_title,
-                      questions: questionsData.map((q: any) => ({
-                        id: q.question_id || generateId(),
-                        question: q.question || q.question_text || q.text || 'Missing question text',
-                        type: q.type || 'mcq',
-                        marks: q.marks || 1,
-                        options: q.options || [],
-                        correctAnswer: (q.options || []).indexOf(q.correct_answer) >= 0 ? (q.options || []).indexOf(q.correct_answer) : 0,
-                        correctAnswerText: q.correct_answer || q.model_answer || '',
-                        explanation: q.mark_scheme || q.explanation || ''
-                      }))
+                      id: 'session-quiz-' + (activeSession.id || generateId()),
+                      title: activeSession.session_title || 'Quiz Session',
+                      questions: questionsData.map((q: any) => {
+                        const options = Array.isArray(q.options) ? q.options : [];
+                        const correctAnswerVal = q.correct_answer || q.model_answer || '';
+                        let correctAnswerIdx = options.indexOf(correctAnswerVal);
+                        if (correctAnswerIdx < 0 && options.length > 0) {
+                          correctAnswerIdx = 0;
+                        }
+                        return {
+                          id: q.question_id || generateId(),
+                          question: q.question || q.question_text || q.text || 'Identify the correct concept',
+                          type: q.type || 'mcq',
+                          marks: Number(q.marks) || 1,
+                          options: options,
+                          correctAnswer: correctAnswerIdx >= 0 ? correctAnswerIdx : 0,
+                          correctAnswerText: correctAnswerVal,
+                          explanation: q.mark_scheme || q.explanation || 'No explanation provided.'
+                        };
+                      })
                     };
                     setState(prev => ({
                       ...prev,
@@ -970,19 +1000,17 @@ function AppContent() {
             }
           />
 
-          <Suspense fallback={null}>
-                        <AIGenerator 
-              stats={state.stats} 
-              onGenerated={handleAIGenerated}
-              onOpenPremium={() => setIsShopOpen(true)}
-              onNavigate={(v) => setCurrentView(v as View)}
-              isOpen={isForgeOpen}
-              onOpenChange={setIsForgeOpen}
-              initialTopic={forgeTopic}
-              hideTrigger={true}
-              isAdmin={isAdmin}
-            />
-          </Suspense>
+          <AIGenerator 
+            stats={state.stats} 
+            onGenerated={handleAIGenerated}
+            onOpenPremium={() => setIsShopOpen(true)}
+            onNavigate={(v) => setCurrentView(v as View)}
+            isOpen={isForgeOpen}
+            onOpenChange={setIsForgeOpen}
+            initialTopic={forgeTopic}
+            hideTrigger={true}
+            isAdmin={isAdmin}
+          />
 
           <AccountSettings isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
           <AdminPanel 
@@ -1010,24 +1038,31 @@ function AppContent() {
       {/* Sidebar / Navigation (Floating Dock) */}
       <aside 
         className={cn(
-          "fixed left-6 top-6 bottom-6 z-50 w-64 bg-white/[0.02] backdrop-blur-[30px] border border-white/10 rounded-[2.5rem] transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] shadow-[0_24px_80px_-12px_rgba(0,0,0,0.6)] flex flex-col group/sidebar overflow-hidden",
+          "fixed left-6 top-6 bottom-6 z-50 bg-white/[0.02] backdrop-blur-[30px] border border-white/10 rounded-[2.5rem] transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] shadow-[0_24px_80px_-12px_rgba(0,0,0,0.6)] flex flex-col group/sidebar overflow-hidden",
           isMobileMenuOpen ? "translate-x-0" : "lg:translate-x-0 -translate-x-full",
+          isSidebarCollapsed ? "lg:w-20 w-64" : "w-64",
           state.stats.currentTheme === 'Signal Lost' && "glitch-static opacity-90"
         )}
       >
         <div 
           tabIndex={0}
-          className="flex-1 overflow-y-auto no-scrollbar focus:outline-none p-8 py-10 space-y-12"
+          className={cn(
+            "flex-1 overflow-y-auto no-scrollbar focus:outline-none py-10 space-y-12 transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)]",
+            isSidebarCollapsed ? "px-3" : "p-8"
+          )}
           aria-label="Navigation sidebar"
         >
             <div className="flex flex-col items-center gap-4 group">
               <motion.div 
                 whileHover={{ rotate: 5, scale: 1.05 }}
-                className="w-16 h-16 bg-gradient-to-br from-forge-accent to-orange-600 rounded-[1.5rem] flex items-center justify-center text-forge-dark shadow-[0_0_30px_rgba(251,146,60,0.4)] border border-white/20"
+                className={cn(
+                  "bg-gradient-to-br from-forge-accent to-orange-600 rounded-[1.5rem] flex items-center justify-center text-forge-dark shadow-[0_0_30px_rgba(251,146,60,0.4)] border border-white/20 shrink-0 transition-all duration-700",
+                  isSidebarCollapsed ? "w-12 h-12" : "w-16 h-16"
+                )}
               >
-                <BrainCircuit size={32} strokeWidth={2.5} />
+                <BrainCircuit size={isSidebarCollapsed ? 24 : 32} strokeWidth={2.5} className="transition-all duration-700" />
               </motion.div>
-              <div className="text-center">
+              <div className={cn("text-center transition-all duration-500", isSidebarCollapsed ? "lg:hidden opacity-0 h-0 overflow-hidden" : "opacity-100")}>
                 <h1 className="text-2xl font-black tracking-[-0.05em] font-display text-white uppercase italic leading-tight">
                   Study <span className="text-forge-accent text-glow">Forge</span>
                 </h1>
@@ -1036,48 +1071,59 @@ function AppContent() {
             </div>
 
           <nav className="space-y-1.5">
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setCurrentView(item.id as View);
-                  setIsMobileMenuOpen(false);
-                  soundService.playClick();
-                }}
-                className={cn(
-                  "w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 relative group overflow-hidden outline-none",
-                  currentView === item.id 
-                    ? "text-white bg-white/10 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.1)]" 
-                    : "text-white/40 hover:text-white/80 hover:bg-white/[0.03] focus:bg-white/[0.03]"
-                )}
-              >
-                {currentView === item.id && (
-                  <motion.div 
-                    layoutId="nav-glow"
-                    className="absolute inset-0 bg-gradient-to-r from-forge-accent/20 to-transparent blur-md pointer-events-none"
-                  />
-                )}
-                <span className={cn(
-                  "transition-colors",
-                  currentView === item.id ? "text-forge-accent" : "group-hover:text-white group-focus:text-white"
-                )}>
-                  {item.icon}
+            {navItems.map((item) => {
+              const isActive = currentView === item.id || (item.id === 'lessons' && showLessons);
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    if (item.id === 'lessons') {
+                      setShowLessons(true);
+                    } else {
+                      setCurrentView(item.id as View);
+                    }
+                    setIsMobileMenuOpen(false);
+                    soundService.playClick();
+                  }}
+                  className={cn(
+                    "w-full flex items-center transition-all duration-300 relative group overflow-hidden outline-none rounded-2xl text-[10px] font-black uppercase tracking-[0.2em]",
+                    isSidebarCollapsed ? "lg:justify-center lg:px-0 lg:py-4 gap-4 px-5 py-4" : "gap-4 px-5 py-4",
+                    isActive 
+                      ? "text-white bg-white/10 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.1)]" 
+                      : "text-white/40 hover:text-white/80 hover:bg-white/[0.03] focus:bg-white/[0.03]"
+                  )}
+                  title={isSidebarCollapsed ? item.label : undefined}
+                >
+                  {isActive && (
+                    <motion.div 
+                      layoutId="nav-glow"
+                      className="absolute inset-0 bg-gradient-to-r from-forge-accent/20 to-transparent blur-md pointer-events-none"
+                    />
+                  )}
+                  <span className={cn(
+                    "transition-colors shrink-0",
+                    isActive ? "text-forge-accent" : "group-hover:text-white group-focus:text-white"
+                  )}>
+                    {item.icon}
+                  </span>
+                <span className={cn("relative z-10 transition-all duration-300 truncate", isSidebarCollapsed ? "lg:hidden opacity-0 w-0" : "opacity-100")}>
+                  {item.label}
                 </span>
-                <span className="relative z-10">{item.label}</span>
               </button>
-            ))}
+              );
+            })}
           </nav>
 
           <div className="pt-8 border-t border-white/5 space-y-6">
             <ForgeHeatIcon streak={state.stats.streak} />
             
-            <div className="flex items-center gap-2">
+            <div className={cn("flex items-center gap-2 transition-all duration-700", isSidebarCollapsed ? "lg:flex-col lg:w-full" : "flex-row")}>
               <button
                   onClick={() => {
                       setIsShopOpen(true);
                       soundService.playClick();
                   }}
-                  className="flex-1 flex items-center justify-center p-4 bg-white/5 text-white/60 rounded-2xl transition-all hover:bg-white/10 hover:text-white border border-white/5 active:scale-95 outline-none focus:bg-white/10"
+                  className="flex-1 w-full flex items-center justify-center p-4 bg-white/5 text-white/60 rounded-2xl transition-all hover:bg-white/10 hover:text-white border border-white/5 active:scale-95 outline-none focus:bg-white/10"
                   title="Embers Shop"
               >
                   <Store size={18} />
@@ -1089,7 +1135,7 @@ function AppContent() {
                         setIsAdminPanelOpen(true);
                         soundService.playClick();
                     }}
-                    className="flex-1 flex items-center justify-center p-4 bg-red-500/5 text-red-500/60 rounded-2xl transition-all hover:bg-red-500/20 hover:text-red-500 border border-red-500/10 active:scale-95 outline-none focus:bg-red-500/20"
+                    className="flex-1 w-full flex items-center justify-center p-4 bg-red-500/5 text-red-500/60 rounded-2xl transition-all hover:bg-red-500/20 hover:text-red-500 border border-red-500/10 active:scale-95 outline-none focus:bg-red-500/20"
                     title="Activist Panel"
                 >
                     <Shield size={18} />
@@ -1098,14 +1144,17 @@ function AppContent() {
             </div>
 
             {user ? (
-               <div className="flex items-center gap-3 p-4 bg-white/[0.03] rounded-[1.5rem] border border-white/10 relative group overflow-hidden">
+               <div className={cn(
+                 "flex items-center rounded-[1.5rem] border border-white/10 relative group overflow-hidden transition-all duration-300",
+                 isSidebarCollapsed ? "lg:p-2 lg:justify-center p-4 bg-white/[0.03] gap-3" : "gap-3 p-4 bg-white/[0.03]"
+               )}>
                  <div className="relative w-10 h-10 shrink-0">
                     <div className="absolute inset-0 bg-forge-accent/20 blur-lg rounded-full animate-pulse" />
                     <div className="relative w-10 h-10 rounded-full p-[2px] bg-gradient-to-br from-forge-accent to-orange-400 overflow-hidden">
                       <img src={user.photoURL || ''} alt="" className="w-full h-full rounded-full object-cover" />
                     </div>
                  </div>
-                 <div className="flex-1 min-w-0">
+                 <div className={cn("flex-1 min-w-0 transition-all duration-300", isSidebarCollapsed ? "lg:hidden opacity-0 w-0" : "opacity-100")}>
                    <p className="text-[8px] font-black text-white/40 uppercase tracking-widest truncate">
                      {user.displayName || 'Academic Hero'}
                    </p>
@@ -1114,18 +1163,26 @@ function AppContent() {
                  
                  <button 
                    onClick={handleLogout}
-                   className="absolute -top-2 -right-2 p-3 bg-red-500 text-white rounded-bl-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 -translate-y-2 group-hover:translate-x-0 group-hover:translate-y-0"
+                   className={cn(
+                     "absolute p-3 bg-red-500 text-white rounded-bl-2xl transition-all duration-300 transform",
+                     isSidebarCollapsed 
+                       ? "lg:inset-0 lg:rounded-[1.5rem] lg:flex lg:items-center lg:justify-center lg:translate-x-0 lg:translate-y-0 opacity-0 group-hover:opacity-100" 
+                       : "-top-2 -right-2 translate-x-2 -translate-y-2 group-hover:translate-x-0 group-hover:translate-y-0 opacity-0 group-hover:opacity-100"
+                   )}
                    title="Log Out"
                  >
                    <LogOut size={14} />
                  </button>
                </div>
             ) : (
-              <div className="flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/5 relative group">
+              <div className={cn(
+                "flex items-center border border-white/5 relative group transition-all duration-300",
+                isSidebarCollapsed ? "lg:p-2 lg:justify-center p-4 bg-white/5 rounded-full gap-3" : "gap-3 p-4 bg-white/5 rounded-2xl"
+              )}>
                 <div className="w-10 h-10 rounded-full bg-forge-accent text-forge-dark flex items-center justify-center text-sm font-black shadow-[0_0_20px_rgba(251,146,60,0.4)] shrink-0">
                   {level}
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className={cn("flex-1 min-w-0 transition-all duration-300", isSidebarCollapsed ? "lg:hidden opacity-0 w-0" : "opacity-100")}>
                   <p className="text-[8px] font-black text-white/40 uppercase tracking-widest truncate">
                     Guest Researcher
                   </p>
@@ -1133,7 +1190,12 @@ function AppContent() {
                 </div>
                 <button 
                   onClick={handleLogout}
-                  className="absolute -top-2 -right-2 p-2 bg-forge-dark border border-white/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:text-white"
+                  className={cn(
+                    "absolute transition-opacity hover:text-white",
+                    isSidebarCollapsed
+                      ? "lg:inset-0 lg:rounded-full lg:bg-red-500/90 lg:text-white lg:flex lg:items-center lg:justify-center opacity-0 group-hover:opacity-100"
+                      : "-top-2 -right-2 p-2 bg-forge-dark border border-white/10 rounded-lg opacity-0 group-hover:opacity-100"
+                  )}
                   title="Session Login"
                 >
                   <LogOut size={14} />
@@ -1151,11 +1213,53 @@ function AppContent() {
             className="absolute inset-y-0 left-0 bg-forge-accent shadow-[0_0_10px_rgba(251,146,60,0.5)]" 
            />
         </div>
+
+        {/* Interactive Vertical Divider right edge */}
+        <div 
+          onClick={() => {
+            const nextState = !isSidebarCollapsed;
+            setIsSidebarCollapsed(nextState);
+            localStorage.setItem('sidebar-collapsed', String(nextState));
+            soundService.playClick();
+          }}
+          className="absolute right-0 top-0 bottom-0 w-2.5 hover:w-3 bg-white/[0.01] hover:bg-forge-accent/15 border-l border-white/5 cursor-col-resize hover:cursor-pointer transition-all duration-300 flex items-center justify-center group/divider z-50"
+          title={isSidebarCollapsed ? "Expand Sidebar" : "Minimize Sidebar"}
+        >
+          <div className="w-[3px] h-14 rounded-full bg-white/10 group-hover/divider:bg-forge-accent/50 group-hover/divider:scale-y-110 transition-all duration-300 flex flex-col justify-between py-1 items-center">
+            <span className="w-1 h-1 rounded-full bg-white/40" />
+            <span className="w-1 h-1 rounded-full bg-white/40" />
+            <span className="w-1 h-1 rounded-full bg-white/40" />
+          </div>
+        </div>
       </aside>
 
+      {/* Sidebar Collapse Toggle Button */}
+      <button
+        onClick={() => {
+          const nextState = !isSidebarCollapsed;
+          setIsSidebarCollapsed(nextState);
+          localStorage.setItem('sidebar-collapsed', String(nextState));
+          soundService.playClick();
+        }}
+        className={cn(
+          "fixed top-12 z-[60] hidden lg:flex items-center justify-center w-8 h-8 rounded-full bg-stone-900/95 border border-white/10 text-white/60 hover:text-white hover:bg-stone-800 hover:scale-110 active:scale-95 shadow-[0_0_15px_rgba(0,0,0,0.5)] transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] cursor-pointer",
+          isSidebarCollapsed ? "left-[88px]" : "left-[264px]"
+        )}
+        title={isSidebarCollapsed ? "Expand Sidebar" : "Minimize Sidebar"}
+      >
+        <motion.div
+          animate={{ rotate: isSidebarCollapsed ? 0 : 180 }}
+          transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
+        >
+          <ChevronRight size={16} />
+        </motion.div>
+      </button>
 
       {/* Main Content */}
-      <main className="lg:ml-80 min-h-screen relative z-10">
+      <main className={cn(
+        "min-h-screen relative z-10 transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)]",
+        isSidebarCollapsed ? "lg:ml-36" : "lg:ml-80"
+      )}>
         {/* Header */}
         <header className="sticky top-0 z-40 bg-forge-dark/60 backdrop-blur-xl border-b border-white/5 lg:hidden">
           <div className="flex items-center justify-between p-5">
@@ -1177,7 +1281,7 @@ function AppContent() {
           </div>
         </header>
 
-        <div className="p-8 lg:p-16 max-w-[1600px] mx-auto">
+        <div className="p-4 sm:p-8 lg:p-16 max-w-[1600px] mx-auto">
           {/* Top Row for Desktop */}
           <div className="hidden lg:flex justify-end mb-12">
             <motion.div 
@@ -1261,7 +1365,7 @@ function AppContent() {
                       className="group flex items-center gap-4 px-10 py-5 bg-white text-forge-dark rounded-3xl shadow-[0_20px_50px_rgba(255,255,255,0.1)] font-display font-black uppercase italic tracking-tighter text-lg"
                     >
                       <Sparkles size={24} className="text-forge-accent group-hover:rotate-12 transition-transform" />
-                      Initialize Forge
+                      Lesson Generator
                     </motion.button>
                   </div>
                 )}

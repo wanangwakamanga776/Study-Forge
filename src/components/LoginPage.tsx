@@ -20,6 +20,13 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [isApk, setIsApk] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (window as any).Capacitor !== undefined) {
+      setIsApk(true);
+    }
+  }, []);
 
   // Sparks/Particles state
   const [sparks, setSparks] = useState<{ id: number; x: number; y: number; size: number; duration: number }[]>([]);
@@ -170,8 +177,9 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
         <div className="w-24 h-24 bg-forge-accent/20 rounded-[2rem] flex items-center justify-center mx-auto mb-6 forge-glow border-2 border-forge-accent/40 shadow-[0_0_50px_rgba(251,146,60,0.2)]">
           <Flame size={48} className="text-forge-accent" />
         </div>
-        <h1 className="text-6xl sm:text-7xl font-display font-black uppercase italic tracking-tighter text-white drop-shadow-[0_0_30px_rgba(251,146,60,0.4)]">
-          Study Forge <span className="text-[12px] bg-forge-accent text-stone-900 px-8 py-1 rounded-full font-black not-italic align-middle ml-3 tracking-widest shadow-[0_0_15px_rgba(251,146,60,0.5)]">BETA (UPDATE 2.0)</span>
+        <h1 className="text-4xl sm:text-6xl md:text-7xl font-display font-black uppercase italic tracking-tighter text-white drop-shadow-[0_0_30px_rgba(251,146,60,0.4)] flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
+          <span>Study Forge</span>
+          <span className="inline-block whitespace-nowrap text-[10px] sm:text-[12px] bg-forge-accent text-stone-900 px-4 sm:px-6 py-1 rounded-full font-black not-italic tracking-widest shadow-[0_0_15px_rgba(251,146,60,0.5)]">BETA (UPDATE 2.0)</span>
         </h1>
         <p className="text-forge-accent/60 font-black uppercase tracking-[0.4em] text-[8px] mt-3">
           Deep Learning • Academic Excellence
@@ -213,6 +221,22 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
                 <Shield size={16} className="text-green-500 shrink-0" />
                 <p className="text-[10px] font-black uppercase text-green-500 tracking-widest leading-tight">
                   {successMsg}
+                </p>
+              </motion.div>
+            )}
+
+            {isApk && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex flex-col gap-2"
+              >
+                <div className="flex items-center gap-2">
+                  <AlertCircle size={16} className="text-amber-500 shrink-0" />
+                  <span className="text-[10px] font-black uppercase text-amber-500 tracking-widest leading-none">Android APK Detected</span>
+                </div>
+                <p className="text-[9px] font-bold text-stone-300 leading-normal uppercase tracking-wider">
+                  Google sign-in is restricted inside Android WebViews. Please use your <strong>Email & Password</strong> to log in or register for 100% reliable cloud synchronization.
                 </p>
               </motion.div>
             )}

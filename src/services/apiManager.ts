@@ -450,6 +450,12 @@ export const PyraChatManager = {
 // SECTION 8 — PUBLIC API MANAGER
 // ─────────────────────────────────────────────────────────────────
 
+const LATEX_MANDATE = `\n\nMANDATORY LATEX FORMATTING COMPLIANCE:
+- You MUST format all mathematical expressions, equations, formulas, physical constants, chemical reactions, variables (like x, y), numeric fractions, and scientific notation using standard LaTeX syntax.
+- Use single dollar signs ($) for inline equations (e.g. $E=mc^2$ or $f(x) = x^2$).
+- Use double dollar signs ($$) for block or multi-line equations.
+- Never write plain text math like "x^2" or "alpha + beta" or "H2O". They MUST be formatted in LaTeX (e.g., $x^2$, $\\alpha + \\beta$, $\\text{H}_2\\text{O}$). This is critical for clear user understanding in the app's LaTeX-compatible renderer.`;
+
 export const ApiManager = {
   async generateContent({ type, content, mode = 'normal_study', requestedCount = null, level = 'gcse', subject = '', systemPrompt, responseSchema }: any) {
     const rate = RateLimiter.check();
@@ -474,16 +480,18 @@ export const ApiManager = {
       
       const maxTokens = (CONFIG.MAX_TOKENS as any)[type] || 4096;
 
+      const systemPromptWithLatex = `${systemPrompt || ''}${LATEX_MANDATE}`;
+
       // Try primary model
       try {
-        responseText = await callGenAI(modelName, systemPrompt, promptText, maxTokens, !!responseSchema, responseSchema);
+        responseText = await callGenAI(modelName, systemPromptWithLatex, promptText, maxTokens, !!responseSchema, responseSchema);
       } catch (err: any) {
         lastErr = err;
         // Fallback to flash unconditionally if pro fails
         if (modelName !== CONFIG.MODELS.flash) {
           try {
             console.warn(`[ApiManager] Fallback to ${CONFIG.MODELS.flash} due to error:`, err);
-            responseText = await callGenAI(CONFIG.MODELS.flash, systemPrompt, promptText, maxTokens, !!responseSchema, responseSchema);
+            responseText = await callGenAI(CONFIG.MODELS.flash, systemPromptWithLatex, promptText, maxTokens, !!responseSchema, responseSchema);
           } catch (e) { lastErr = e; }
         }
       }
@@ -506,7 +514,7 @@ export const ApiManager = {
 
     PyraChatManager.addMessage(sessionId, 'user', userMessage);
     const history = PyraChatManager.getHistory(sessionId);
-    const fullSystemPrompt = `${systemPrompt}\n\nFORGE_DOCUMENT:\n${forgeDocument ? forgeDocument.slice(0, 3000) : 'No doc.'}\n\nFORGE_DATA:\n${JSON.stringify(forgeData || {}).slice(0, 1000)}`;
+    const fullSystemPrompt = `${systemPrompt}\n\nFORGE_DOCUMENT:\n${forgeDocument ? forgeDocument.slice(0, 3000) : 'No doc.'}\n\nFORGE_DATA:\n${JSON.stringify(forgeData || {}).slice(0, 1000)}${LATEX_MANDATE}`;
 
     RateLimiter.increment();
     

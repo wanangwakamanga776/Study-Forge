@@ -137,11 +137,9 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [pastedText, setPastedText] = useState('');
-  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
   const [progress, setProgress] = useState(0);
-  const [refinementInput, setRefinementInput] = useState('');
-  const [isRefining, setIsRefining] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [lessonName, setLessonName] = useState('');
   const [generatedLesson, setGeneratedLesson] = useState<any>(null);
@@ -149,14 +147,41 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({
   const [generatedQuiz, setGeneratedQuiz] = useState<any>(null);
 
   useEffect(() => { if (initialTopic && isOpen) setPastedText(initialTopic); }, [initialTopic, isOpen]);
+
   const handleFileSelect = (file: File) => {
     const allowed = ['.pdf', '.docx', '.doc', '.rtf', '.odt', '.pages', '.txt', '.pptx', '.ppt', '.ppsx', '.odp', '.key', '.potx'];
     if (allowed.some(ext => file.name.toLowerCase().endsWith(ext))) {
       setSelectedFile(file);
       setError(null);
       soundService.playSuccess();
-    } else { setError('Please upload a valid document or slide file.'); }
+    } else { 
+      setError('Unsupported file type. Please upload a valid document or presentation slides (PDF, DOCX, TXT, PPTX).'); 
+    }
   };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileSelect(e.dataTransfer.files[0]);
+    }
+  };
+
+  const removeSelectedFile = () => {
+    setSelectedFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    soundService.playClick();
+  };
+
   const deriveName = (aiTitle: string, fallback: string): string => {
     if (aiTitle && aiTitle.length > 3 && aiTitle.toLowerCase() !== 'untitled') return aiTitle;
     const words = fallback.trim().split(/\s+/).slice(0, 5).join(' ');
@@ -164,27 +189,100 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({
   };
 
   const generateLessonMaterial = async () => {
-    if (pastedText.trim().length < 20) { setError('Please provide at least 20 characters.'); return; }
+    if (!selectedFile && pastedText.trim().length < 20) { 
+      setError('Please provide at least 20 characters of information, or upload a study file.'); 
+      return; 
+    }
+    
+    setError(null);
     setIsGenerating(true);
-    setProgress(10); setLoadingMessage('Initializing Forge...');
+    setProgress(10); 
+    setLoadingMessage('Initializing Forge Engine...');
+    
     try {
-      const extractedText = selectedFile ? await extractTextFromFile(selectedFile) : '';
+      let extractedText = '';
+      if (selectedFile) {
+        setProgress(25);
+        setLoadingMessage('Extracting knowledge from document...');
+        extractedText = await extractTextFromFile(selectedFile);
+      }
+      
+      const contentToUse = extractedText || pastedText;
+      if (contentToUse.trim().length < 20) {
+        throw new Error('Could not extract sufficient text from document. Please ensure the document is not empty.');
+      }
+
+      setProgress(40);
+      setLoadingMessage('Conducting Cognitive Fusion...');
+      
       const rawTitle = selectedFile ? selectedFile.name.split('.')[0] : pastedText.substring(0, 30).trim();
       const { generateStudyMaterial } = await import('../services/aiService');
+      
+      setProgress(60);
+      setLoadingMessage('Synthesizing lessons, flashcards, and interactive quiz...');
+      
       const { deck, quiz, lesson } = await generateStudyMaterial(
-        extractedText || pastedText, rawTitle, pastedText, 15, 'medium', 'both', 'gcse', 'General', undefined, (stage) => {}, true, isAdmin, 'standard'
+        contentToUse, 
+        rawTitle, 
+        pastedText, 
+        15, 
+        'medium', 
+        'both', 
+        'gcse', 
+        'General', 
+        undefined, 
+        (stage) => {
+          if (stage === 'cards') {
+            setProgress(75);
+            setLoadingMessage('Assembling flashcard registry...');
+          } else if (stage === 'quiz') {
+            setProgress(88);
+            setLoadingMessage('Crafting evaluation suite...');
+          } else if (stage === 'finalizing') {
+            setProgress(95);
+            setLoadingMessage('Publishing curriculum matrix...');
+          }
+        }, 
+        true, 
+        isAdmin, 
+        'standard'
       );
+      
       setProgress(100);
       const aiSuggestedTitle = lesson?.audit_metadata?.title || rawTitle;
-      const finalName = deriveName(aiSuggestedTitle, pastedText);
-      setGeneratedLesson({ ...lesson, audit_metadata: { ...lesson.audit_metadata, title: finalName } });
-      setGeneratedDeck({ ...deck, title: finalName });
-      setGeneratedQuiz({ ...quiz, title: finalName });
+      const finalName = deriveName(aiSuggestedTitle, pastedText || rawTitle);
+      
+      const processedLesson = { 
+        ...lesson, 
+        audit_metadata: { ...lesson?.audit_metadata, title: finalName } 
+      };
+      const processedDeck = { ...deck, title: finalName };
+      const processedQuiz = { ...quiz, title: finalName };
+      
+      setGeneratedLesson(processedLesson);
+      setGeneratedDeck(processedDeck);
+      setGeneratedQuiz(processedQuiz);
       setLessonName(finalName);
+      
+      // Send directly to the store/state
+      if (processedLesson) onGenerated('lesson', processedLesson);
+      if (processedDeck) onGenerated('flashcards', processedDeck);
+      if (processedQuiz) onGenerated('quiz', processedQuiz);
+      
       setIsSuccess(true);
       soundService.playSuccess();
-      addToast({ icon: <Layers size={18} className="text-emerald-400" />, title: 'Forge Complete', body: 'Lesson and materials ready', color: 'bg-slate-900/90 border-emerald-500/30' });
-    } catch (err: any) { setError(err.message || 'Error'); } finally { setIsGenerating(false); }
+      addToast({ 
+        icon: <Layers size={18} className="text-emerald-400" />, 
+        title: 'Curriculum Created', 
+        body: `Study elements generated for: ${finalName}`, 
+        color: 'bg-stone-900/95 border-emerald-500/30 text-white' 
+      });
+    } catch (err: any) { 
+      console.error(err);
+      setError(err.message || 'Error occurred during generation.'); 
+    } finally { 
+      setIsGenerating(false); 
+    }
   };
 
   const handleNameChange = (newName: string) => {
@@ -197,22 +295,237 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({
   return (
     <>
       <ToastStack toasts={toasts} onRemove={removeToast} />
-      {!hideTrigger && <button onClick={() => { setIsOpen(true); soundService.playClick(); }} className="flex items-center gap-3 px-8 py-4 bg-white text-forge-dark rounded-2xl">Lesson Generator</button>}
+      {!hideTrigger && (
+        <button 
+          onClick={() => { setIsOpen(true); soundService.playClick(); }} 
+          className="flex items-center gap-3 px-8 py-4 bg-white text-forge-dark rounded-2xl hover:bg-stone-100 transition-colors shadow-lg font-bold"
+        >
+          Lesson Generator
+        </button>
+      )}
+      
       <AnimatePresence>
         {isOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div onClick={() => !isGenerating && setIsOpen(false)} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
-            <motion.div className="relative w-full max-w-2xl glass-card rounded-[2.5rem] p-12">
-              {isSuccess ? (
-                <div className="py-6 flex flex-col gap-8">
-                  <div className="text-center text-white">Mastery Forged!</div>
-                  <EditableName value={lessonName} onChange={handleNameChange} />
-                  <button onClick={() => { setIsOpen(false); setIsSuccess(false); }} className="w-full py-4 bg-white/10 rounded-xl text-white">Exit</button>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !isGenerating && setIsOpen(false)} 
+              className="absolute inset-0 bg-black/85 backdrop-blur-md" 
+            />
+            
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ type: "spring", duration: 0.5 }}
+              className="relative w-full max-w-2xl bg-stone-950/95 border border-white/10 rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-10 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] overflow-y-auto max-h-[90vh] no-scrollbar flex flex-col"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/5 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-forge-accent/10 rounded-xl border border-forge-accent/20">
+                    <BrainCircuit className="text-forge-accent" size={22} />
+                  </div>
+                  <div>
+                    <h2 className="font-display font-black uppercase italic tracking-tighter text-white text-xl sm:text-2xl leading-none">Cognitive Forge</h2>
+                    <p className="text-white/40 text-[9px] font-black uppercase tracking-widest mt-1">Lesson Material Architect</p>
+                  </div>
+                </div>
+                {!isGenerating && (
+                  <button 
+                    onClick={() => { setIsOpen(false); soundService.playClick(); }}
+                    className="p-2 hover:bg-white/5 rounded-xl text-white/40 hover:text-white/80 transition-colors"
+                  >
+                    <X size={20} />
+                  </button>
+                )}
+              </div>
+
+              {isGenerating ? (
+                /* Dynamic Generating State */
+                <div className="flex-1 py-12 flex flex-col items-center justify-center text-center space-y-8 my-auto">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-forge-accent/20 rounded-full blur-2xl animate-pulse" />
+                    <motion.div 
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 4, ease: "linear" }}
+                      className="w-24 h-24 border-4 border-white/5 border-t-forge-accent rounded-full flex items-center justify-center relative z-10"
+                    >
+                      <Sparkles size={32} className="text-forge-accent animate-bounce" />
+                    </motion.div>
+                  </div>
+                  
+                  <div className="space-y-3 max-w-md">
+                    <h3 className="font-display font-black uppercase italic tracking-tighter text-white text-2xl">Forging Mastery</h3>
+                    <p className="text-forge-accent font-mono text-xs tracking-wider animate-pulse">{loadingMessage}</p>
+                    <p className="text-white/40 text-[10px] leading-relaxed">Please do not close this window. Our AI Core is processing your request into modular curriculum slides, flashcards, and custom quizzes.</p>
+                  </div>
+
+                  {/* High-fidelity Progress Meter */}
+                  <div className="w-full max-w-sm space-y-2">
+                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-white/50">
+                      <span>SYNAPSE CONNECTION</span>
+                      <span>{progress}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden border border-white/10">
+                      <motion.div 
+                        className="h-full bg-forge-accent shadow-[0_0_15px_rgba(251,146,60,0.8)]"
+                        animate={{ width: `${progress}%` }}
+                        transition={{ duration: 0.3 }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : isSuccess ? (
+                /* Success celebration state */
+                <div className="flex-1 py-8 flex flex-col items-center justify-center text-center space-y-8 my-auto">
+                  <div className="w-20 h-20 bg-emerald-500/20 border-2 border-emerald-500/40 rounded-full flex items-center justify-center shadow-[0_0_35px_rgba(16,185,129,0.3)]">
+                    <CheckCircle2 size={40} className="text-emerald-400" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-4 py-1 rounded-full font-black uppercase tracking-widest">Mastery Forged</span>
+                    <h3 className="text-2xl sm:text-3xl font-display font-black uppercase italic tracking-tighter text-white pt-2 leading-none">Curriculum Integrated!</h3>
+                    <p className="text-white/50 text-xs max-w-sm mx-auto leading-relaxed">Your lesson, interactive flashcard deck, and test simulation were built flawlessly. You can rename the lesson below.</p>
+                  </div>
+
+                  <div className="w-full max-w-md p-5 bg-white/5 rounded-2xl border border-white/10">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-3 text-left">LESSON SCHEMATIC NAME</p>
+                    <EditableName value={lessonName} onChange={handleNameChange} />
+                  </div>
+
+                  <div className="w-full max-w-md flex flex-col gap-3 pt-4">
+                    <button 
+                      onClick={() => { 
+                        setIsOpen(false); 
+                        setIsSuccess(false); 
+                        setSelectedFile(null);
+                        setPastedText('');
+                        soundService.playSuccess();
+                      }} 
+                      className="w-full py-4 bg-white text-forge-dark rounded-xl font-bold hover:bg-stone-100 transition-colors shadow-lg shadow-white/5"
+                    >
+                      Review My New Lesson
+                    </button>
+                    <button 
+                      onClick={() => { 
+                        setIsSuccess(false); 
+                        setSelectedFile(null);
+                        setPastedText('');
+                        soundService.playClick();
+                      }}
+                      className="w-full py-4 bg-transparent border border-white/10 hover:bg-white/5 text-white/80 rounded-xl text-xs transition-colors"
+                    >
+                      Forge Another Topic
+                    </button>
+                  </div>
                 </div>
               ) : (
-                <div className="space-y-8">
-                  <textarea value={pastedText} onChange={e => setPastedText(e.target.value)} className="w-full h-80 bg-transparent p-8 text-white text-lg placeholder:text-stone-700 focus:outline-none resize-none" />
-                  <button disabled={isGenerating || pastedText.trim().length < 20} onClick={generateLessonMaterial} className="w-full py-7 bg-white text-forge-dark rounded-[2rem]">Initialize Forge</button>
+                /* Edit & Input setup state */
+                <div className="flex-1 flex flex-col gap-6 overflow-y-auto no-scrollbar pr-1">
+                  {/* Drag and Drop Box */}
+                  <div 
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={cn(
+                      "border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all duration-300 flex flex-col items-center justify-center min-h-[160px]",
+                      isDragging 
+                        ? "border-forge-accent bg-forge-accent/10 scale-[0.99] shadow-[0_0_30px_rgba(251,146,60,0.15)]" 
+                        : selectedFile 
+                          ? "border-emerald-500/40 bg-emerald-500/5 hover:bg-emerald-500/10" 
+                          : "border-white/10 hover:border-white/20 hover:bg-white/[0.02]"
+                    )}
+                  >
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      className="hidden" 
+                      onChange={e => e.target.files && handleFileSelect(e.target.files[0])}
+                      accept=".pdf,.docx,.doc,.rtf,.odt,.pages,.txt,.pptx,.ppt,.ppsx,.odp,.key,.potx"
+                    />
+
+                    {selectedFile ? (
+                      <div className="flex flex-col items-center space-y-3" onClick={e => e.stopPropagation()}>
+                        <div className="p-3 bg-emerald-500/20 rounded-xl text-emerald-400 border border-emerald-500/30">
+                          <FileText size={28} />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-sm font-bold text-white max-w-xs truncate">{selectedFile.name}</p>
+                          <p className="text-[10px] text-white/40 font-mono">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB • READY FOR COGNITIVE EXTRACTION</p>
+                        </div>
+                        <button 
+                          onClick={removeSelectedFile}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/40 rounded-lg text-xs text-red-400 font-bold transition-all"
+                        >
+                          <Trash2 size={12} />
+                          Remove File
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="p-3 bg-white/5 rounded-xl text-white/50 mb-3 group-hover:text-forge-accent transition-colors">
+                          <Upload size={24} />
+                        </div>
+                        <p className="text-xs font-black uppercase tracking-wider text-white">Upload Study Source</p>
+                        <p className="text-[10px] text-white/40 mt-1 max-w-xs leading-relaxed">Drag and drop documents, lectures, or textbook chapters here, or click to browse</p>
+                        <p className="text-[8px] text-white/20 mt-3 font-mono">SUPPORTED: PDF, DOCX, TXT, PPTX, PAGES, RTF</p>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Text Input Prompt */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-white/50">
+                      <span>{selectedFile ? "OPTIONAL CUSTOM INSTRUCTIONS" : "PASTE NOTES OR ENTER STUDY TOPIC"}</span>
+                      <span>{pastedText.length} CHARS</span>
+                    </div>
+                    <div className="relative bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden focus-within:border-white/10 transition-colors">
+                      <textarea 
+                        value={pastedText} 
+                        onChange={e => { setPastedText(e.target.value); if (error) setError(null); }} 
+                        placeholder={
+                          selectedFile 
+                            ? "Optional: Give specific instruction to the AI (e.g. 'focus on Chapter 3 rules', 'explain using easy analogies', etc.)" 
+                            : "Enter a subject (e.g. 'Quantum Physics principles', 'WW2 European Theater outline'), paste reference text, or list specific terms to forge a study guide..."
+                        }
+                        className="w-full h-36 sm:h-44 bg-transparent p-4 text-white text-sm placeholder:text-white/20 focus:outline-none resize-none leading-relaxed" 
+                      />
+                    </div>
+                  </div>
+
+                  {/* Error display */}
+                  {error && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-3 text-red-400"
+                    >
+                      <AlertCircle className="shrink-0 mt-0.5" size={16} />
+                      <div className="text-xs leading-relaxed font-semibold">{error}</div>
+                    </motion.div>
+                  )}
+
+                  {/* Forge button */}
+                  <div className="pt-2 shrink-0">
+                    <button 
+                      disabled={isGenerating || (!selectedFile && pastedText.trim().length < 20)} 
+                      onClick={() => { generateLessonMaterial(); soundService.playClick(); }} 
+                      className={cn(
+                        "w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2.5 transition-all shadow-lg",
+                        (!selectedFile && pastedText.trim().length < 20)
+                          ? "bg-white/5 text-white/20 cursor-not-allowed border border-white/5"
+                          : "bg-white hover:bg-stone-100 text-forge-dark shadow-white/5 hover:shadow-white/10"
+                      )}
+                    >
+                      <Sparkles size={16} />
+                      Forge Study Guide
+                    </button>
+                    <p className="text-center text-[9px] text-white/30 mt-3 uppercase tracking-wider font-mono">Consumes 1 daily AI allocation • Rewards 50 XP</p>
+                  </div>
                 </div>
               )}
             </motion.div>

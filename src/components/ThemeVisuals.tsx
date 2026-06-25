@@ -1,8 +1,13 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useForgeStore } from '../contexts/ForgeStoreContext';
+import { cn } from '../lib/utils';
 
-export function ThemeVisuals() {
+interface ThemeVisualsProps {
+  isSidebarCollapsed?: boolean;
+}
+
+export function ThemeVisuals({ isSidebarCollapsed }: ThemeVisualsProps) {
   const { currentTheme, atmosphere, decks, stats } = useForgeStore();
   const [ripples, setRipples] = useState<{ id: number; x: number; y: number; color: string }[]>([]);
   const [quotaLow, setQuotaLow] = useState(false);
@@ -385,7 +390,10 @@ export function ThemeVisuals() {
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            className="fixed bottom-32 left-8 z-[60] bg-forge-dark/60 backdrop-blur-md border border-white/10 p-3 rounded-xl max-w-xs pointer-events-auto shadow-2xl"
+            className={cn(
+              "fixed bottom-6 lg:bottom-8 left-6 right-6 lg:right-auto z-[60] bg-forge-dark/60 backdrop-blur-md border border-white/10 p-3 rounded-xl max-w-xs pointer-events-auto shadow-2xl transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)]",
+              isSidebarCollapsed ? "lg:left-28" : "lg:left-80"
+            )}
           >
              <p className="text-[10px] font-black text-forge-accent uppercase tracking-widest mb-1">Atmospheric Scan</p>
              <p className="text-xs text-stone-300 font-bold leading-tight">{atmosphere.ambient_descriptor}</p>

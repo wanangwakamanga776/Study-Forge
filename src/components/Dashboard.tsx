@@ -68,7 +68,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onNavigate, onSelec
       {/* Cinematic Hero Section & Core Stats Bento Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Knowledge Scraper Hero - Bento Large */}
-        <section className="lg:col-span-3 relative group overflow-hidden rounded-[3.5rem] p-12 glass-card border-white/10 shadow-2xl cinematic-shadow min-h-[450px] flex flex-col justify-center">
+        <section className="lg:col-span-3 relative group overflow-hidden rounded-[2rem] sm:rounded-[3.5rem] p-6 sm:p-12 glass-card border-white/10 shadow-2xl cinematic-shadow min-h-[300px] sm:min-h-[450px] flex flex-col justify-center">
           <div className="absolute inset-0 bg-gradient-to-br from-forge-dark via-forge-dark to-orange-950/20 z-0" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,146,60,0.1),transparent_50%)] z-1" />
           <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-forge-accent/10 rounded-full blur-[100px] animate-pulse" />
@@ -85,7 +85,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onNavigate, onSelec
                   <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/50">Ready to Learn</span>
                 </motion.div>
               </div>
-              <h2 className="text-5xl md:text-7xl font-black font-display uppercase italic tracking-tighter text-white leading-[0.85] drop-shadow-2xl">
+              <h2 className="text-3xl sm:text-5xl md:text-7xl font-black font-display uppercase italic tracking-tighter text-white leading-none sm:leading-[0.85] drop-shadow-2xl">
                 Master Your <br/> <span className="text-forge-accent text-glow">Topics</span>
               </h2>
               <p className="text-white/40 font-medium italic text-lg max-w-xl leading-relaxed border-l border-white/10 pl-8">
@@ -130,7 +130,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onNavigate, onSelec
         <div className="grid grid-cols-1 gap-6">
           <motion.div 
             whileHover={{ y: -5, scale: 1.02 }}
-            className="p-8 glass-card rounded-[3rem] border border-white/5 flex flex-col justify-between relative overflow-hidden group h-full"
+            className="p-5 sm:p-8 glass-card rounded-[2rem] sm:rounded-[3rem] border border-white/5 flex flex-col justify-between relative overflow-hidden group h-full"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-forge-accent/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="flex items-center justify-between mb-8 relative z-10">
@@ -154,7 +154,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onNavigate, onSelec
 
           <motion.div 
             whileHover={{ y: -5, scale: 1.02 }}
-            className="p-8 glass-card rounded-[3rem] border border-white/5 flex flex-col justify-between relative overflow-hidden group h-full"
+            className="p-5 sm:p-8 glass-card rounded-[2rem] sm:rounded-[3rem] border border-white/5 flex flex-col justify-between relative overflow-hidden group h-full"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="flex items-center justify-between mb-8 relative z-10">
@@ -221,7 +221,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onNavigate, onSelec
           </section>
 
           {/* Curriculum Lessons & Activity */}
-          <section className="glass-card rounded-[3.5rem] p-12 relative overflow-hidden">
+          <section className="glass-card rounded-[2rem] sm:rounded-[3.5rem] p-6 sm:p-12 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-forge-accent/5 blur-[100px] pointer-events-none" />
             <div className="flex items-center justify-between mb-12">
               <div>
@@ -311,13 +311,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onNavigate, onSelec
         {/* Sidebar Widgets Column */}
         <div className="xl:col-span-4 space-y-10">
           {/* Daily Quests - Shifted to sidebar for better balance */}
-          <div className="glass-card rounded-[3rem] p-8 border border-white/5">
+          <div className="glass-card rounded-[2rem] sm:rounded-[3rem] p-5 sm:p-8 border border-white/5">
              <DailyQuests />
           </div>
 
           {/* Strategic Planner Preview */}
-          <div className="glass-card rounded-[3rem] overflow-hidden border border-white/5 flex flex-col">
-            <div className="p-8 border-b border-white/5 flex items-center justify-between">
+          <div className="glass-card rounded-[2rem] sm:rounded-[3rem] overflow-hidden border border-white/5 flex flex-col">
+            <div className="p-5 sm:p-8 border-b border-white/5 flex items-center justify-between">
               <div>
                 <h3 className="font-display font-black uppercase italic tracking-tighter text-white text-2xl">Study Plan</h3>
                 <p className="text-white/20 text-[8px] font-black uppercase tracking-[0.3em]">Tasks</p>
@@ -330,7 +330,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onNavigate, onSelec
                 <Target size={20} />
               </button>
             </div>
-            <div className="p-8 space-y-8">
+            <div className="p-5 sm:p-8 space-y-8">
               {todayTasks.length > 0 ? (
                 <div className="space-y-6">
                   {todayTasks.slice(0, 5).map(task => (
@@ -375,7 +375,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onNavigate, onSelec
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="glass-card rounded-[3rem] p-10 flex flex-col items-center text-center relative overflow-hidden group border border-white/5 cinematic-shadow"
+            className="glass-card rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-10 flex flex-col items-center text-center relative overflow-hidden group border border-white/5 cinematic-shadow"
           >
             <div className="absolute inset-0 bg-gradient-to-t from-forge-accent/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
             
@@ -408,7 +408,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onNavigate, onSelec
           </motion.div>
 
           {/* Activity Feed */}
-          <div className="glass-card rounded-[3rem] p-8 border border-white/5">
+          <div className="glass-card rounded-[2rem] sm:rounded-[3rem] p-5 sm:p-8 border border-white/5">
              <div className="flex items-center gap-3 mb-8">
                 <Activity size={20} className="text-forge-accent" />
                 <h3 className="font-display font-black uppercase italic tracking-tighter text-white text-xl">Recent Activity</h3>
@@ -432,14 +432,14 @@ const QuickActionButton: React.FC<{ icon: React.ReactNode, label: string, color:
     whileTap={{ scale: 0.95 }}
     onClick={onClick}
     className={cn(
-      "flex flex-col items-center justify-center p-8 aspect-square rounded-[2.5rem] text-white shadow-xl transition-all duration-300 relative overflow-hidden group glass-card glass-card-hover",
+      "flex flex-col items-center justify-center p-4 sm:p-8 aspect-square rounded-[1.5rem] sm:rounded-[2.5rem] text-white shadow-xl transition-all duration-300 relative overflow-hidden group glass-card glass-card-hover",
       color
     )}
   >
-    <div className="mb-4 p-5 bg-white/5 rounded-3xl group-hover:bg-forge-accent/20 transition-all duration-500 group-hover:shadow-[0_0_30px_rgba(251,146,60,0.3)] text-white/30 group-hover:text-forge-accent group-hover:rotate-6">
+    <div className="mb-2 sm:mb-4 p-3 sm:p-5 bg-white/5 rounded-2xl sm:rounded-3xl group-hover:bg-forge-accent/20 transition-all duration-500 group-hover:shadow-[0_0_30px_rgba(251,146,60,0.3)] text-white/30 group-hover:text-forge-accent group-hover:rotate-6 [&_svg]:w-5 [&_svg]:h-5 sm:[&_svg]:w-6 sm:[&_svg]:h-6">
       {icon}
     </div>
-    <span className="font-black text-[10px] uppercase tracking-[0.3em] text-white/20 group-hover:text-white transition-colors">{label}</span>
+    <span className="font-black text-[8px] sm:text-[10px] uppercase tracking-[0.2em] sm:tracking-[0.3em] text-white/20 group-hover:text-white transition-colors">{label}</span>
   </motion.button>
 );
 

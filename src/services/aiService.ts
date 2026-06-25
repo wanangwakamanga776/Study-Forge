@@ -394,30 +394,238 @@ export async function generateModeSession(
   const data = await ApiManager.generateContent({
     type: 'audit',
     content: `Generate a specialized ${selectedMode} study session for student ${studentContext.name}. 
-    Use the following audit data: ${JSON.stringify(auditData)}`,
-    systemPrompt: `You are the Forge Mode Engine. Create immersive study sessions based on previous neural audits.`,
+    Use the following audit data: ${JSON.stringify(auditData)}.
+    Ensure you generate:
+    1. A customized session_title.
+    2. An opening_message motivating the student.
+    3. mode_exclusive_content outlining a quick markdown briefing summary.
+    4. flashcard_session with cards tailored to this mode.
+    5. exam_session containing simulated test questions tailored to this mode.
+    6. A closing_prompt guiding the student's next steps.`,
+    systemPrompt: `You are the Forge Mode Engine. Create immersive study sessions based on previous neural audits. You must strictly adhere to the response schema structure, generating high-quality questions and cards.`,
     responseSchema: {
       type: Type.OBJECT,
       properties: {
         session_title: { type: Type.STRING },
         opening_message: { type: Type.STRING },
-        flashcard_session: { 
+        closing_prompt: { type: Type.STRING },
+        mode_exclusive_content: {
           type: Type.OBJECT,
           properties: {
-            cards: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { front: { type: Type.STRING }, back: { type: Type.STRING } } } }
-          }
+            type: { type: Type.STRING },
+            content: { type: Type.STRING }
+          },
+          required: ["type", "content"]
         },
-        closing_prompt: { type: Type.STRING }
-      }
+        flashcard_session: {
+          type: Type.OBJECT,
+          properties: {
+            cards: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  card_id: { type: Type.STRING },
+                  front: { type: Type.STRING },
+                  back: { type: Type.STRING },
+                  hint: { type: Type.STRING },
+                  memory_hook: { type: Type.STRING },
+                  mode_specific_tip: { type: Type.STRING },
+                  sm2_initial_ease_factor: { type: Type.NUMBER },
+                  sm2_initial_interval_days: { type: Type.NUMBER }
+                },
+                required: ["card_id", "front", "back", "hint", "memory_hook", "mode_specific_tip", "sm2_initial_ease_factor", "sm2_initial_interval_days"]
+              }
+            },
+            total_cards: { type: Type.NUMBER },
+            estimated_minutes: { type: Type.NUMBER },
+            session_structure: { type: Type.STRING }
+          },
+          required: ["cards", "total_cards", "estimated_minutes", "session_structure"]
+        },
+        exam_session: {
+          type: Type.OBJECT,
+          properties: {
+            questions: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  question_id: { type: Type.STRING },
+                  type: { type: Type.STRING },
+                  marks: { type: Type.NUMBER },
+                  question_text: { type: Type.STRING },
+                  options: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  correct_answer: { type: Type.STRING },
+                  model_answer: { type: Type.STRING },
+                  mark_scheme: { type: Type.STRING },
+                  explanation: { type: Type.STRING }
+                },
+                required: ["question_id", "type", "marks", "question_text", "options", "correct_answer"]
+              }
+            },
+            total_questions: { type: Type.NUMBER },
+            total_marks: { type: Type.NUMBER },
+            estimated_minutes: { type: Type.NUMBER },
+            mode_instructions: { type: Type.STRING }
+          },
+          required: ["questions", "total_questions", "total_marks", "estimated_minutes", "mode_instructions"]
+        }
+      },
+      required: ["session_title", "opening_message", "closing_prompt", "mode_exclusive_content", "flashcard_session", "exam_session"]
     }
   });
 
-  return {
+  // Post-processing guard rail to guarantee absolute robustness
+  const finalSession: ModeEngineSession = {
     id: generateId(),
     lessonId: auditData.id!,
     mode: selectedMode,
     createdAt: Date.now(),
-    ...data
+    session_title: data.session_title || `${selectedMode.replace('_', ' ').toUpperCase()} Session`,
+    opening_message: data.opening_message || "Welcome to your Study Forge session. Let's begin.",
+    closing_prompt: data.closing_prompt || "Keep pushing forward! Success is built step by step.",
+    mode_exclusive_content: {
+      type: data.mode_exclusive_content?.type || "Key Briefing",
+      content: data.mode_exclusive_content?.content || auditData.semantic_map?.central_thesis || "Deep dive analysis of materials."
+    },
+    flashcard_session: {
+      cards: (data.flashcard_session?.cards || []).map((c: any, index: number) => ({
+        card_id: c.card_id || `fc-${index}-${generateId()}`,
+        front: c.front || "Concept",
+        back: c.back || "Explanation",
+        hint: c.hint || "Think about the central theme.",
+        memory_hook: c.memory_hook || "Visualize this connection.",
+        mode_specific_tip: c.mode_specific_tip || "Key recall prompt.",
+        sm2_initial_ease_factor: Number(c.sm2_initial_ease_factor) || 2.5,
+        sm2_initial_interval_days: Number(c.sm2_initial_interval_days) || 1
+      })),
+      total_cards: Number(data.flashcard_session?.total_cards) || (data.flashcard_session?.cards || []).length || 5,
+      estimated_minutes: Number(data.flashcard_session?.estimated_minutes) || 5,
+      session_structure: data.flashcard_session?.session_structure || "Recall and retention practice."
+    },
+    exam_session: {
+      questions: (data.exam_session?.questions || []).map((q: any, index: number) => ({
+        question_id: q.question_id || `q-${index}-${generateId()}`,
+        type: q.type || 'mcq',
+        marks: Number(q.marks) || 1,
+        question_text: q.question_text || q.question || "Identify the core concept.",
+        options: q.options || ["Option A", "Option B", "Option C", "Option D"],
+        correct_answer: q.correct_answer || q.correctAnswerText || "Option A",
+        model_answer: q.model_answer || q.correct_answer || "Option A",
+        mark_scheme: q.mark_scheme || q.explanation || "No schema provided.",
+        explanation: q.explanation || q.mark_scheme || "No explanation provided."
+      })),
+      total_questions: Number(data.exam_session?.total_questions) || (data.exam_session?.questions || []).length || 3,
+      total_marks: Number(data.exam_session?.total_marks) || (data.exam_session?.questions || []).reduce((sum: number, q: any) => sum + (Number(q.marks) || 1), 0) || 3,
+      estimated_minutes: Number(data.exam_session?.estimated_minutes) || 10,
+      mode_instructions: data.exam_session?.mode_instructions || "Solve the problems under simulated exam conditions."
+    }
+  };
+
+  return finalSession;
+}
+
+function getLocalSRSAnalysis(
+  studentName: string,
+  subject: string,
+  sessionData: any,
+  fullDeckStats: any
+): SRSIntelligenceAnalysis {
+  const cardsReviewed: any[] = sessionData?.cards_reviewed || [];
+  const totalReviewed = cardsReviewed.length || 1;
+  const correctCount = cardsReviewed.filter(c => (c.grade_given ?? c.grade ?? 5) >= 4).length;
+  const accuracy = Math.round((correctCount / totalReviewed) * 100);
+  
+  let fastestCardId = 'unknown';
+  let slowestCardId = 'unknown';
+  let fastestTime = Infinity;
+  let slowestTime = -1;
+  let totalTime = 0;
+
+  cardsReviewed.forEach(c => {
+    const ms = Number(c.response_time_ms) || 3000;
+    totalTime += ms;
+    if (ms < fastestTime) {
+      fastestTime = ms;
+      fastestCardId = c.card_id;
+    }
+    if (ms > slowestTime) {
+      slowestTime = ms;
+      slowestCardId = c.card_id;
+    }
+  });
+
+  const avgTime = Math.round(totalTime / totalReviewed);
+
+  let quality: 'excellent' | 'good' | 'average' | 'poor' | 'crisis' = 'good';
+  let reason = "You maintained a solid rhythm and solid retention across review terms.";
+  let cognitiveLoad = "Moderate cognitive friction. Synaptic paths holding stable under normal conditions.";
+
+  if (accuracy >= 90) {
+    quality = 'excellent';
+    reason = "Exceptional conceptual consolidation. Your synaptic retrieval is running at maximum efficiency.";
+    cognitiveLoad = "Low cognitive load. This topic has achieved solid neural myelination.";
+  } else if (accuracy < 60) {
+    quality = 'poor';
+    reason = "Friction detected. High recall failure rate suggests memory traces are fading quickly.";
+    cognitiveLoad = "High cognitive stress. Consider breaking concepts down into simpler atomic definitions.";
+  }
+
+  return {
+    id: generateId(),
+    createdAt: Date.now(),
+    session_analysis: {
+      retention_rate_this_session: accuracy / 100,
+      average_response_time_ms: avgTime,
+      fastest_card_id: fastestCardId,
+      slowest_card_id: slowestCardId,
+      session_quality: quality,
+      session_quality_reason: reason,
+      estimated_next_session_retention: Math.min(1.0, (accuracy / 100) * 1.05),
+      cognitive_load_assessment: cognitiveLoad
+    },
+    pattern_detection: [
+      {
+        pattern_type: accuracy < 75 ? 'concept_confusion' : 'rote_memorisation',
+        pattern_name: accuracy < 75 ? "Cognitive Interference Wave" : "Rote Recall Consolidating",
+        evidence: `Session accuracy was ${accuracy}% with an average recall velocity of ${(avgTime/1000).toFixed(1)}s per card.`,
+        explanation: accuracy < 75 
+          ? "Highly similar definitions or competing academic terms are overlapping in your short-term storage, leading to retrieval interference."
+          : "You are successfully retrieving concepts, but they are heavily reliant on literal keyword matching rather than deep semantic structures.",
+        recommended_action: accuracy < 75
+          ? "Compare contrasting definitions side-by-side. Highlight the single critical differentiating factor of each term."
+          : "Try explaining the concepts out loud in your own words or create a physical mind-map connecting these terms.",
+        severity: accuracy < 75 ? 'moderate' : 'minor'
+      }
+    ],
+    cards_needing_intervention: cardsReviewed.filter(c => (c.grade_given ?? c.grade ?? 5) < 3).slice(0, 2).map(c => ({
+      card_id: String(c.card_id),
+      intervention_type: 'add_memory_hook',
+      reason: "This card was marked as forgotten or incorrect with a low response grade.",
+      action_taken: "Injected local memory anchor blueprint."
+    })),
+    new_cards_generated: [],
+    improved_memory_hooks: cardsReviewed.filter(c => (c.grade_given ?? c.grade ?? 5) < 3).slice(0, 2).map(c => ({
+      card_id: String(c.card_id),
+      old_hook: "",
+      new_hook: "Anchor with a visual acronym: try grouping keywords of the answer into a simple 3-letter acronym.",
+      hook_type: 'acronym',
+      why_this_will_work_better: "Creating an easy abbreviation provides an immediate recall trigger."
+    })),
+    retention_predictions: cardsReviewed.slice(0, 2).map(c => ({
+      card_id: String(c.card_id),
+      current_interval_days: Number(c.interval) || 1,
+      predicted_retention_at_due_date_percent: (c.grade_given ?? c.grade ?? 5) >= 4 ? 85 : 45,
+      recommendation: (c.grade_given ?? c.grade ?? 5) >= 4 ? ('advance' as const) : ('pull_forward' as const),
+      reasoning: "Computed based on active recall velocity and correctness feedback from this review session."
+    })),
+    motivational_output: {
+      honest_assessment: `You reviewed ${totalReviewed} flashcard(s) with ${accuracy}% accuracy. Your retrieval engine is functioning at a ${quality} level.`,
+      one_thing_to_fix: accuracy < 75 ? "Focus on cards where you took longer than 5 seconds to respond." : "Maintain a consistent daily streak to cement the neural paths.",
+      milestone_approaching: "Synaptic Convergence Level 3 is only 5 reviews away.",
+      streak_status: `Streak of ${fullDeckStats?.study_streak_days || 0} days is holding hot. Stoke the fire!`
+    }
   };
 }
 
@@ -427,78 +635,89 @@ export async function analyzeSRSSession(
   sessionData: any,
   fullDeckStats: any
 ): Promise<SRSIntelligenceAnalysis> {
-  const result = await ApiManager.generateContent({
-    type: 'progression',
-    content: JSON.stringify({ session: sessionData, stats: fullDeckStats }),
-    subject,
-    systemPrompt: `Analyze SRS performance for ${studentName} in ${subject}. Provide insights on cognitive load and retention.`,
-    responseSchema: {
-      type: Type.OBJECT,
-      properties: {
-        session_analysis: {
-          type: Type.OBJECT,
-          properties: {
-            retention_rate_this_session: { type: Type.NUMBER },
-            average_response_time_ms: { type: Type.NUMBER },
-            session_quality: { type: Type.STRING },
-            session_quality_reason: { type: Type.STRING },
-            cognitive_load_assessment: { type: Type.STRING }
+  if (isQuotaLow) {
+    return getLocalSRSAnalysis(studentName, subject, sessionData, fullDeckStats);
+  }
+  try {
+    const result = await ApiManager.generateContent({
+      type: 'progression',
+      content: JSON.stringify({ session: sessionData, stats: fullDeckStats }),
+      subject,
+      systemPrompt: `Analyze SRS performance for ${studentName} in ${subject}. Provide insights on cognitive load and retention.`,
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          session_analysis: {
+            type: Type.OBJECT,
+            properties: {
+              retention_rate_this_session: { type: Type.NUMBER },
+              average_response_time_ms: { type: Type.NUMBER },
+              session_quality: { type: Type.STRING },
+              session_quality_reason: { type: Type.STRING },
+              cognitive_load_assessment: { type: Type.STRING }
+            },
+            required: ["retention_rate_this_session", "session_quality"]
           },
-          required: ["retention_rate_this_session", "session_quality"]
-        },
-        pattern_detection: {
-          type: Type.ARRAY,
-          items: {
+          pattern_detection: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                pattern_name: { type: Type.STRING },
+                explanation: { type: Type.STRING },
+                severity: { type: Type.STRING },
+                recommended_action: { type: Type.STRING }
+              }
+            }
+          },
+          improved_memory_hooks: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                card_id: { type: Type.STRING },
+                new_hook: { type: Type.STRING }
+              }
+            }
+          },
+          new_cards_generated: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                front: { type: Type.STRING },
+                back: { type: Type.STRING },
+                topic_tag: { type: Type.STRING },
+                card_type: { type: Type.STRING },
+                generated_because: { type: Type.STRING },
+                memory_hook: { type: Type.STRING },
+                sm2_initial_ease_factor: { type: Type.NUMBER },
+                sm2_initial_interval_days: { type: Type.NUMBER }
+              }
+            }
+          },
+          motivational_output: {
             type: Type.OBJECT,
             properties: {
-              pattern_name: { type: Type.STRING },
-              explanation: { type: Type.STRING },
-              severity: { type: Type.STRING },
-              recommended_action: { type: Type.STRING }
+              honest_assessment: { type: Type.STRING },
+              one_thing_to_fix: { type: Type.STRING },
+              milestone_approaching: { type: Type.STRING },
+              streak_status: { type: Type.STRING }
             }
           }
         },
-        improved_memory_hooks: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              card_id: { type: Type.STRING },
-              new_hook: { type: Type.STRING }
-            }
-          }
-        },
-        new_cards_generated: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              front: { type: Type.STRING },
-              back: { type: Type.STRING },
-              topic_tag: { type: Type.STRING },
-              card_type: { type: Type.STRING },
-              generated_because: { type: Type.STRING },
-              memory_hook: { type: Type.STRING },
-              sm2_initial_ease_factor: { type: Type.NUMBER },
-              sm2_initial_interval_days: { type: Type.NUMBER }
-            }
-          }
-        },
-        motivational_output: {
-          type: Type.OBJECT,
-          properties: {
-            honest_assessment: { type: Type.STRING },
-            one_thing_to_fix: { type: Type.STRING },
-            milestone_approaching: { type: Type.STRING },
-            streak_status: { type: Type.STRING }
-          }
-        }
-      },
-      required: ["session_analysis", "pattern_detection", "improved_memory_hooks", "new_cards_generated", "motivational_output"]
-    }
-  });
+        required: ["session_analysis", "pattern_detection", "improved_memory_hooks", "new_cards_generated", "motivational_output"]
+      }
+    });
 
-  return { id: generateId(), createdAt: Date.now(), ...result };
+    return { id: generateId(), createdAt: Date.now(), ...result };
+  } catch (error: any) {
+    console.warn("[Progression API] Error analyzing SRS session, using high-fidelity local engine:", error);
+    if (error.code === 'RATE_LIMITED' || error.message?.includes('RATE_LIMIT') || error.message?.includes('QUOTA')) {
+      setQuotaLow(true);
+    }
+    return getLocalSRSAnalysis(studentName, subject, sessionData, fullDeckStats);
+  }
 }
 
 /**
@@ -1572,184 +1791,404 @@ export async function generateExam(text: string, title: string, timeLimit: numbe
   };
 }
 
+function getOfflineRewardContent(
+  purchase: EmberPurchaseData, 
+  student: EmberStudentData, 
+  activeSkin: string = 'Default'
+): EmberRewardResponse {
+  const { item_id, ember_cost } = purchase;
+  const newBalance = student.current_embers - ember_cost;
+  
+  const itemDescriptions: Record<string, { name: string; type: string; desc: string; action: string }> = {
+    theme_void_cartographer: {
+      name: "Void Cartographer",
+      type: "Cosmetic Theme",
+      desc: "An ambient star-mapping interface crafted with vintage brass controls, deep midnight blue palettes, and quill-scratching acoustics. Focus among the star systems.",
+      action: "Set as Active Theme"
+    },
+    theme_deep_forge: {
+      name: "Inner Fire (Deep Forge)",
+      type: "Cosmetic Theme",
+      desc: "A blistering dark-orange smithy workspace. Hear the distant clang of hydraulic mallets and let the heat of molten steel steel your concentration.",
+      action: "Set as Active Theme"
+    },
+    theme_signal_lost: {
+      name: "Radio Mystery (Signal Lost)",
+      type: "Cosmetic Theme",
+      desc: "A completely isolated study bunker with warm vacuum tubes, ticking tape decks, and the soothing static of background cosmic radiation. Unplug from the world.",
+      action: "Set as Active Theme"
+    },
+    theme_the_library_at_the_end: {
+      name: "Grand Archive",
+      type: "Cosmetic Theme",
+      desc: "A sprawling mahogany sanctuary where cedar scent and ancient manuscripts meet grandfather clocks. Deep quietness for perfect transcribing.",
+      action: "Set as Active Theme"
+    },
+    theme_eigenstate: {
+      name: "Perfect Focus (Eigenstate)",
+      type: "Cosmetic Theme",
+      desc: "An absolute zero, monochromatic cobalt quantum state. Pure superconducting silence to prevent any wave-decoherence. Let your probability waves collapse on mastery.",
+      action: "Set as Active Theme"
+    },
+    theme_bone_circuit: {
+      name: "Brain Link (Bone Circuit)",
+      type: "Cosmetic Theme",
+      desc: "A high-density cybernetic link showing neon green schemas mapped onto neural structures. Trace synaptic nodes with zero latency.",
+      action: "Set as Active Theme"
+    },
+    theme_abyssal_current: {
+      name: "Deep Ocean (Abyssal Current)",
+      type: "Cosmetic Theme",
+      desc: "A deep sea diving bell locked thousands of meters beneath the surface. Peer into the dark bioluminescence and handle extreme intellectual pressures safely.",
+      action: "Set as Active Theme"
+    },
+    theme_nebula_pulse: {
+      name: "Star Field (Nebula Pulse)",
+      type: "Cosmetic Theme",
+      desc: "A cosmic terminal drifting amongst pale purple dust clouds and slow-weaving planetary rings. Absolute interstellar peace for deep thought.",
+      action: "Set as Active Theme"
+    },
+    assist_skin_pyra_academic: {
+      name: "Pyra: Academic Scholar",
+      type: "Assistant Shell",
+      desc: "Upgrade Pyra's core dialog schemas to a high-density, rigorously detailed Oxford Academic persona. Perfect for strict exam focus.",
+      action: "Equip Assistant Shell"
+    },
+    assist_skin_pyra_mentor: {
+      name: "Pyra: Socratic Mentor",
+      type: "Assistant Shell",
+      desc: "Enable the Socratic inquiry algorithms. Pyra will guide your comprehension by asking deep, conceptual questions rather than giving simple answers.",
+      action: "Equip Assistant Shell"
+    },
+    assist_skin_pyra_cyber: {
+      name: "Pyra: Cyber-Guide Node",
+      type: "Assistant Shell",
+      desc: "Initialize a high-frequency, telemetry-focused robotic guide that talks in precise technical terms and cybernetic data protocols.",
+      action: "Equip Assistant Shell"
+    },
+    assist_skin_pyra_calm: {
+      name: "Pyra: Zen Monk",
+      type: "Assistant Shell",
+      desc: "Upgrade Pyra to a calming, slow-tempo mindfulness companion that centers on deep breathing, focus breaks, and anti-burnout pacing.",
+      action: "Equip Assistant Shell"
+    }
+  };
+
+  const matched = itemDescriptions[item_id] || {
+    name: "Premium Unlock",
+    type: "Educational Artifact",
+    desc: `You have successfully unlocked the premium artifact (${item_id}). It has been deposited into your Study Vault and is fully optimized for your academic journey.`,
+    action: "Access Artifact"
+  };
+
+  return {
+    reward_delivered: { 
+      item_id, 
+      item_name: matched.name, 
+      ember_cost, 
+      new_balance: newBalance, 
+      delivery_message: `Your transaction has been authorized. Transmitting ${matched.name} into your local repository.` 
+    },
+    reward_content: { 
+      type: matched.type, 
+      content: matched.desc, 
+      follow_up_action: matched.action 
+    }
+  };
+}
+
 export async function generateRewardContent(
   purchase: EmberPurchaseData, 
   student: EmberStudentData, 
   activeSkin: string = 'Default'
 ): Promise<EmberRewardResponse> {
-  if (isQuotaLow) {
-    return {
-      reward_delivered: { 
-        item_id: purchase.item_id, 
-        item_name: "Standard Unlock", 
-        ember_cost: purchase.ember_cost, 
-        new_balance: student.current_embers - purchase.ember_cost, 
-        delivery_message: "Your cognitive expansion has been authorized (Local Cache Mode)." 
-      },
-      reward_content: { 
-        type: "Study Material", 
-        content: "Material successfully unlocked in the Vault. Access it via the Library.", 
-        follow_up_action: "Examine Material" 
-      }
-    };
-  }
+  // Save crucial API quota: shop rewards are static catalog items and can be resolved instantly offline
+  // This avoids wasting API quota on simple transactional unlocks.
+  return getOfflineRewardContent(purchase, student, activeSkin);
+}
 
-  try {
-    const data = await ApiManager.generateContent({
-      type: 'embers',
-      content: `Item: ${purchase.item_id}. Student: ${student.name}. Focus: ${student.subject_focus}. Skin: ${activeSkin}`,
-      systemPrompt: "Generate exclusive reward content as JSON.",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          item_id: { type: Type.STRING },
-          item_name: { type: Type.STRING },
-          content: { type: Type.STRING },
-          follow_up_action: { type: Type.STRING }
-        }
-      }
-    });
+function getDynamicOfflineAtmosphere(req: AtmosphereRequest): AtmosphereResponse {
+  const { active_theme, student_name, subject_context, trigger } = req;
+  const subj = subject_context || 'your academic pursuits';
+  const name = student_name || 'Scholar';
+  
+  const themesData: Record<string, {
+    greetings: string[];
+    ambients: string[];
+    forgecast: string[];
+    milestones: string[];
+    ends: string[];
+  }> = {
+    void_cartographer: {
+      greetings: [
+        `The void expanse unfurls, ${name}. Chart your course through the intricacies of ${subj}.`,
+        `Welcome to the cartography deck, ${name}. Aligning ink wells and compasses for ${subj}.`,
+        `Coordinates locked on ${subj}. Prepare your ledger, Cartographer ${name}.`
+      ],
+      ambients: [
+        "Faint scratching of a brass quill on heavy vellum parchment. A quiet pendulum swings.",
+        "Dust motes dancing in gold candle beams. Cool air draft carrying scent of salt-water leather.",
+        "Quiet static echoes from deep space antennas mapping faraway coordinate clusters."
+      ],
+      forgecast: [
+        `Cartographic beacon stabilized on ${subj}. Mapping resolution optimal.`,
+        "Topographical scan stream of data feeds flowing smoothly. Ink layers dry.",
+        "Ink scratching and star coordinates fully aligned. Broadcast clean."
+      ],
+      milestones: [
+        `Outstanding! A new conceptual boundary of ${subj} has been successfully charted, ${name}.`,
+        `Milestone reached! Another unexplored island of knowledge in ${subj} has been claimed.`,
+        `Pristine coordinates logged. You have mapped a critical junction in this domain.`
+      ],
+      ends: [
+        `Roll up the scrolls, ${name}. Today's star charts for ${subj} are safely preserved in the archives.`,
+        "Closing the cartography ledger. Blow out the candles. Rest well, Cartographer.",
+        "Expedition successfully concluded. Grid systems shutting down. Stand by."
+      ]
+    },
+    deep_forge: {
+      greetings: [
+        `The furnace is stoked, ${name}. Let the intense pressure mold your understanding of ${subj}.`,
+        `Into the molten depths, ${name}. Feed the flames of curiosity with the structures of ${subj}.`,
+        `Heat levels optimal, ${name}. Ready to forge raw intellectual matter into tempered knowledge of ${subj}.`
+      ],
+      ambients: [
+        "Quiet rhythmic rumble of heavy hydraulic steel pistons. Intense heat radiates from deep orange cracks.",
+        "Molten orange steel pouring into sand molds. Sizzling steam rises from cooling troughs.",
+        "Distant steady beat of heavy iron mallets beating carbon steel to crystalline purity."
+      ],
+      forgecast: [
+        `Forge furnace at optimal combustion. Crystalline alignment for ${subj} verified.`,
+        "Blast pressure holding steady. Mental impurities being boiled away.",
+        "Molecular binding active. Fusing complex cognitive nodes into hardened structures."
+      ],
+      milestones: [
+        `Excellent strike, ${name}! Your focused concentration has tempered another steel ingot in ${subj}!`,
+        `Tempered under immense pressure! A foundational concept of ${subj} has been forged successfully.`,
+        "Superb heat treatment! Your understanding of this topic is now structurally unbreakable."
+      ],
+      ends: [
+        `Allow the furnace to rest, ${name}. The tools are cold, and your newly forged shield of ${subj} is complete.`,
+        "Let the metal cool. Powering down the hydraulic blowers. Magnificent smelting session, Scholar.",
+        "Forge fires returning to smoldering embers. The steel has been tempered. Stand down."
+      ]
+    },
+    signal_lost: {
+      greetings: [
+        `Faint sub-frequency broadcasting online, ${name}. Isolating the signal for ${subj}.`,
+        `Static hums in the earphones, ${name}. Let's tune the frequency knob into ${subj}.`,
+        `Welcome back to the underground transmission booth, ${name}. Broadcast stream clear for ${subj}.`
+      ],
+      ambients: [
+        "Soft background hiss of magnetic audio tape rolling. The green oscilloscope wave pulses.",
+        "Warm orange glow of retro vacuum tube amplifiers. Gentle rain tapping on concrete outside.",
+        "Distant sea-wave white noise mixed with vintage analog oscillator drift."
+      ],
+      forgecast: [
+        `Analog receiver locked on the central transmission of ${subj}. Gain levels normalized.`,
+        "Telemetry bandwidth stable. Low interference detected across all sectors.",
+        "Solenoid click. Vintage tape deck spinning smoothly. Signal strength high."
+      ],
+      milestones: [
+        `Signal lock acquired, ${name}! You've decoded an elusive conceptual transmission of ${subj}!`,
+        `Data packet received and error-corrected. Faint whispers have turned into clear knowledge.`,
+        "Scope peak detected! You successfully mapped the main resonance peak of this module."
+      ],
+      ends: [
+        `Powering down the transmitter, ${name}. The broadcast reels for ${subj} are saved. Goodnight.`,
+        "Switching off the broadcast channel. Vacuum tubes cooling in the dark. Silence returns.",
+        "Tape fully wound. Analog circuits returned to standby. Rest your ears, Scholar."
+      ]
+    },
+    the_library_at_the_end: {
+      greetings: [
+        `Welcome back to the silent corridors, ${name}. Let us open the heavy volumes of ${subj}.`,
+        `The Grand Archive welcomes you, ${name}. Deep silence reigns. Ready to index ${subj}.`,
+        `Scent of ancient cedar and paper awaits, ${name}. Let us transcribe ${subj}.`
+      ],
+      ambients: [
+        "Distant ticking of a giant grandfather clock. Gentle rustling of fragile, hundred-year-old pages.",
+        "Warm mahogany tables reflecting soft green banker lamp glows. The smell of old leather and wax.",
+        "Deep, cathedral-like quietness. Soft rain whispering against high stained glass windows."
+      ],
+      forgecast: [
+        `Catalog systems fully loaded. Transcribing key theorems of ${subj} in real-time.`,
+        "Ink flow smooth. The scribe console registers perfect focus levels.",
+        "Silent corridor acoustics mapped. Cognitive absorbing rate at maximum."
+      ],
+      milestones: [
+        `Superb transcript, ${name}! You have mastered and shelved a complex volume of ${subj}!`,
+        `Knowledge indexed! A delicate manuscript in ${subj} has been meticulously cataloged.`,
+        "A magnificent addition to the Grand Archive. The ink of your comprehension is indelible."
+      ],
+      ends: [
+        `Close the heavy registry, ${name}. Put away the spectacles. Your study of ${subj} is complete.`,
+        "Extinguish the reading lamps. The grand oak doors are closing. Elegant work tonight.",
+        "The archive is secured. The clock continues to tick in the dark. Rest your eyes, Scholar."
+      ]
+    },
+    eigenstate: {
+      greetings: [
+        `System state initialized, ${name}. Commencing focus wave collapse on ${subj}.`,
+        `Quantum resonance tuned, ${name}. Aligning eigenvalues for ${subj}.`,
+        `Coherence levels verified, ${name}. Stand by to resolve the eigenstates of ${subj}.`
+      ],
+      ambients: [
+        "Absolute mathematical silence. Gridlines of deep cobalt-blue light pulsing at perfect intervals.",
+        "Faint digital humming of superconducting magnets. Superfluid helium cooling system running.",
+        "Clean, monochromatic laser line projecting key numerical formulas into the dark."
+      ],
+      forgecast: [
+        `Quantum coherence state at 99.99%. focus wave collapse on ${subj} is stable.`,
+        "Vector space transformation active. Projection operators locked on target nodes.",
+        "Decoherence risk eliminated. System state holds perfect quantum isolation."
+      ],
+      milestones: [
+        `State resolved, ${name}! You have forced a massive probability wave collapse in ${subj}!`,
+        `Quantized transition complete! Your mental state has jumped to a higher energy eigenvalue.`,
+        "Perfect probability. You've locked in the exact resonance frequency of this topic."
+      ],
+      ends: [
+        `State vector safely written to NVRAM, ${name}. Shutting down cryogenic loops for ${subj}.`,
+        "Probability waves returning to uniform superposition. Coherence session terminated. Rest now.",
+        "Focus loop completed. System registers cleared. Quantum core cooled to absolute zero."
+      ]
+    },
+    bone_circuit: {
+      greetings: [
+        `Synaptic link established, ${name}. Initializing high-speed transmission of ${subj}.`,
+        `Welcome to the nerve center, ${name}. Injecting key concepts of ${subj} directly into memory banks.`,
+        `Interface initialized, Node ${name}. Ready to bridge biological and digital nodes for ${subj}.`
+      ],
+      ambients: [
+        "Phosphor-green terminals tracing bioluminescent neural paths. Rhythmic electric hum.",
+        "Faint cooling fan noise from neural deck. Bioluminescent nodes sparking inside liquid containers.",
+        "Subtle electric crackle. Visual cortex synchronized with digital schema displays."
+      ],
+      forgecast: [
+        `Brainwave-to-terminal interface running at zero-latency. Memory synthesis on ${subj} is live.`,
+        "Data buffer fully synchronized. Neural sheath temperatures steady.",
+        "Axon pathway tracing active. Cognitive schemas displaying maximum absorption rate."
+      ],
+      milestones: [
+        `Synaptic bridge fused, ${name}! A permanent node in ${subj} has been written to the biological layer!`,
+        `Pathway consolidated! Dendritic spines updated with high-density data on this topic.`,
+        "Pristine memory rewrite. Your biological network has integrated this module flawlessly."
+      ],
+      ends: [
+        `Safe disconnection complete, Node ${name}. Brainwave frequency returning to rest state. ${subj} saved.`,
+        "Shutting down biological sync. Unplugging interface cables. Rest your mind, Node.",
+        "Transmission buffer flushed. Synaptic growth factor active. homeostasis restored."
+      ]
+    },
+    abyssal_current: {
+      greetings: [
+        `Submersible hull pressurized, ${name}. Diving deep into the dark trenches of ${subj}.`,
+        `Welcome to the abyssal deck, ${name}. The pressure is immense, let us discover ${subj}.`,
+        `Descent sequence initiated, ${name}. Sonar pinging the deep structures of ${subj}.`
+      ],
+      ambients: [
+        "Quiet mechanical pulse of heavy diving-bell oxygen valves. Outer dark ocean silence.",
+        "Soft amber gauges glowing on the brass hull dashboard. Pale blue bioluminescent jellyfish outside.",
+        "Rhythmic click of low-frequency sonar scanning the vast underwater canyons below."
+      ],
+      forgecast: [
+        `Submersible depth: 6,000 meters. Core structural pressure for ${subj} holding stable.`,
+        "Water density measurements constant. Telemetry downlinks flowing clearly.",
+        "Bioluminescent illumination active. Mapping hidden hydrothermal conceptual vents."
+      ],
+      milestones: [
+        `Ascended past the trench, ${name}! You have mapped a critical deep thermal vent of ${subj}!`,
+        `Deep core specimen retrieved! A rare and profound fundamental concept has been successfully secured.`,
+        "Magnificent diving! You have braved extreme mental pressures to secure this understanding."
+      ],
+      ends: [
+        `Diving bell docked safely, ${name}. Depressurization complete. Today's depth charts of ${subj} look pristine.`,
+        "Anchoring submersible. Turning off the external searchlights. Magnificent dive today, Scholar.",
+        "Ascending to shallow waters. Core systems turning off. Rest your focus, Diver."
+      ]
+    },
+    nebula_pulse: {
+      greetings: [
+        `Cosmic ignition active, ${name}. Orbiting the brilliant dust clouds of ${subj}.`,
+        `Welcome back to the astrometer terminal, ${name}. Aligning stellar focus on ${subj}.`,
+        `Warp drive initialized, ${name}. Commencing navigation of the star field of ${subj}.`
+      ],
+      ambients: [
+        "Deep interstellar silence. Soft pulsating purple and violet plasma fields outside.",
+        "Quiet clicking of an electromagnetic star tracker. Soft hum of cosmic microwave background.",
+        "Slow rotating views of pale nebula dust clouds swirling with absolute cosmic serenity."
+      ],
+      forgecast: [
+        `Stellar antenna aligned to deep-space beacons for ${subj}. Cosmic drift minimized.`,
+        "Nebula ionization levels within normal parameters. Spacecraft telemetry clear.",
+        "Magnetic stabilization active. Star maps for this module generated perfectly."
+      ],
+      milestones: [
+        `Orbit stabilized, ${name}! You have mapped a brilliant newborn star cluster of ${subj}!`,
+        `Cosmic anomaly decoded! You resolved a highly complex celestial mechanism in this topic.`,
+        "Star catalog updated! You've documented a radiant focal node in the cosmos."
+      ],
+      ends: [
+        `Thrusters offline, ${name}. Drifting peacefully in a stable orbit. Today's cosmic log for ${subj} is complete.`,
+        "Turning off telescope mirrors. Cosmic star field fading to dim night. Magnificent voyage, Astronomer.",
+        "Ignition key disengaged. Drifting safely among beautiful nebula fields. Rest well."
+      ]
+    },
+    default: {
+      greetings: [
+        `The system is prepared, ${name}. Let us forge your core understanding of ${subj}.`,
+        `Welcome to the study deck, ${name}. Systems ready to analyze and map ${subj}.`,
+        `Focus sequence initiated, ${name}. Let's master the details of ${subj}.`
+      ],
+      ambients: [
+        "Soft analog rustle of electronic components. Warm amber glass vacuum tubes warming up.",
+        "Very quiet ticking of a small focus timer. Fresh cedar wood pencil smell.",
+        "Subtle rhythmic soft keys tapping in a completely silent, distraction-free environment."
+      ],
+      forgecast: [
+        `Core systems aligned perfectly on ${subj}. Academic density calculations verified.`,
+        "Telemetry bandwidth running at maximum capacity. Low friction study mode.",
+        "Schema layers compiled. Ready to stream active learning data segments."
+      ],
+      milestones: [
+        `Stellar progress, ${name}! You have successfully cataloged a critical conceptual pillar of ${subj}!`,
+        `Milestone reached! You've established a secure understanding of this complex topic.`,
+        "Superb breakthrough! The conceptual pathways of this chapter are now fully understood."
+      ],
+      ends: [
+        `Study session completed, ${name}. Your academic progress log for ${subj} is fully preserved.`,
+        "Focus session ended. Systems winding down to low power standby. Fantastic work today.",
+        "Closing the lesson planner. Focus timer ringing. Take a well-deserved rest, Scholar."
+      ]
+    }
+  };
 
-    return {
-      reward_delivered: { 
-        item_id: data.item_id || purchase.item_id, 
-        item_name: data.item_name || "Unlocked Material", 
-        ember_cost: purchase.ember_cost, 
-        new_balance: student.current_embers - purchase.ember_cost, 
-        delivery_message: "Your cognitive expansion has been authorized." 
-      },
-      reward_content: { 
-        type: data.item_name || "Study Expansion", 
-        content: data.content || "Cognitive data forged successfully.", 
-        follow_up_action: data.follow_up_action || "Start learning now." 
-      }
-    };
-  } catch (err: any) {
-    if (err.code === 'RATE_LIMITED') setQuotaLow(true);
-    return {
-      reward_delivered: { 
-        item_id: purchase.item_id, 
-        item_name: "Recovery Unlock", 
-        ember_cost: purchase.ember_cost, 
-        new_balance: student.current_embers - purchase.ember_cost, 
-        delivery_message: "Unlock successful via backup protocols." 
-      },
-      reward_content: { 
-        type: "Backup Content", 
-        content: "Material has been safely deposited in the vault.", 
-        follow_up_action: "Proceed" 
-      }
-    };
-  }
+  const currentThemeData = themesData[active_theme] || themesData.default;
+  const rand = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
+  
+  return {
+    theme_id: active_theme,
+    session_greeting: rand(currentThemeData.greetings),
+    ambient_descriptor: rand(currentThemeData.ambients),
+    forgecast_atmosphere_line: rand(currentThemeData.forgecast),
+    milestone_message: rand(currentThemeData.milestones),
+    session_end_message: rand(currentThemeData.ends)
+  };
 }
 
 function getStaticAtmosphereFallback(themeId: string): AtmosphereResponse {
-  const fallbacks: Record<string, AtmosphereResponse> = {
-    void_cartographer: {
-      theme_id: 'void_cartographer',
-      session_greeting: "The empty parchment awaits your coordinates, Cartographer.",
-      ambient_descriptor: "Ink scratches on ancient velvet parchment. Quiet static echoes.",
-      forgecast_atmosphere_line: "Cartography link online. Map coordinates stable.",
-      milestone_message: "New territory charted successfully.",
-      session_end_message: "Roll up the scrolls. Today's expedition is complete."
-    },
-    deep_forge: {
-      theme_id: 'deep_forge',
-      session_greeting: "The magma pools churn quiet. Stoke the inner furnace.",
-      ambient_descriptor: "Rhythmic drumming of heavy steel rods. Blistering high-contrast orange embers.",
-      forgecast_atmosphere_line: "Forge furnace at optimal combustion. Ready to mold.",
-      milestone_message: "Your focus has tempered another steel ingot today.",
-      session_end_message: "Allow the metal to cool. The tools rest."
-    },
-    signal_lost: {
-      theme_id: 'signal_lost',
-      session_greeting: "Faint static whispers. Broadcast channel acquired.",
-      ambient_descriptor: "White-noise ocean beneath analog crackles. Safe and isolated.",
-      forgecast_atmosphere_line: "No interference on the sub-frequency. Sounding optimal.",
-      milestone_message: "A clear voice cut through the background radiation.",
-      session_end_message: "Transmission ends. Unplug safely."
-    },
-    the_library_at_the_end: {
-      theme_id: 'the_library_at_the_end',
-      session_greeting: "Welcome back to the silent corridors of the Grand Archive.",
-      ambient_descriptor: "Scent of cedarwood and disintegrating pages. The ticking clock grows faint.",
-      forgecast_atmosphere_line: "The candles burn steady. Universal catalog index loaded.",
-      milestone_message: "Another volume mastered and shelved in the infinite halls.",
-      session_end_message: "Close the registry. The ink dries."
-    },
-    eigenstate: {
-      theme_id: 'eigenstate',
-      session_greeting: "System state initialized. Probability wave collapse imminent.",
-      ambient_descriptor: "Absolute silence. Gridlines of deep steel-blue light pulse softly.",
-      forgecast_atmosphere_line: "Resonance tuned to your focus wavelength. Zero decoherence.",
-      milestone_message: "Quantized mental leap recorded. Progression state verified.",
-      session_end_message: "State stored in memory registers. Focus loop terminated."
-    },
-    bone_circuit: {
-      theme_id: 'bone_circuit',
-      session_greeting: "Neural sync complete. Welcome back, Node.",
-      ambient_descriptor: "Phosphor green text tracing calcium matrices. Bioluminescent sparks.",
-      forgecast_atmosphere_line: "Brainwave-to-terminal interface running at zero-latency.",
-      milestone_message: "Synaptic pathway fused. Dendrites updated.",
-      session_end_message: "Safe disconnection initiated. Neural sheath returning to homeostasis."
-    },
-    abyssal_current: {
-      theme_id: 'abyssal_current',
-      session_greeting: "The pressure is immense, yet the core holds. Steady on.",
-      ambient_descriptor: "Muted mechanical hum of deep diving bell. Dark ocean bioluminescence.",
-      forgecast_atmosphere_line: "Diving systems pressurized. Core oxygen levels normal.",
-      milestone_message: "Ascended past another thermal limit. Core temperature stable.",
-      session_end_message: "Ascend to shallower waters. Anchor secure."
-    },
-    nebula_pulse: {
-      theme_id: 'nebula_pulse',
-      session_greeting: "Cosmic coordinate set. The terminal is suspended in stardust.",
-      ambient_descriptor: "Distant hum of slow-weaving planetary rings. Pale violet nebulas.",
-      forgecast_atmosphere_line: "Antenna aligned to deep-space beacons. Cosmic drift minimized.",
-      milestone_message: "Orbit stabilized around core learning objectives.",
-      session_end_message: "Ignition off. Drifting among stars. Rest complete."
-    }
-  };
-
-  return fallbacks[themeId] || {
-    theme_id: 'default',
-    session_greeting: "The system is prepared. Forge your focus now.",
-    ambient_descriptor: "Gentle analog rustle. Warm amber glow warming the glass vacuum tubes.",
-    forgecast_atmosphere_line: "All systems aligned. Ambient pressure optimal.",
-    milestone_message: "A steady flame of progress burns bright.",
-    session_end_message: "Focus session successfully completed. Well learned."
-  };
+  return getDynamicOfflineAtmosphere({
+    active_theme: themeId,
+    trigger: 'session_start',
+    student_name: 'Scholar',
+  });
 }
 
 export async function generateAtmosphere(req: AtmosphereRequest): Promise<AtmosphereResponse> {
-  if (isQuotaLow) {
-    return getStaticAtmosphereFallback(req.active_theme);
-  }
-  try {
-    return await ApiManager.generateContent({
-      type: 'atmosphere',
-      content: `Theme: ${req.active_theme}. Trigger: ${req.trigger}. Student: ${req.student_name}${req.subject_context ? `. Subject: ${req.subject_context}` : ''}`,
-      systemPrompt: "Generate atmospheric data for the student experience as JSON. Provide personalized greetings and milestone messages.",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          theme_id: { type: Type.STRING },
-          session_greeting: { type: Type.STRING },
-          ambient_descriptor: { type: Type.STRING },
-          forgecast_atmosphere_line: { type: Type.STRING },
-          milestone_message: { type: Type.STRING },
-          session_end_message: { type: Type.STRING }
-        },
-        required: ["theme_id", "session_greeting", "ambient_descriptor", "forgecast_atmosphere_line", "milestone_message", "session_end_message"]
-      }
-    });
-  } catch (error: any) {
-    console.warn("[Atmosphere API] Error generating atmosphere, using beautiful static fallback:", error);
-    if (error.code === 'RATE_LIMITED' || error.message?.includes('RATE_LIMIT') || error.message?.includes('QUOTA')) {
-      setQuotaLow(true);
-    }
-    return getStaticAtmosphereFallback(req.active_theme);
-  }
+  // Save crucial API quota: atmosphere greetings are decorative and can be compiled beautifully offline
+  // This fully prevents quick quota drain of the Gemini API.
+  return getDynamicOfflineAtmosphere(req);
 }
 
 export interface StudyGuideSection {

@@ -743,13 +743,16 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ decks, onUpdate }) => {
                   {(currentCard.explanation || currentCard.definition.includes('---')) && (
                     <div className="w-full mt-auto">
                       <div className="relative group/exp">
-                        <div className="absolute -inset-1 bg-gradient-to-r from-forge-accent/20 to-orange-500/20 rounded-[2rem] blur opacity-50 group-hover:opacity-100 transition duration-1000 group-hover:duration-200" />
-                        <div className="relative bg-white/5 border border-white/10 rounded-[2rem] p-6 text-left backdrop-blur-xl">
-                          <div className="flex items-center gap-2 mb-3">
-                            <Sparkles size={14} className="text-forge-accent" />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-forge-accent">Plain English</span>
+                        <div className="absolute -inset-1 bg-gradient-to-r from-amber-500/20 to-forge-accent/20 rounded-[2rem] blur opacity-40 group-hover:opacity-80 transition duration-700" />
+                        <div className="relative bg-white/5 border border-white/10 hover:border-amber-500/20 rounded-[2rem] p-6 text-left backdrop-blur-xl transition-all duration-300">
+                          <div className="flex items-center justify-between gap-2 mb-3.5 border-b border-white/5 pb-2.5">
+                            <div className="flex items-center gap-2">
+                              <HelpCircle size={15} className="text-amber-400" />
+                              <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">Concept Explanation • Why This Definition Holds</span>
+                            </div>
+                            <span className="text-[8px] font-mono text-stone-500 uppercase tracking-widest hidden sm:inline">Active Learning Aid</span>
                           </div>
-                          <div className="text-sm text-stone-300 leading-relaxed font-medium">
+                          <div className="text-sm text-stone-200 leading-relaxed font-medium markdown-content">
                             <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
                               {currentCard.explanation || (currentCard.definition.split('---')[1] || '')}
                             </ReactMarkdown>

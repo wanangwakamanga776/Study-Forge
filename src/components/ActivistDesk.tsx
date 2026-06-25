@@ -69,7 +69,7 @@ export const ActivistDesk: React.FC = () => {
             animate={{ opacity: 1, scale: 1, x: 0 }}
             exit={{ opacity: 0, scale: 0.98, x: -20 }}
             transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
-            className="glass-panel overflow-hidden rounded-[3.5rem] border border-white/10 relative min-h-[500px] flex flex-col shadow-2xl"
+            className="glass-panel overflow-hidden rounded-[2rem] sm:rounded-[3.5rem] border border-white/10 relative min-h-[350px] sm:min-h-[500px] flex flex-col shadow-2xl"
           >
             {/* Background Image / Blur */}
             <div className="absolute inset-0 z-0">
@@ -88,7 +88,7 @@ export const ActivistDesk: React.FC = () => {
                )}
             </div>
 
-            <div className="relative z-10 flex-1 p-10 md:p-16 flex flex-col justify-end">
+            <div className="relative z-10 flex-1 p-5 sm:p-10 md:p-16 flex flex-col justify-end">
                 <div className="space-y-6 max-w-4xl">
                    <div className="flex flex-wrap items-center gap-4">
                       {current.isPinned && (
@@ -109,7 +109,7 @@ export const ActivistDesk: React.FC = () => {
 
                    <div className="space-y-2">
                       <p className="text-forge-accent text-lg font-black uppercase italic tracking-tighter opacity-80">{current.subheading}</p>
-                      <h3 className="text-5xl md:text-7xl font-display font-black uppercase italic tracking-tighter text-white leading-[0.9] drop-shadow-2xl">
+                      <h3 className="text-3xl sm:text-5xl md:text-7xl font-display font-black uppercase italic tracking-tighter text-white leading-none sm:leading-[0.9] drop-shadow-2xl">
                          {current.title}
                       </h3>
                    </div>
@@ -147,7 +147,7 @@ export const ActivistDesk: React.FC = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-8 glass-panel rounded-[3.5rem] border border-white/10 p-10 md:p-16 text-white"
+            className="mt-8 glass-panel rounded-[2rem] sm:rounded-[3.5rem] border border-white/10 p-5 sm:p-10 md:p-16 text-white"
           >
              <button 
                 onClick={() => setSelectedAnnouncement(null)}

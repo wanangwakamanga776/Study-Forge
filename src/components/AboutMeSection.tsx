@@ -48,7 +48,7 @@ export function AboutMeSection() {
             </div>
         </div>
 
-        <div className="bg-white border border-stone-100 rounded-[3rem] p-8 md:p-16 lg:p-20 shadow-2xl shadow-stone-200/40 relative overflow-hidden">
+        <div className="bg-white border border-stone-100 rounded-[2rem] sm:rounded-[3rem] p-4 sm:p-8 md:p-16 lg:p-20 shadow-2xl shadow-stone-200/40 relative overflow-hidden">
           <div className="absolute -top-12 -right-12 text-stone-900/5 pointer-events-none">
             <User size={400} strokeWidth={1} />
           </div>
