@@ -1,0 +1,39 @@
+:root {
+  color-scheme: dark;
+  --sf-bg: #0b0a09;
+  --sf-bg-elevated: #12110f;
+  --sf-surface: #171512;
+  --sf-surface-raised: #1e1b17;
+  --sf-surface-soft: #26221d;
+  --sf-border: rgba(255, 244, 230, 0.10);
+  --sf-border-strong: rgba(255, 244, 230, 0.18);
+  --sf-text: #fff8f0;
+  --sf-text-muted: #cfc3b6;
+  --sf-text-subtle: #a99b8c;
+  --sf-text-disabled: #7a7066;
+  --sf-orange-50: #fff7ed;
+  --sf-orange-100: #ffedd5;
+  --sf-orange-300: #fdba74;
+  --sf-orange-400: #fb923c;
+  --sf-orange-500: #f97316;
+  --sf-orange-600: #ea580c;
+  --sf-orange-glow: rgba(249, 115, 22, 0.22);
+  --sf-copper: #d97732;
+  --sf-success: #4ade80;
+  --sf-success-soft: rgba(74, 222, 128, 0.14);
+  --sf-danger: #fb7185;
+  --sf-danger-soft: rgba(251, 113, 133, 0.14);
+  --sf-info: #7dd3fc;
+  --sf-info-soft: rgba(125, 211, 252, 0.14);
+  --sf-radius-sm: 12px;
+  --sf-radius-md: 18px;
+  --sf-radius-lg: 28px;
+  --sf-radius-pill: 999px;
+  --sf-shadow-card: 0 24px 60px rgba(0, 0, 0, 0.32);
+  --sf-shadow-glow: 0 0 48px var(--sf-orange-glow);
+  --sf-shadow-focus: 0 0 0 3px rgba(11, 10, 9, 1), 0 0 0 6px var(--sf-orange-300);
+  --sf-font-display: "Fraunces", "Space Grotesk", serif;
+  --sf-font-body: "Inter", system-ui, sans-serif;
+}
+html { background: var(--sf-bg); }
+.sf-focus-ring:focus-visible { outline: none; box-shadow: var(--sf-shadow-focus); }

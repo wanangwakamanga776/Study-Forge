@@ -1,0 +1,241 @@
+{
+  "entities": {
+    "UserStats": {
+      "title": "User Statistics and Settings",
+      "description": "Gamification, settings, and progress data for a specific user.",
+      "type": "object",
+      "properties": {
+        "xp": { "type": "number" },
+        "level": { "type": "number" },
+        "streak": { "type": "number" },
+        "embers": { "type": "number" },
+        "lastActiveDate": { "type": "string", "description": "ISO date" },
+        "currentTheme": { "type": "string" },
+        "unlockedThemes": { "type": "array", "items": { "type": "string" } },
+        "matchRecords": { "type": "object", "description": "deckId -> bestTime" },
+        "aiUsage": {
+          "type": "object",
+          "properties": {
+            "quizzes": { "type": "number" },
+            "flashcards": { "type": "number" },
+            "forgeCasts": { "type": "number" },
+            "lastResetDate": { "type": "string" }
+          }
+        },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["xp", "level", "streak", "embers"]
+    },
+    "Flashcard": {
+      "title": "Flashcard",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "term": { "type": "string" },
+        "definition": { "type": "string" },
+        "explanation": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "imagePrompt": { "type": "string" },
+        "interval": { "type": "number" },
+        "ease": { "type": "number" },
+        "nextReviewDate": { "type": "number" },
+        "cardType": { "type": "string" },
+        "topicTag": { "type": "string" },
+        "totalAttempts": { "type": "number" },
+        "wrongCount": { "type": "number" }
+      },
+      "required": ["id", "term", "definition"]
+    },
+    "Deck": {
+      "title": "Study Deck",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "cards": { "type": "array", "items": { "$ref": "#/entities/Flashcard" } },
+        "isPublic": { "type": "boolean" },
+        "originalId": { "type": "string" },
+        "creatorName": { "type": "string" },
+        "creatorId": { "type": "string" },
+        "category": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "title", "cards"]
+    },
+    "Quiz": {
+      "title": "Quiz",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "questions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "question": { "type": "string" },
+              "options": { "type": "array", "items": { "type": "string" } },
+              "correctAnswer": { "type": "number" },
+              "correctAnswerText": { "type": "string" },
+              "explanation": { "type": "string" },
+              "marks": { "type": "number" },
+              "type": { "type": "string" }
+            }
+          }
+        },
+        "isExam": { "type": "boolean" },
+        "timeLimit": { "type": "number" },
+        "isAIGraded": { "type": "boolean" }
+      },
+      "required": ["id", "title", "questions"]
+    },
+    "Task": {
+      "title": "Study Task",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "priority": { "type": "string", "enum": ["Low", "Medium", "High", "Urgent"] },
+        "deadline": { "type": "string" },
+        "duration": { "type": "number" },
+        "completed": { "type": "boolean" },
+        "createdAt": { "type": "number" },
+        "section": { "type": "string" }
+      },
+      "required": ["id", "title", "priority"]
+    },
+    "ForgeCast": {
+      "title": "ForgeCast Lesson",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "metadata": { "type": "object" },
+        "chapters": { "type": "array", "items": { "type": "object" } },
+        "assessment": { "type": "object" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "metadata", "chapters"]
+    },
+    "AboutMe": {
+      "title": "About Me Data",
+      "type": "object",
+      "properties": {
+        "message": { "type": "string" },
+        "images": { "type": "array", "items": { "type": "string" } },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "updatedBy": { "type": "string" }
+      }
+    },
+    "LessonAudit": {
+      "title": "Lesson Architect Semantic Audit",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "audit_metadata": { "type": "object" },
+        "semantic_map": { "type": "object" },
+        "memory_layer": { "type": "object" },
+        "application_layer": { "type": "object" },
+        "forgechat_context_block": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "audit_metadata", "semantic_map"]
+    },
+    "Announcement": {
+      "title": "Activist Desk Announcement",
+      "description": "Premium broadcast message from admins.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "subheading": { "type": "string" },
+        "content": { "type": "string" },
+        "mediaUrl": { "type": "string" },
+        "category": { "type": "string", "enum": ["Updates", "Patch Notes", "Community", "Events", "Developer Notes"] },
+        "isPinned": { "type": "boolean" },
+        "createdAt": { "type": "number" },
+        "authorName": { "type": "string" },
+        "authorId": { "type": "string" }
+      },
+      "required": ["id", "title", "content", "createdAt"]
+    },
+    "UserUsage": {
+      "title": "AI Usage Tracking",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "date": { "type": "string" },
+        "count": { "type": "number" },
+        "createdAt": { "type": "object", "description": "Server timestamp" }
+      },
+      "required": ["userId", "date", "count"]
+    },
+    "Feedback": {
+      "title": "User Feedback Report",
+      "description": "User contribution to platform optimization.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "username": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "category": { "type": "string", "enum": ["Bug Report", "Feature Request", "UI Suggestion", "Performance Issue", "General Feedback"] },
+        "status": { "type": "string", "enum": ["pending", "resolved", "archived"] },
+        "isPinned": { "type": "boolean" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "userId", "title", "message", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/announcements/{announcementId}": {
+      "schema": "Announcement",
+      "description": "Public announcements pinned to the Activist Desk."
+    },
+    "/feedback/{feedbackId}": {
+      "schema": "Feedback",
+      "description": "User reports and suggestions for admin review."
+    },
+    "/global/aboutMe": {
+      "schema": "AboutMe",
+      "description": "Global 'About Me' section content."
+    },
+    "/users/{userId}/stats/main": {
+      "schema": "UserStats",
+      "description": "User profile, gamification stats, and settings."
+    },
+    "/users/{userId}/decks/{deckId}": {
+      "schema": "Deck",
+      "description": "User's private study decks."
+    },
+    "/users/{userId}/quizzes/{quizId}": {
+      "schema": "Quiz",
+      "description": "User's private quizzes."
+    },
+    "/users/{userId}/tasks/{taskId}": {
+      "schema": "Task",
+      "description": "User's study planner tasks."
+    },
+    "/users/{userId}/forgeCasts/{castId}": {
+      "schema": "ForgeCast",
+      "description": "User's generated study lessons."
+    },
+    "/users/{userId}/lessons/{lessonId}": {
+      "schema": "LessonAudit",
+      "description": "Deep semantic audits of study materials."
+    },
+    "/users/{userId}/sessions/{sessionId}": {
+      "schema": "ModeSession",
+      "description": "Custom study sessions generated by the Mode Engine."
+    },
+    "/publicDecks/{deckId}": {
+      "schema": "Deck",
+      "description": "Decks shared with the community."
+    },
+    "/userUsage/{usageId}": {
+      "schema": "UserUsage",
+      "description": "Daily AI generation limits enforcement."
+    }
+  }
+}

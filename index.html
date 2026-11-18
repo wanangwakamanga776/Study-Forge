@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0F0F12" />
+    <meta name="robots" content="index, follow" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://firestore.googleapis.com" />
+    <link rel="preconnect" href="https://firebasestorage.googleapis.com" />
+    <link rel="preconnect" href="https://images.unsplash.com" />
+    <style>
+      :root { --forge-dark: #0F0F12; --forge-accent: #FB923C; }
+      body { background-color: var(--forge-dark); margin: 0; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+      #root { min-height: 100vh; display: flex; flex-direction: column; }
+      .loader-container { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--forge-dark); z-index: 9999; }
+      .loader-pulse { width: 40px; height: 40px; border: 3px solid rgba(251,146,60,0.1); border-top-color: var(--forge-accent); border-radius: 50%; animation: spin 1s linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" />
+    <meta name="description" content="Study Forge Pro - Build academic knowledge, master school subjects, and earn rewards while you study." />
+    <link rel="sitemap" type="application/xml" title="Sitemap" href="https://study-forge.pages.dev/sitemap.xml" />
+    <link rel="manifest" href="/manifest.json" />
+    <!-- PWA Optimized Icons v2.1 -->
+    <link rel="icon" type="image/png" href="/icon-96.png" />
+    <title>Study Forge | Academic Excellence</title>
+    <script>
+      window.process = window.process || { env: {} };
+      if ('serviceWorker' in navigator && window.location.hostname !== 'localhost') {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('[Service Worker] Registered successfully:', reg.scope))
+            .catch(err => console.error('[Service Worker] Registration failed:', err));
+        });
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
