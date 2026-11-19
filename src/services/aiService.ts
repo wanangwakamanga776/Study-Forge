@@ -30,18 +30,12 @@ let _lastKeyUsed: string | undefined;
 const DEFAULT_MODEL = "gemini-3.5-flash";
 
 function resolveApiKey(): string {
-  const viteKey = import.meta.env.VITE_GEMINI_API_KEY;
-  if (viteKey && viteKey !== 'YOUR_GEMINI_API_KEY' && viteKey.length > 10) return viteKey;
-
-  try {
-    const procKey = typeof process !== 'undefined' ? (process.env?.GEMINI_API_KEY || '') : '';
-    if (procKey && procKey !== 'MY_GEMINI_API_KEY' && procKey.length > 10) return procKey;
-  } catch (_) {}
-
+  // Study Forge 2.0: all model calls go through the Supabase edge function.
+  // Keys never reach the browser, so client-side resolution always fails here.
   throw new Error(
-    'AI_SETUP_REQUIRED: Gemini API key not found. ' +
-    'Create a .env file in your project root with: VITE_GEMINI_API_KEY=your_key_here\n' +
-    'Get a free key at: https://aistudio.google.com/app/apikey'
+    'AI_SETUP_REQUIRED: Client-side generation is disabled in this build. ' +
+    'Use the Study Forge 2.0 gateway (src/lib/gateway-client.ts) which calls the ' +
+    'supabase/functions/generate edge function. Set PRIMARY_API_KEY etc. on the server.'
   );
 }
 

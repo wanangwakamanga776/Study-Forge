@@ -5,7 +5,7 @@
 
 import React, { useState, lazy, Suspense, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Loader2, X, ChevronRight, Video, Play, Trash2, BrainCircuit } from 'lucide-react';
+import { Loader2, X, ChevronRight, Video, Play, Trash2, BrainCircuit, ArrowLeft } from 'lucide-react';
 import { useAppState } from './hooks/useAppState';
 import { Dashboard } from './components/Dashboard';
 import { RewardProvider } from './components/RewardToast';
@@ -25,16 +25,18 @@ import { useScrollControls } from './hooks/useScrollControls';
 import { FeedbackSection } from './components/FeedbackSystem';
 import { AIGenerator } from './components/AIGenerator';
 import { AppShell, AppRoute } from './components/layout/AppShell';
-import { TutorWorkspacePage } from './pages/TutorWorkspacePage';
-import { ReviewPage } from './pages/ReviewPage';
+import { ForgeStudioPage } from './pages/ForgeStudioPage';
+import { PracticePage } from './pages/PracticePage';
 import { ProgressPage } from './pages/ProgressPage';
 import { ProfilePage } from './pages/ProfilePage';
 
 const AnnouncementPopup: React.FC<{ announcement: { message: string }, onClose: () => void }> = ({ announcement, onClose }) => (
-  <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center p-8 bg-black/80 backdrop-blur-xl">
-    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--sf-orange-300)] mb-4">Announcement</p>
-    <p className="text-2xl lg:text-4xl font-semibold text-white text-center max-w-3xl mb-10 leading-tight">{announcement.message}</p>
-    <button type="button" onClick={onClose} className="min-h-12 px-8 bg-[var(--sf-orange-500)] text-black rounded-xl font-semibold inline-flex items-center gap-2">Continue <ChevronRight size={16} /></button>
+  <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center p-6 bg-black/80 backdrop-blur-xl" role="dialog" aria-modal="true" aria-labelledby="announcement-title">
+    <div className="sf-card w-full max-w-2xl p-7 sm:p-10 text-center">
+      <p id="announcement-title" className="sf-eyebrow text-[var(--sf-orange-300)] mb-4">Announcement</p>
+      <p className="text-xl sm:text-2xl font-semibold leading-snug text-white text-balance">{announcement.message}</p>
+      <button type="button" onClick={onClose} className="sf-btn sf-btn-primary mt-7 mx-auto">Continue <ChevronRight size={16} /></button>
+    </div>
   </div>
 );
 
@@ -80,7 +82,7 @@ export default function App() {
 
 function AppContent() {
   const { state, setState, deleteForgeCast, resetToDefault } = useAppState();
-  const { awardXP, atmosphere, updateAtmosphere, clearAtmosphere } = useForgeStore();
+  const { awardXP, atmosphere, clearAtmosphere } = useForgeStore();
   const { setAdminMaxLevel, setAdminUnlimitedCurrency, setAdminMaxEverything } = useForgeEngine();
   useScrollControls({ speed: 45 });
   const { user, loading } = useAuthContext();
@@ -108,9 +110,8 @@ function AppContent() {
     if (hasInitialized.current) return;
     hasInitialized.current = true;
     testArchivesConnection();
-    updateAtmosphere('session_start');
     getGlobalAnnouncement().then(data => { if (data && data.active) setGlobalAnnouncement(data); }).catch(() => {});
-  }, [updateAtmosphere]);
+  }, []);
 
   useEffect(() => { if (user && user.email === 'wanangwakamanga776@gmail.com') setIsAdmin(true); }, [user]);
 
@@ -125,7 +126,7 @@ function AppContent() {
     }
   }, [user, isGuest, loading, state?.stats?.currentTheme, state?.stats?.level, resetToDefault, state]);
 
-  useEffect(() => { if (route !== 'learn') setShowLessons(false); }, [route]);
+  useEffect(() => { if (route !== 'home') setShowLessons(false); }, [route]);
   useEffect(() => { if (isShopOpen || isSettingsOpen || isAdminPanelOpen) setShowLessons(false); }, [isShopOpen, isSettingsOpen, isAdminPanelOpen]);
 
   const handleAIGenerated = useCallback(async (type: 'flashcards' | 'quiz' | 'forgeCast' | 'lesson' | 'session', data: any) => {
@@ -153,7 +154,7 @@ function AppContent() {
             newState.stats.aiUsage.forgeCasts += 1;
           } else if (type === 'lesson') {
             newState.lessons = [...(prev.lessons || []), finalData as LessonArchitectAudit];
-            setTimeout(() => { setRoute('learn'); setCurrentView('lessons'); setShowLessons(true); }, 0);
+            setTimeout(() => { setRoute('forge'); setCurrentView('lessons'); setShowLessons(true); }, 0);
           } else if (type === 'session') {
             newState.sessions = [...(prev.sessions || []), finalData as ModeEngineSession];
           }
@@ -244,9 +245,9 @@ function AppContent() {
     const v = view as View;
     setCurrentView(v);
     if (['dashboard', 'planner', 'timer'].includes(view)) setRoute('home');
-    else if (['flashcards', 'lessons', 'study-guide', 'forge-library', 'forge-player', 'community'].includes(view)) setRoute('learn');
-    else if (['quiz', 'match', 'exam', 'ai-exam'].includes(view)) setRoute('review');
-    else if (['leaderboard'].includes(view)) setRoute('progress');
+    else if (['flashcards', 'lessons', 'study-guide', 'forge-library', 'forge-player', 'community', 'forge'].includes(view)) setRoute('forge');
+    else if (['quiz', 'match', 'exam', 'ai-exam', 'practice'].includes(view)) setRoute('practice');
+    else if (['leaderboard', 'map'].includes(view)) setRoute('progress');
     else if (['feedback'].includes(view)) setRoute('profile');
     if (view === 'lessons') setShowLessons(true);
   }, []);
@@ -266,7 +267,7 @@ function AppContent() {
       case 'planner': return <TaskPlanner tasks={state.tasks} onUpdate={(tasks) => setState(prev => ({ ...prev, tasks }))} onComplete={awardXP} />;
       case 'timer': return <FocusTimer />;
       case 'flashcards': return <Flashcards decks={state.decks} onUpdate={(decks) => setState(prev => ({ ...prev, decks }))} />;
-      case 'quiz': return <QuizMode quizzes={state.quizzes} onUpdate={(quizzes) => setState(prev => ({ ...prev, quizzes }))} onComplete={awardXP} onStartExam={(exam) => { setActiveExam(exam); setCurrentView('exam'); setRoute('review'); }} />;
+      case 'quiz': return <QuizMode quizzes={state.quizzes} onUpdate={(quizzes) => setState(prev => ({ ...prev, quizzes }))} onComplete={awardXP} onStartExam={(exam) => { setActiveExam(exam); setCurrentView('exam'); setRoute('practice'); }} />;
       case 'exam': return activeExam ? (
         <ExamSimulator
           exam={{ exam_id: activeExam.id, title: activeExam.title, level: 'standard', exam_board_style: 'standard', total_marks: activeExam.questions.length, time_limit_minutes: activeExam.timeLimit || 15, sections: [{ section_id: 's1', section_title: 'Core Assessment', section_instructions: 'Complete all questions.', marks_available: activeExam.questions.length, time_recommendation_minutes: activeExam.timeLimit || 15, questions: activeExam.questions.map(q => ({ question_id: q.id, type: 'mcq', marks: 1, question_text: q.question, options: q.options, topic_tag: 'General', targets_weak_area: false, is_trick_question: false, cognitive_demand: 'recall', HIDDEN_correct_answer: q.options[q.correctAnswer], HIDDEN_mark_scheme: q.explanation || 'No explanation provided.', HIDDEN_model_answer: q.options[q.correctAnswer], HIDDEN_common_mistakes: [], HIDDEN_examiner_tip: '' })) }], difficulty_profile: 'standard', instructions: 'Standard assessment.', difficulty_map: { accessible_question_ids: [], target_question_ids: [], stretch_question_ids: [] } }}
@@ -276,9 +277,9 @@ function AppContent() {
         />) : null;
       case 'ai-exam': return activeAIExam ? (
         <ExamSimulator exam={activeAIExam.exam} auditData={activeAIExam.audit}
-          onClose={() => { setState(prev => ({ ...prev, lessons: (prev.lessons || []).map(l => l.id === activeAIExam.audit.id ? { ...l, last_session_at: Date.now() } : l) })); setCurrentView('lessons'); setRoute('learn'); }}
+          onClose={() => { setState(prev => ({ ...prev, lessons: (prev.lessons || []).map(l => l.id === activeAIExam.audit.id ? { ...l, last_session_at: Date.now() } : l) })); setCurrentView('lessons'); setRoute('forge'); }}
           onAddRevisionPlan={(plan) => { const deck: Deck = { id: 'revision-' + generateId(), title: 'REVISION: ' + plan.forge_revision_plan.plan_title, cards: plan.forge_revision_plan.crash_course_flashcard_deck.map(c => ({ id: c.card_id, term: c.front, definition: c.back, explanation: c.why_this_card_was_created, cardType: c.card_type as any, memoryHook: c.memory_hook, hint: c.hint, ease: c.sm2_initial_ease_factor, interval: c.sm2_initial_interval_days })) }; setState(prev => ({ ...prev, decks: [deck, ...prev.decks] })); }}
-          onComplete={(attempt) => { setState(prev => ({ ...prev, lessons: (prev.lessons || []).map(l => l.id === activeAIExam.audit.id ? { ...l, last_session_at: Date.now(), completed_sessions_count: (l.completed_sessions_count || 0) + 1, mastery_score: Math.max(l.mastery_score || 0, attempt.results.percentage) } : l) })); setCurrentView('lessons'); setRoute('learn'); }}
+          onComplete={(attempt) => { setState(prev => ({ ...prev, lessons: (prev.lessons || []).map(l => l.id === activeAIExam.audit.id ? { ...l, last_session_at: Date.now(), completed_sessions_count: (l.completed_sessions_count || 0) + 1, mastery_score: Math.max(l.mastery_score || 0, attempt.results.percentage) } : l) })); setCurrentView('lessons'); setRoute('forge'); }}
         />) : null;
       case 'match': return <MatchGame decks={state.decks} bestRecords={state.matchRecords || {}} onComplete={handleMatchComplete} />;
       case 'leaderboard': return <AdminOnlyView isAdmin={isAdmin} onRedirect={() => { setRoute('progress'); setCurrentView('dashboard'); }}><Leaderboard isAdmin={isAdmin} /></AdminOnlyView>;
@@ -323,13 +324,16 @@ function AppContent() {
       if (isLegacyViewActive && ['planner', 'timer'].includes(currentView)) return renderLegacyFeature();
       return <Dashboard state={state} onNavigate={handleNavigateFeature} onSelectForgeCast={setSelectedForgeCast} onDeleteForgeCast={deleteForgeCast} onOpenForge={() => openForge()} isAdmin={isAdmin} isGuest={isGuest} />;
     }
-    if (route === 'learn') {
-      if (['flashcards', 'forge-library', 'forge-player', 'lessons', 'study-guide', 'community'].includes(currentView)) return renderLegacyFeature();
-      return <TutorWorkspacePage state={state} onOpenForge={openForge} onNavigate={handleNavigateFeature} />;
+    if (route === 'map') {
+      return <Dashboard state={state} onNavigate={handleNavigateFeature} onSelectForgeCast={setSelectedForgeCast} onDeleteForgeCast={deleteForgeCast} onOpenForge={() => openForge()} isAdmin={isAdmin} isGuest={isGuest} />;
     }
-    if (route === 'review') {
+    if (route === 'forge') {
+      if (['flashcards', 'forge-library', 'forge-player', 'lessons', 'study-guide', 'community'].includes(currentView)) return renderLegacyFeature();
+      return <ForgeStudioPage state={state} onOpenForge={openForge} onNavigate={handleNavigateFeature} />;
+    }
+    if (route === 'practice') {
       if (['quiz', 'match', 'exam', 'ai-exam'].includes(currentView)) return renderLegacyFeature();
-      return <ReviewPage state={state} onNavigate={handleNavigateFeature} onAward={awardXP} />;
+      return <PracticePage state={state} onNavigate={handleNavigateFeature} onAward={awardXP} />;
     }
     if (route === 'progress') {
       if (currentView === 'leaderboard') return renderLegacyFeature();
@@ -349,19 +353,19 @@ function AppContent() {
       <AnimatePresence>
         {globalAnnouncement && <AnnouncementPopup announcement={globalAnnouncement} onClose={() => setGlobalAnnouncement(null)} />}
         {showTutorial && <ForgeTutorial onClose={() => { localStorage.setItem('forge_tutorial_seen', 'true'); setShowTutorial(false); }} isAdmin={isAdmin} />}
-        {showLessons && route === 'learn' && <LessonManager lessons={state.lessons || []} stats={state.stats} onLaunchSession={(session) => { setShowLessons(false); setActiveSession(session); handleAIGenerated('session', session); }} onLaunchExam={(exam, audit) => { setShowLessons(false); setActiveAIExam({ exam, audit }); setCurrentView('ai-exam'); setRoute('review'); }} onClose={() => setShowLessons(false)} />}
-        {activeSession && <SessionViewer session={activeSession} onClose={() => { const lessonId = activeSession.lessonId; setState(prev => ({ ...prev, lessons: (prev.lessons || []).map(l => l.id === lessonId ? { ...l, last_session_at: Date.now(), completed_sessions_count: (l.completed_sessions_count || 0) + 1 } : l) })); setActiveSession(null); }} onStartPractice={(type, data) => { const lessonId = activeSession.lessonId; setState(prev => ({ ...prev, lessons: (prev.lessons || []).map(l => l.id === lessonId ? { ...l, last_session_at: Date.now(), completed_sessions_count: (l.completed_sessions_count || 0) + 1 } : l) })); if (type === 'flashcards') { const cardsArray = Array.isArray(data) ? data : []; const deck: Deck = { id: 'session-' + (activeSession.id || generateId()), title: activeSession.session_title || 'Flashcards Session', cards: cardsArray.map((c: any) => ({ id: c.card_id || generateId(), term: c.front || 'Term', definition: c.back || 'Definition', explanation: c.mode_specific_tip || '', hint: c.hint || '', ease: Number(c.sm2_initial_ease_factor) || 2.5, interval: Number(c.sm2_initial_interval_days) || 1, memoryHook: c.memory_hook || '' })) }; setState(prev => ({ ...prev, decks: [deck, ...prev.decks] })); setCurrentView('flashcards'); setRoute('learn'); } else { let questionsData = Array.isArray(data) ? data : []; if (questionsData.length === 0) { const lesson = state.lessons?.find(l => l.id === activeSession.lessonId); if (lesson && lesson.application_layer?.exam_questions) questionsData = lesson.application_layer.exam_questions; } if (!Array.isArray(questionsData)) questionsData = []; const quiz: Quiz = { id: 'session-quiz-' + (activeSession.id || generateId()), title: activeSession.session_title || 'Quiz Session', questions: questionsData.map((q: any) => { const options = Array.isArray(q.options) ? q.options : []; const correctAnswerVal = q.correct_answer || q.model_answer || ''; let correctAnswerIdx = options.indexOf(correctAnswerVal); if (correctAnswerIdx < 0 && options.length > 0) correctAnswerIdx = 0; return { id: q.question_id || generateId(), question: q.question || q.question_text || q.text || 'Identify the correct concept', type: q.type || 'mcq', marks: Number(q.marks) || 1, options, correctAnswer: correctAnswerIdx >= 0 ? correctAnswerIdx : 0, correctAnswerText: correctAnswerVal, explanation: q.mark_scheme || q.explanation || 'No explanation provided.' }; }) }; setState(prev => ({ ...prev, quizzes: [quiz, ...prev.quizzes] })); setCurrentView('quiz'); setRoute('review'); } setActiveSession(null); }} />}
+        {showLessons && route === 'forge' && <LessonManager lessons={state.lessons || []} stats={state.stats} onLaunchSession={(session) => { setShowLessons(false); setActiveSession(session); handleAIGenerated('session', session); }} onLaunchExam={(exam, audit) => { setShowLessons(false); setActiveAIExam({ exam, audit }); setCurrentView('ai-exam'); setRoute('practice'); }} onClose={() => setShowLessons(false)} />}
+        {activeSession && <SessionViewer session={activeSession} onClose={() => { const lessonId = activeSession.lessonId; setState(prev => ({ ...prev, lessons: (prev.lessons || []).map(l => l.id === lessonId ? { ...l, last_session_at: Date.now(), completed_sessions_count: (l.completed_sessions_count || 0) + 1 } : l) })); setActiveSession(null); }} onStartPractice={(type, data) => { const lessonId = activeSession.lessonId; setState(prev => ({ ...prev, lessons: (prev.lessons || []).map(l => l.id === lessonId ? { ...l, last_session_at: Date.now(), completed_sessions_count: (l.completed_sessions_count || 0) + 1 } : l) })); if (type === 'flashcards') { const cardsArray = Array.isArray(data) ? data : []; const deck: Deck = { id: 'session-' + (activeSession.id || generateId()), title: activeSession.session_title || 'Flashcards Session', cards: cardsArray.map((c: any) => ({ id: c.card_id || generateId(), term: c.front || 'Term', definition: c.back || 'Definition', explanation: c.mode_specific_tip || '', hint: c.hint || '', ease: Number(c.sm2_initial_ease_factor) || 2.5, interval: Number(c.sm2_initial_interval_days) || 1, memoryHook: c.memory_hook || '' })) }; setState(prev => ({ ...prev, decks: [deck, ...prev.decks] })); setCurrentView('flashcards'); setRoute('forge'); } else { let questionsData = Array.isArray(data) ? data : []; if (questionsData.length === 0) { const lesson = state.lessons?.find(l => l.id === activeSession.lessonId); if (lesson && lesson.application_layer?.exam_questions) questionsData = lesson.application_layer.exam_questions; } if (!Array.isArray(questionsData)) questionsData = []; const quiz: Quiz = { id: 'session-quiz-' + (activeSession.id || generateId()), title: activeSession.session_title || 'Quiz Session', questions: questionsData.map((q: any) => { const options = Array.isArray(q.options) ? q.options : []; const correctAnswerVal = q.correct_answer || q.model_answer || ''; let correctAnswerIdx = options.indexOf(correctAnswerVal); if (correctAnswerIdx < 0 && options.length > 0) correctAnswerIdx = 0; return { id: q.question_id || generateId(), question: q.question || q.question_text || q.text || 'Identify the correct concept', type: q.type || 'mcq', marks: Number(q.marks) || 1, options, correctAnswer: correctAnswerIdx >= 0 ? correctAnswerIdx : 0, correctAnswerText: correctAnswerVal, explanation: q.mark_scheme || q.explanation || 'No explanation provided.' }; }) }; setState(prev => ({ ...prev, quizzes: [quiz, ...prev.quizzes] })); setCurrentView('quiz'); setRoute('progress'); } setActiveSession(null); }} />}
       </AnimatePresence>
 
       <AnimatePresence>
         {atmosphere && (
-          <motion.div key={atmosphere.theme_id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
-            <motion.div initial={{ opacity: 0, scale: 0.97, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }} className="max-w-xl w-full text-center relative rounded-3xl border border-white/10 bg-[var(--sf-surface)] p-8">
-              <button type="button" onClick={() => clearAtmosphere()} className="absolute top-4 right-4 p-2 text-white/50 hover:text-white" aria-label="Dismiss"><X size={20} /></button>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--sf-orange-300)] mb-3">Session ready</p>
-              <h2 className="text-2xl sm:text-4xl font-semibold tracking-tight text-white mb-4">{atmosphere.session_greeting}</h2>
-              <p className="text-[var(--sf-text-muted)] mb-8">{atmosphere.forgecast_atmosphere_line}</p>
-              <button type="button" onClick={() => clearAtmosphere()} className="min-h-11 px-6 rounded-xl bg-[var(--sf-orange-500)] text-black font-semibold inline-flex items-center gap-2">Continue <ChevronRight size={16} /></button>
+          <motion.div key={atmosphere.theme_id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center p-5 bg-black/80 backdrop-blur-md">
+            <motion.div initial={{ opacity: 0, scale: 0.97, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} className="sf-card w-full max-w-lg p-7 text-center" role="dialog" aria-modal="true">
+              <button type="button" onClick={() => clearAtmosphere()} className="absolute top-3 right-3 grid h-9 w-9 place-items-center rounded-lg text-[var(--sf-text-subtle)] hover:bg-white/[0.06] hover:text-white" aria-label="Dismiss"><X size={18} /></button>
+              <p className="sf-eyebrow text-[var(--sf-orange-300)] mb-3">Session ready</p>
+              <h2 className="text-xl sm:text-2xl font-semibold leading-snug text-white mb-3">{atmosphere.session_greeting}</h2>
+              <p className="text-[14px] leading-6 text-[var(--sf-text-muted)] mb-6">{atmosphere.forgecast_atmosphere_line}</p>
+              <button type="button" onClick={() => clearAtmosphere()} className="sf-btn sf-btn-primary mx-auto">Continue <ChevronRight size={16} /></button>
             </motion.div>
           </motion.div>
         )}
@@ -375,7 +379,7 @@ function AppContent() {
 
       <AppShell route={route} onRouteChange={(r) => { setRoute(r); setCurrentView('dashboard'); }} learnerName={learnerName} streak={state.stats.streak || 0} isAdmin={isAdmin} onOpenSettings={() => setIsSettingsOpen(true)} onLogout={handleLogout}>
         <div className="space-y-6">
-          {isLegacyViewActive && <button type="button" onClick={() => setCurrentView('dashboard')} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 text-sm text-[var(--sf-text-muted)] hover:text-white hover:bg-white/[0.07]">? Back</button>}
+          {isLegacyViewActive && <button type="button" onClick={() => setCurrentView('dashboard')} className="sf-btn sf-btn-ghost -ml-3 min-h-9 px-3 text-[13px]"><ArrowLeft size={15} aria-hidden="true" /> Back</button>}
           <Suspense fallback={<div className="flex items-center justify-center py-24"><Loader2 className="animate-spin text-[var(--sf-orange-400)]" size={32} aria-label="Loading" /></div>}>
             {renderRoute()}
           </Suspense>

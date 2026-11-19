@@ -181,12 +181,7 @@ export const ForgeCast: React.FC<ForgeCastProps> = ({
     if ((!input.trim() && !uploadedFile) || isForging) return;
 
     if (!isAIConfigured) {
-      setMessages(prev => [...prev, 
-        { id: Date.now().toString(), role: 'user', content: input },
-        { id: (Date.now() + 1).toString(), role: 'agent', content: "Error: AI Configuration needed. Please set your Gemini API Key in the settings to begin your study session." }
-      ]);
-      setInput('');
-      setUploadedFile(null);
+      alert("AI is not available in this build. Study Forge 2.0 routes all model calls through the Supabase edge function (supabase/functions/generate). Configure PRIMARY_API_KEY on the server, then use the gateway client (src/lib/gateway-client.ts).");
       return;
     }
 

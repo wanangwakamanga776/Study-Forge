@@ -10,7 +10,7 @@ interface AnimatedContentProps {
   reverse?: boolean;
   duration?: number;
   delay?: number;
-  ease?: string;
+  ease?: 'easeOut' | 'easeIn' | 'easeInOut' | 'linear';
   initialOpacity?: number;
   animateOpacity?: boolean;
   threshold?: number;

@@ -1,0 +1,352 @@
+
+
+--- 2026-11-18T00:46:50.242Z ---
+[MODEL]: gemini-3.5-flash
+[PROMPT]: Subject: General
+Level: gcse
+Mode: standard
+
+MANDATORY: Generate exactly 15 items.
+
+Content:
+create a study session on ap computer science A basics
+[SYSTEM]: Lead Pedagogical Architect. Generate 15 materials (flashcards/quiz).
+    Title: create a study session on ap c, Difficulty: medium, Level: gcse.
+    Output JSON following specified schema. Do NOT include images.
+
+MANDATORY LATEX FORMATTING COMPLIANCE:
+- You MUST format all mathematical expressions, equations, formulas, physical constants, chemical reactions, variables (like x, y), numeric fractions, and scientific notation using standard LaTeX syntax.
+- Use single dollar signs ($) for inline equations (e.g. $E=mc^2$ or $f(x) = x^2$).
+- Use double dollar signs ($$) for block or multi-line equations.
+- Never write plain text math like "x^2" or "alpha + beta" or "H2O". They MUST be formatted in LaTeX (e.g., $x^2$, $\alpha + \beta$, $\text{H}_2\text{O}$). This is critical for clear user understanding in the app's LaTeX-compatible renderer.
+[RESPONSE]: {
+  "audit": {
+    "audit_metadata": {
+      "title": "AP Computer Science A Foundational Architecture",
+      "subject": "Computer Science",
+      "level_detected": "GCSE / Introductory AP",
+      "estimated_mastery_hours": 6.5,
+      "academic_density_score": 0.82,
+      "exam_relevance_score": 0.95
+    },
+    "semantic_map": {
+      "central_thesis": "Mastery of object-oriented programming paradigms, basic algorithmic structures, primitive data manipulation, and control flow in Java."
+    }
+  },
+  "memory_layer": {
+    "flashcard_deck": [
+      {
+        "front": "What is the difference between an $int$ and a $double$ in Java?",
+        "back": "An $int$ represents a $32$-bit signed integer, whereas a $double$ represents a $64$-bit double-precision IEEE $754$ floating-point number.",
+        "explanation": "Integer types cannot store fractional parts; operations between two integers truncate decimal values toward zero.",
+        "topic_tag": "Data Types"
+      },
+      {
+        "front": "How does integer division evaluate the expression $7 / 2$ in Java?",
+        "back": "It evaluates to $3$.",
+        "explanation": "Because both operands are integers, Java performs integer division and discards the remainder without rounding.",
+        "topic_tag": "Operators"
+      },
+      {
+        "front": "What is the result of the modulus operation $17 \\% 5$?",
+        "back": "The result is $2$.",
+        "explanation": "The modulus operator returns the remainder of integer division: $17 = 3 \\times 5 + 2$, leaving a remainder of $2$.",
+        "topic_tag": "Operators"
+      },
+      {
+        "front": "State De Morgan's Laws for boolean algebra in Java.",
+        "back": "$\\text{!}(A \\ \\&\\&\\ B) \\equiv \\text{!}A \\ || \\ \\text{!}B$ and $\\text{!}(A \\ || \\ B) \\equiv \\text{!}A \\ \\&\\& \\ \\text{!}B$.",
+        "explanation": "Negating a conjunction distributes the negation across operands and switches the logical operator.",
+        "topic_tag": "Boolean Logic"
+      },
+      {
+        "front": "What is the valid index range for an array of size $n$ in Java?",
+        "back": "Indices range from $0$ to $n - 1$.",
+        "explanation": "Java utilizes zero-based indexing. Accessing index $n$ triggers an $ArrayIndexOutOfBoundsException$.",
+        "topic_tag": "Arrays"
+      },
+      {
+        "front": "What is the functional difference between an Array and an $ArrayList$?",
+        "back": "An Array is fixed in length upon creation, whereas an $ArrayList$ dynamically resizes as elements are added or removed.",
+        "explanation": "Arrays can store both primitives and objects, while $ArrayList$ can only hold object references (requiring wrapper classes like $Integer$).",
+        "topic_tag": "Data Structures"
+      },
+      {
+        "front": "What is the role of the $static$ keyword when applied to a method?",
+        "back": "It specifies that the method belongs to the class itself rather than to individual instances of the class.",
+        "explanation": "Static methods are invoked using the class identifier directly, such as $Math.sqrt(x)$, without needing an instantiated object.",
+        "topic_tag": "Object-Oriented Programming"
+      },
+      {
+        "front": "What is the default value of an uninitialized instance variable of reference type?",
+        "back": "$null$",
+        "explanation": "All uninitialized object reference variables in an object heap defaults to $null$, while numeric primitives default to $0$ or $0.0$.",
+        "topic_tag": "Variables"
+      }
+    ]
+  },
+  "application_layer": {
+    "exam_questions": [
+      {
+        "question": "What is printed by the statement: System.out.println(15 / 4 + 15 % 4);",
+        "type": "multiple_choice",
+        "correct_answer": "6",
+        "mark_scheme": "Award 1 mark for calculating $15 / 4 = 3$ and $15 \\% 4 = 3$, yielding $3 + 3 = 6$.",
+        "marks": 1,
+        "options": [
+          "6",
+          "6.75",
+          "7",
+          "3"
+        ]
+      },
+      {
+        "question": "Consider the code snippet: String s = \"Score: \" + 5 + 5; What value does s hold?",
+        "type": "multiple_choice",
+        "correct_answer": "Score: 55",
+        "mark_scheme": "Award 1 mark for recognizing left-to-right evaluation where string concatenation precedes numeric addition.",
+        "marks": 1,
+        "options": [
+          "Score: 55",
+          "Score: 10",
+          "Score: 5+5",
+          "Compilation error"
+        ]
+      },
+      {
+        "question": "How many times does the loop body execute: for (int i = 1; i <= 9; i += 2) { ... }?",
+        "type": "multiple_choice",
+        "correct_answer": "5",
+        "mark_scheme": "Award 1 mark for enumerating values $i \\in \\{1, 3, 5, 7, 9\\}$, which gives a total count of $5$.",
+        "marks": 1,
+        "options": [
+          "5",
+          "4",
+          "9",
+          "10"
+        ]
+      },
+      {
+        "question": "Which boolean expression is equivalent to !(x < 3 || y >= 8)?",
+        "type": "multiple_choice",
+        "correct_answer": "x >= 3 && y < 8",
+        "mark_scheme": "Award 1 mark for applying De Morgan's Law: invert relational operators and change logical OR to AND.",
+        "marks": 1,
+        "options": [
+          "x >= 3 && y < 8",
+          "x > 3 && y <= 8",
+          "x >= 3 || y < 8",
+          "x <= 3 && y > 8"
+        ]
+      },
+      {
+        "question": "What is the return value of mystery(4) given the definition: public int mystery(int n) { if (n <= 1) return 1; return n * mystery(n - 1); }?",
+        "type": "multiple_choice",
+        "correct_answer": "24",
+        "mark_scheme": "Award 1 mark for tracing factorial recursion: $4 \\times 3 \\times 2 \\times 1 = 24$.",
+        "marks": 1,
+        "options": [
+          "24",
+          "10",
+          "16",
+          "1"
+        ]
+      },
+      {
+        "question": "Given an array defined as int[] data = new int[6];, what is data.length?",
+        "type": "multiple_choice",
+        "correct_answer": "6",
+        "mark_scheme": "Award 1 mark for identifying that the array size field reflects the instantiated capacity of $6$.",
+        "marks": 1,
+        "options": [
+          "6",
+          "5",
+          "0",
+          "7"
+        ]
+      },
+      {
+        "question": "What will occur when executing: ArrayList<String> list = new ArrayList<>(); list.get(0);?",
+        "type": "multiple_choice",
+        "correct_answer": "IndexOutOfBoundsException is thrown",
+        "mark_scheme": "Award 1 mark for identifying that accessing an index $\\ge size$ on an empty list produces a runtime exception.",
+        "marks": 1,
+        "options": [
+          "IndexOutOfBoundsException is thrown",
+          "Returns null",
+          "Returns an empty String \"\"",
+          "Compilation error"
+        ]
+      }
+    ]
+  }
+}
+
+
+--- 2026-11-19T12:39:37.126Z ---
+[MODEL]: gemini-3.5-flash
+[PROMPT]: Subject: General
+Level: gcse
+Mode: standard
+
+MANDATORY: Generate exactly 15 items.
+
+Content:
+AP HUMAN GEOGRAPHY M A J O R W O R L D R E L I G I O N S S C R A P B O O K Hearths of belief shape landscapes and lives Ideas travel Places transform Beliefs endure GRADE 11 Spatial diffusion, cultural landscapes, hearths and belief systems WORLD FAITHS: BELIEFS THAT SHAPE OUR WORLD PAGE 2 OF 11 CHRISTIANITY The cross is a central Christian symbol associated with the crucifixion and resurrection of Jesus; its presence shapes sacred architecture, monuments, and place-based identity. QUICK PROFILE Theistic classification: Monotheistic; most traditions understand God through the Trinity. Approximate global adherents: 2.3 billion. Founder: Jesus of Nazareth; early disciples spread the movement. HEARTH & HISTORICAL ROOTS Geographic hearth: Judea and the eastern Mediterranean, especially Jerusalem. Historical context: Emerged in the 1st century CE within the Jewish context of Roman-controlled Judea; early communities formed around Jesus and his disciples. LANDSCAPES OF FAITH Churches, crosses, cemeteries, pilgrimage routes, and Christian place names vary across regions, reflecting local history, culture, and devotion. Religious classification: Universalizing. Main text: Bible. PAGE 3 OF 11 RIGHT PAGE FOR CHRISTIANITY CHRISTIANITY | DIFFUSION & CULTURAL LANDSCAPE NORTH AMERICA NORTH ATLANTIC OCEAN SOUTH AMERICA SOUTH ATLANTIC OCEAN EUROPE JERUSALEM JUDEA ASIA PACIFIC OCEAN Apostles and early Mediterranean networks Roman imperial support into Europe and the Mediterranean Later European migration to the Americas, southern Africa and Oceania Missionary activity in many regions Relocation diffusion: migrants, missionaries and colonial-era movement carried Christianity to new regions. Hierarchical diffusion: Roman imperial support and later political institutions helped Christianity spread through powerful centres. Contagious diffusion: person-to-person networks spread beliefs through local communities. MODERN DISTRIBUTION Christianity is widespread across Europe, the Americas, sub-Saharan Africa, parts of the Middle East and Oceania, with major internal and regional diversity. DIVISIONS & SPIRITUAL CENTRE Major divisions: Roman Catholic, Eastern Orthodox and Protestant. Vatican City is the centre of the Roman Catholic Church, not an administrative headquarters for all Christianity. SACRED BEACES Jerusalem and Bethehem. CORE BELIEFS & CULTURAL LANDSCAPE Monotheism; most traditions understand God through the Trinity; Jesus is central to Christian belief; practices and landscapes vary among denominations. Map is a simplified spatial model, not a count of every community. INDIAN OCEAN OCEANIA AFRICA ISLAM The crescent and star are widely associated with Islam in modern visual culture, but they are not a universal requirement of Islamic belief. QUICK PROFILE Theistic classification: Monotheistic. Religious classification: Universalizing. Founder: Prophet Muhammad. Geographic hearth: Mecca, Arabian Peninsula. Main text: Qur’an. HEARTH & HISTORICAL ROOTS Historical context: Emerged in the 7th century CE in western Arabia; Mecca and Medina became foundational places in Islamic history. Cultural landscape: Mosques, calligraphy, geometric design, charitable institutions and pilgrimage routes show regional diversity. 4 OF 11 Approximate global adherents: 2.0 billion. ISLAM DIFFUSION & CULTURAL LANDSCAPE PAGE 5 OF 11 NORTH AFRICA SUB-SAHARAN AFRICA SOUTH ASIA CENTRAL ASIA SOUTHEAST ASIA Indian Ocean trade routes into East Africa, South Asia and Southeast Asia Migration and political expansion into additional regions MODERN DISTRIBUTION Major concentrations across North Africa, Southwest and Central Asia, South Asia, Southeast Asia and parts of sub-Saharan Africa, with Muslim communities worldwide. DIVISIONS & SPIRITUAL CENTRE Mecca is the holiest city in Islam, not a universal administrative headquarters. Map is a simplified spatial model, not a count of every community. Relocation diffusion: merchants, migrants and scholars carried Islam along trade and migration routes. Hierarchical diffusion: political expansion and state adoption helped spread Islam through powerful centres. Contagious diffusion: community networks, teaching and everyday contact spread Islamic practices locally. The Five Pillars: declaration of faith, prayer, almsgiving, fasting during Ramadan and pilgrimage to Mecca when able. Prayer Major divisions: Sunni and Shia. Mecca, Medina and Jerusalem. Arabian Peninsula into the Middle East and North Africa SACRED PLACES CORE BELIEFS DIFFUSION Trans-Saharan trade routes ATLANTIC OCEAN E D O B A F Almsgiving F A I T H PRAYER Pilgrimage F A S T I N G Fasting MECCA Faith EXPLORING BELIEFS, CULTURES & SACRED LANDSCAPES PAGE 6 OF 11 JUDAISM The Star of David is a widely recognized Jewish symbol associated with Jewish identity and community; it is not a summary of every Jewish belief or practice. QUICK PROFILE Theistic classification: Monotheistic. Religious classification: Ethnic religion. Founder: No single historical founder; Abraham and Moses are central to Jewish tradition. Main texts: Tanakh and Torah; the Talmud is important in rabbinic Judaism. HEARTH & HISTORICAL ROOTS Geographic hearth h: Ancient Israel and Judah in the southern Levant. Historical context: Jewish traditions developed over many centuries in the ancient Near East, with sacred history connected to the land of Israel and Judah. cemeteries, Hebrew inscriptions, foodways and community institutions that reflect diverse histories and local contexts within the global Jewish diaspora. Approximate global adherents: 14.8 million. CULTURAL LANDSCAPES | WORLD FAITHS ATLAS JUDAISM DIFFUSION & CULTURAL LANDSCAPE PAGE 7 OF 11 NORTH AMERICA ASIA SOUTHERN LEVANT JERUSALEM SOUTH AMERICA Relocation diffusion: diaspora, forced displacement and migration carried Jewish communities to many regions. Contagious diffusion: family, synagogue and community networks maintained cultural practices locally. Hierarchical diffusion: institutions and political changes shaped where communities formed, but Judaism is not spread through a universalizing mission. MODERN DISTRIBUTION Jewish communities are concentrated especially in Israel and the United States, with communities elsewhere; distribution reflects long histories of migration and diaspora. DIVISIONS & SPIRITUAL CENTRE Major movements: Orthodox, Conservative and Reform. There is no single worldwide administrative headquarters. SACRED PLACES Jerusalem and the Western Wall. CORE BELIEFS & CULTURAL LANDSCAPE Monotheism, covenant, Torah-centered tradition, community and ethical practice; beliefs and observance vary among Jewish movements and communities. Map is a simplified spatial model, not a count of every community. Modern return migration to Israel Diaspora communities Forced displacement DIFFUSION NORTH AFRICA Later migration AUSTRALIA EUROPE HINDUISM Om is a sacred sound and symbol in many Hindu traditions, often linked to ultimate reality and meditation; Hindu traditions are diverse and do not all practise identically. QUICK PROFILE Theistic classification: Diverse theistic understandings, including polytheistic, monothistic and monistic traditions. Religious classification: Ethnic religion. Approximate global adherents: 1.2 billion. Geographic hearth: Indian subcontinent, including early Indus and Vedic traditions. Main texts: Vedas, Upanishads and Bhagavad Gita. HEARTH & HISTORICAL ROOTS Historical context: Developed over a long period through regional cultural development, early Indus traditions and Vedic traditions rather than one founding event. Cultural-landscape note: Temples, pilgrimage routes, routes, river rituals, festivals and household shrines show regional variation. Founder: No single founder. P A G E 8 O F 1 1 HINDUISM | DIFFUSION & CULTURAL LANDSCAPE 9 Regional cultural development within South Asia Pilgrimage routes Later diaspora migration HEARTH: INDIAN SUBCONTINENT Varanasi NEPAL TO NORTH AMERICA THAILAND INDONESIA TO AUSTRALIA & NEW ZEALAND DIFFUSION • Relocation diffusion: later migration created Hindu communities beyond South Asia. • Contagious diffusion: local cultural practices, family traditions and regional networks spread within the subcontinent. • Hierarchical diffusion: pilgrimage centres and major teachers influenced surrounding regions, without a single centralized authority. concentrated mainly in India and Nepal, with communities in many countries through migration and diaspora. • Major traditions: Vaishnavism, Shaivism and Shaktism. • There is no central worldwide headquarters. CORE BELIEFS & CULTURAL LANDSCAPE Dharma, karma, samsara and moksha; traditions interpret these concepts in varied ways. Map is a simplified spatial model, not a count of every community. DIVISIONS & SPIRITUAL CENTRE The Ganges River and Varanasi . Trade and cultural exchange MODERN DISTRIBUTION ॐ MAURITIUS REUNION SACRED PLACES EAST AFRICA TO EUROPE MYANMAR VARANASI PAGE OF 11 CAMBODIA BUDDHISM The Dharma wheel commonly represents the Buddha's teachings and the path of practice; Buddhist traditions interpret symbols and practices in diverse ways. Theistic classification: Generally non-theistic in its core teachings. Religious classification: Universalizing. Approximate global adherents: 324 million. Founder: Siddhartha Gautama, the Buddha. Main texts: Pali Canon and Mahayana sutras. HEARTH & HISTORICAL ROOTS Geographic heart: Eastern Gangetic plain in northern India. Historical context: Emerged around the 5th century BCE from the teachings of Siddhartha Gautama. Lumbini is traditionally identified as his birthplace. Buddhist cultural landscapes—stupas, monasteries, meditation centres, pilgrimage routes and Buddhist art— vary across regions. QUICK PROFILE THE WORLD'S MAJOR RELIGIONS 10 OF 11 BUDDHISM DIFFUSION & CULTURAL LANDSCAPE PAGE 11 OF 11 DIFFUSION Relocation diffusion: monks, missionaries, merchants and migrants carried Buddhism to new regions. Hierarchical diffusion: Emperor Ashoka's patronage helped Budd
+[SYSTEM]: Lead Pedagogical Architect. Generate 15 materials (flashcards/quiz).
+    Title: AP HUG scrapbook_compressed, Difficulty: medium, Level: gcse.
+    Output JSON following specified schema. Do NOT include images.
+
+MANDATORY LATEX FORMATTING COMPLIANCE:
+- You MUST format all mathematical expressions, equations, formulas, physical constants, chemical reactions, variables (like x, y), numeric fractions, and scientific notation using standard LaTeX syntax.
+- Use single dollar signs ($) for inline equations (e.g. $E=mc^2$ or $f(x) = x^2$).
+- Use double dollar signs ($$) for block or multi-line equations.
+- Never write plain text math like "x^2" or "alpha + beta" or "H2O". They MUST be formatted in LaTeX (e.g., $x^2$, $\alpha + \beta$, $\text{H}_2\text{O}$). This is critical for clear user understanding in the app's LaTeX-compatible renderer.
+[RESPONSE]: {
+  "audit": {
+    "audit_metadata": {
+      "title": "AP HUG Scrapbook: Major World Religions",
+      "subject": "Human Geography",
+      "level_detected": "GCSE",
+      "estimated_mastery_hours": 4.5,
+      "academic_density_score": 0.82,
+      "exam_relevance_score": 0.95
+    },
+    "semantic_map": {
+      "central_thesis": "Religious belief systems shape global cultural landscapes and diffuse spatially through relocation, hierarchical, and contagious processes from specific historical hearths."
+    }
+  },
+  "memory_layer": {
+    "flashcard_deck": [
+      {
+        "front": "What defines a universalizing religion compared to an ethnic religion?",
+        "back": "Universalizing religions actively seek global converts, whereas ethnic religions are tied to specific cultural or geographic groups.",
+        "explanation": "Universalizing religions (e.g., Christianity, Islam, Buddhism) aim to appeal to all people globally, while ethnic religions (e.g., Judaism, Hinduism) generally do not actively convert others and remain spatially concentrated.",
+        "topic_tag": "Religious Typology"
+      },
+      {
+        "front": "What is the geographic hearth and primary text of Christianity?",
+        "back": "Hearth: Judea/Jerusalem (Eastern Mediterranean); Text: The Bible.",
+        "explanation": "Christianity originated in the 1st century CE in Roman-controlled Judea and relies on the Bible as its core scripture.",
+        "topic_tag": "Christianity"
+      },
+      {
+        "front": "How did Christianity spread hierarchically in its early history?",
+        "back": "Through Roman imperial support and adoption by political leaders.",
+        "explanation": "When Roman emperors adopted and endorsed Christianity, the religion spread downward through political structures into surrounding regions.",
+        "topic_tag": "Spatial Diffusion"
+      },
+      {
+        "front": "What are the Five Pillars of Islam?",
+        "back": "Faith (Shahada), Prayer (Salah), Almsgiving (Zakat), Fasting (Sawm), and Pilgrimage (Hajj).",
+        "explanation": "These core religious practices define everyday spiritual life and obligations for practicing Muslims worldwide.",
+        "topic_tag": "Islam"
+      },
+      {
+        "front": "What is the geographic hearth and primary text of Islam?",
+        "back": "Hearth: Mecca (Arabian Peninsula); Text: The Qur'an.",
+        "explanation": "Islam emerged in the 7th century CE in western Arabia under the Prophet Muhammad, centered around the holy text of the Qur'an.",
+        "topic_tag": "Islam"
+      },
+      {
+        "front": "Why is Judaism classified as an ethnic religion despite its global presence?",
+        "back": "It originated with the Hebrew people in the Southern Levant and does not actively seek worldwide converts.",
+        "explanation": "Judaism's spatial spread occurred primarily through diaspora (forced displacement/relocation) rather than proselytizing mission work.",
+        "topic_tag": "Judaism"
+      },
+      {
+        "front": "What is the primary hearth and geographic distribution of Hinduism?",
+        "back": "Hearth: Indian Subcontinent; Distribution: Heavily concentrated in India and Nepal ($>90\\%$ of global adherents).",
+        "explanation": "Hinduism developed over centuries without a single founder and remains closely tied to the cultural landscape of South Asia.",
+        "topic_tag": "Hinduism"
+      },
+      {
+        "front": "What key concepts define Hindu religious beliefs and cultural practices?",
+        "back": "Dharma (duty), Karma (cause/effect), Samsara (reincarnation), and Moksha (liberation).",
+        "explanation": "These foundational concepts influence personal conduct, social organisation, and sacred rituals along landscape features like the Ganges River.",
+        "topic_tag": "Hinduism"
+      },
+      {
+        "front": "Where is the geographic hearth of Buddhism, and who was its founder?",
+        "back": "Hearth: Eastern Gangetic Plain (Northern India); Founder: Siddhartha Gautama (the Buddha).",
+        "explanation": "Buddhism emerged in the 5th century BCE from the teachings of Siddhartha Gautama and is generally non-theistic in core doctrines.",
+        "topic_tag": "Buddhism"
+      },
+      {
+        "front": "How did hierarchical diffusion play a major role in early Buddhist expansion?",
+        "back": "Through the imperial patronage and royal decree of Emperor Ashoka.",
+        "explanation": "Emperor Ashoka of the Mauryan Empire adopted Buddhism and sent royal emissaries and monks across Asia, establishing it in new territories.",
+        "topic_tag": "Spatial Diffusion"
+      }
+    ]
+  },
+  "application_layer": {
+    "exam_questions": [
+      {
+        "question": "Emperor Ashoka supported the spread of Buddhism by sending official royal emissaries across South and East Asia. Which spatial diffusion process does this best illustrate?",
+        "type": "multiple_choice",
+        "correct_answer": "Hierarchical diffusion",
+        "mark_scheme": "Identify hierarchical diffusion as top-down spread facilitated by political authority or influential figures.",
+        "marks": 1,
+        "options": [
+          "Hierarchical diffusion",
+          "Contagious diffusion",
+          "Stimulus diffusion",
+          "Relocation diffusion"
+        ]
+      },
+      {
+        "question": "Which of the following pairs correctly matches a world religion with its classified geographic hearth and religion type?",
+        "type": "multiple_choice",
+        "correct_answer": "Buddhism — Eastern Gangetic Plain — Universalizing",
+        "mark_scheme": "Recognise that Buddhism originated in the Eastern Gangetic Plain and is classified as a universalizing faith.",
+        "marks": 1,
+        "options": [
+          "Islam — Jerusalem — Ethnic",
+          "Buddhism — Eastern Gangetic Plain — Universalizing",
+          "Hinduism — Mecca — Universalizing",
+          "Judaism — Indian Subcontinent — Ethnic"
+        ]
+      },
+      {
+        "question": "Which statement best describes the primary spatial cause of the global distribution of Jewish communities outside of Israel?",
+        "type": "multiple_choice",
+        "correct_answer": "Forced displacement and diaspora led to relocation diffusion across multiple continents.",
+        "mark_scheme": "Attribute the Jewish diaspora to forced relocation diffusion rather than universalizing proselytization.",
+        "marks": 1,
+        "options": [
+          "Active missionary work converted local populations throughout Western Europe.",
+          "Hierarchical diffusion enforced Jewish practices through Roman imperial laws.",
+          "Forced displacement and diaspora led to relocation diffusion across multiple continents.",
+          "Contagious trade routes converted majority populations in Southeast Asia."
+        ]
+      },
+      {
+        "question": "A geographer observes sacred river rituals, family shrines, and pilgrimage networks in Varanasi, India. Which religion is most directly shaping this cultural landscape?",
+        "type": "multiple_choice",
+        "correct_answer": "Hinduism",
+        "mark_scheme": "Associate Varanasi and sacred river rituals along the Ganges with Hinduism.",
+        "marks": 1,
+        "options": [
+          "Buddhism",
+          "Christianity",
+          "Hinduism",
+          "Islam"
+        ]
+      },
+      {
+        "question": "Which of the following elements is shared by both Christianity and Islam?",
+        "type": "multiple_choice",
+        "correct_answer": "Monotheistic theology and universalizing classification",
+        "mark_scheme": "Identify that both Christianity and Islam are monotheistic and seek global converts (universalizing).",
+        "marks": 1,
+        "options": [
+          "Non-theistic philosophy and origin in the Levant",
+          "Monotheistic theology and universalizing classification",
+          "Ethnic religion classification and shared administrative headquarters in Rome",
+          "Polytheistic origins and hearth in the Arabian Peninsula"
+        ]
+      }
+    ]
+  }
+}

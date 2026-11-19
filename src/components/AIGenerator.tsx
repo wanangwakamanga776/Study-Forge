@@ -91,9 +91,9 @@ function EditableName({ value, onChange }: { value: string; onChange: (v: string
           value={draft}
           onChange={e => setDraft(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') { setDraft(value); setEditing(false); } }}
-          className="flex-1 bg-white/5 border border-forge-accent/50 rounded-xl px-4 py-2 text-white font-display font-black uppercase italic tracking-tighter text-xl focus:outline-none focus:border-forge-accent"
+          className="sf-input flex-1"
         />
-        <button onClick={commit} className="p-2 bg-forge-accent/20 text-forge-accent rounded-xl hover:bg-forge-accent/30 transition-colors">
+        <button type="button" onClick={commit} className="sf-icon-btn h-10 w-10" aria-label="Save lesson name">
           <Check size={16} />
         </button>
       </div>
@@ -101,11 +101,9 @@ function EditableName({ value, onChange }: { value: string; onChange: (v: string
   }
 
   return (
-    <button onClick={() => setEditing(true)} className="group flex items-center gap-3 text-left w-full">
-      <h3 className="text-2xl font-display font-black uppercase italic tracking-tighter text-white leading-tight">
-        {value}
-      </h3>
-      <Pencil size={14} className="text-stone-600 group-hover:text-forge-accent transition-colors shrink-0" />
+    <button type="button" onClick={() => setEditing(true)} className="group flex w-full items-center gap-2.5 text-left">
+      <span className="text-[17px] font-semibold leading-snug text-white">{value}</span>
+      <Pencil size={14} className="shrink-0 text-[var(--sf-text-subtle)] transition-colors group-hover:text-[var(--sf-orange-300)]" aria-hidden="true" />
     </button>
   );
 }
@@ -296,9 +294,10 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({
     <>
       <ToastStack toasts={toasts} onRemove={removeToast} />
       {!hideTrigger && (
-        <button 
-          onClick={() => { setIsOpen(true); soundService.playClick(); }} 
-          className="flex items-center gap-3 px-8 py-4 bg-white text-forge-dark rounded-2xl hover:bg-stone-100 transition-colors shadow-lg font-bold"
+        <button
+          type="button"
+          onClick={() => { setIsOpen(true); soundService.playClick(); }}
+          className="sf-btn sf-btn-primary"
         >
           Create study session
         </button>
@@ -320,58 +319,60 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
               transition={{ type: "spring", duration: 0.5 }}
-              className="relative w-full max-w-2xl bg-stone-950/95 border border-white/10 rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-10 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] overflow-y-auto max-h-[90vh] no-scrollbar flex flex-col"
+              className="sf-card relative max-h-[90vh] w-full max-w-2xl overflow-y-auto p-5 sm:p-8"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="study-session-title"
             >
               {/* Header */}
-              <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/5 shrink-0">
+              <div className="mb-5 flex items-start justify-between gap-4 border-b border-[var(--sf-border)] pb-4 shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-forge-accent/10 rounded-xl border border-forge-accent/20">
-                    <BrainCircuit className="text-forge-accent" size={22} />
+                  <div className="grid h-9 w-9 place-items-center rounded-[10px] bg-[var(--sf-orange-500)]/12 text-[var(--sf-orange-300)]">
+                    <BrainCircuit size={18} />
                   </div>
                   <div>
-                    <h2 className="font-display font-black uppercase italic tracking-tighter text-white text-xl sm:text-2xl leading-none">Study session</h2>
-                    <p className="text-white/50 text-xs font-semibold uppercase tracking-widest mt-1">Create lessons, flashcards, and quizzes</p>
+                    <h2 id="study-session-title" className="text-[17px] font-semibold leading-tight text-white">Create a study session</h2>
+                    <p className="mt-0.5 text-[11.5px] text-[var(--sf-text-subtle)]">Lessons, flashcards, and quizzes from your material</p>
                   </div>
                 </div>
                 {!isGenerating && (
                   <button 
                     onClick={() => { setIsOpen(false); soundService.playClick(); }}
-                    className="p-2 hover:bg-white/5 rounded-xl text-white/40 hover:text-white/80 transition-colors"
+                    className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[var(--sf-text-subtle)] transition-colors hover:bg-white/[0.06] hover:text-white"
+                    aria-label="Close"
                   >
-                    <X size={20} />
+                    <X size={18} />
                   </button>
                 )}
               </div>
 
               {isGenerating ? (
                 /* Dynamic Generating State */
-                <div className="flex-1 py-12 flex flex-col items-center justify-center text-center space-y-8 my-auto">
+                <div className="my-auto flex flex-1 flex-col items-center justify-center gap-8 py-10 text-center">
                   <div className="relative">
-                    <div className="absolute inset-0 bg-forge-accent/20 rounded-full blur-2xl animate-pulse" />
-                    <motion.div 
+                    <motion.div
                       animate={{ rotate: 360 }}
                       transition={{ repeat: Infinity, duration: 4, ease: "linear" }}
-                      className="w-24 h-24 border-4 border-white/5 border-t-forge-accent rounded-full flex items-center justify-center relative z-10"
+                      className="relative z-10 flex h-20 w-20 items-center justify-center rounded-full border-2 border-[var(--sf-border)] border-t-[var(--sf-orange-500)]"
                     >
-                      <Sparkles size={32} className="text-forge-accent animate-bounce" />
+                      <Sparkles size={26} className="text-[var(--sf-orange-300)]" aria-hidden="true" />
                     </motion.div>
                   </div>
-                  
-                  <div className="space-y-3 max-w-md">
-                    <h3 className="font-display font-black uppercase italic tracking-tighter text-white text-2xl">Forging Mastery</h3>
-                    <p className="text-forge-accent font-mono text-xs tracking-wider animate-pulse">{loadingMessage}</p>
-                    <p className="text-white/40 text-[10px] leading-relaxed">Please do not close this window. Our AI Core is processing your request into modular curriculum slides, flashcards, and custom quizzes.</p>
+
+                  <div className="max-w-md space-y-2.5">
+                    <h3 className="text-xl font-semibold text-white">Building your session</h3>
+                    <p className="text-[13px] text-[var(--sf-orange-300)]">{loadingMessage}</p>
+                    <p className="text-[12px] leading-6 text-[var(--sf-text-subtle)]">This usually takes under a minute. Keep this tab open while the lesson, flashcards, and quiz are prepared.</p>
                   </div>
 
-                  {/* High-fidelity Progress Meter */}
+                  {/* Progress Meter */}
                   <div className="w-full max-w-sm space-y-2">
-                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-white/50">
-                      <span>SYNAPSE CONNECTION</span>
+                    <div className="flex justify-between text-[11px] font-medium text-[var(--sf-text-subtle)]">
+                      <span>Progress</span>
                       <span>{progress}%</span>
                     </div>
-                    <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden border border-white/10">
-                      <motion.div 
-                        className="h-full bg-forge-accent shadow-[0_0_15px_rgba(251,146,60,0.8)]"
+                    <div className="sf-progress h-2" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress)} aria-label="Session generation progress">
+                      <motion.span
                         animate={{ width: `${progress}%` }}
                         transition={{ duration: 0.3 }}
                       />
@@ -380,45 +381,45 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({
                 </div>
               ) : isSuccess ? (
                 /* Success celebration state */
-                <div className="flex-1 py-8 flex flex-col items-center justify-center text-center space-y-8 my-auto">
-                  <div className="w-20 h-20 bg-emerald-500/20 border-2 border-emerald-500/40 rounded-full flex items-center justify-center shadow-[0_0_35px_rgba(16,185,129,0.3)]">
-                    <CheckCircle2 size={40} className="text-emerald-400" />
+                <div className="flex flex-1 flex-col items-center justify-center gap-7 py-6 text-center">
+                  <div className="grid h-16 w-16 place-items-center rounded-full border border-[var(--sf-success)]/35 bg-[var(--sf-success-soft)]">
+                    <CheckCircle2 size={30} className="text-emerald-300" aria-hidden="true" />
                   </div>
 
-                  <div className="space-y-2">
-                    <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-4 py-1 rounded-full font-black uppercase tracking-widest">Mastery Forged</span>
-                    <h3 className="text-2xl sm:text-3xl font-display font-black uppercase italic tracking-tighter text-white pt-2 leading-none">Curriculum Integrated!</h3>
-                    <p className="text-white/50 text-xs max-w-sm mx-auto leading-relaxed">Your lesson, interactive flashcard deck, and test simulation were built flawlessly. You can rename the lesson below.</p>
+                  <div>
+                    <p className="sf-eyebrow text-[var(--sf-success)]">Session ready</p>
+                    <h3 className="mt-2 text-[22px] font-semibold text-white">Your materials are built</h3>
+                    <p className="mx-auto mt-2 max-w-sm text-[13px] leading-6 text-[var(--sf-text-muted)]">A lesson, a flashcard deck, and a quiz were created from your source. You can rename the lesson below.</p>
                   </div>
 
-                  <div className="w-full max-w-md p-5 bg-white/5 rounded-2xl border border-white/10">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-3 text-left">LESSON SCHEMATIC NAME</p>
+                  <div className="w-full max-w-md rounded-[12px] border border-[var(--sf-border)] bg-white/[0.02] p-4 text-left">
+                    <p className="mb-2 text-[12px] font-medium text-[var(--sf-text-muted)]">Lesson name</p>
                     <EditableName value={lessonName} onChange={handleNameChange} />
                   </div>
 
-                  <div className="w-full max-w-md flex flex-col gap-3 pt-4">
-                    <button 
-                      onClick={() => { 
-                        setIsOpen(false); 
-                        setIsSuccess(false); 
+                  <div className="flex w-full max-w-md flex-col gap-2.5">
+                    <button
+                      onClick={() => {
+                        setIsOpen(false);
+                        setIsSuccess(false);
                         setSelectedFile(null);
                         setPastedText('');
                         soundService.playSuccess();
-                      }} 
-                      className="w-full py-4 bg-white text-forge-dark rounded-xl font-bold hover:bg-stone-100 transition-colors shadow-lg shadow-white/5"
+                      }}
+                      className="sf-btn sf-btn-primary w-full"
                     >
-                      Review My New Lesson
+                      Open new lesson
                     </button>
-                    <button 
-                      onClick={() => { 
-                        setIsSuccess(false); 
+                    <button
+                      onClick={() => {
+                        setIsSuccess(false);
                         setSelectedFile(null);
                         setPastedText('');
                         soundService.playClick();
                       }}
-                      className="w-full py-4 bg-transparent border border-white/10 hover:bg-white/5 text-white/80 rounded-xl text-xs transition-colors"
+                      className="sf-btn sf-btn-secondary w-full"
                     >
-                      Forge Another Topic
+                      Create another session
                     </button>
                   </div>
                 </div>
@@ -432,12 +433,12 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({
                     onDrop={handleDrop}
                     onClick={() => fileInputRef.current?.click()}
                     className={cn(
-                      "border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all duration-300 flex flex-col items-center justify-center min-h-[160px]",
-                      isDragging 
-                        ? "border-forge-accent bg-forge-accent/10 scale-[0.99] shadow-[0_0_30px_rgba(251,146,60,0.15)]" 
-                        : selectedFile 
-                          ? "border-emerald-500/40 bg-emerald-500/5 hover:bg-emerald-500/10" 
-                          : "border-white/10 hover:border-white/20 hover:bg-white/[0.02]"
+                      "flex min-h-[150px] cursor-pointer flex-col items-center justify-center rounded-[12px] border border-dashed p-6 text-center transition-colors",
+                      isDragging
+                        ? "border-[var(--sf-orange-400)] bg-[var(--sf-orange-500)]/[0.08]"
+                        : selectedFile
+                          ? "border-[var(--sf-success)]/35 bg-[var(--sf-success-soft)]"
+                          : "border-[var(--sf-border-strong)] hover:border-[var(--sf-text-disabled)] hover:bg-white/[0.02]"
                     )}
                   >
                     <input 
@@ -449,82 +450,80 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({
                     />
 
                     {selectedFile ? (
-                      <div className="flex flex-col items-center space-y-3" onClick={e => e.stopPropagation()}>
-                        <div className="p-3 bg-emerald-500/20 rounded-xl text-emerald-400 border border-emerald-500/30">
-                          <FileText size={28} />
+                      <div className="flex flex-col items-center gap-3" onClick={e => e.stopPropagation()}>
+                        <div className="grid h-11 w-11 place-items-center rounded-[11px] bg-[var(--sf-success)]/12 text-emerald-300">
+                          <FileText size={22} />
                         </div>
-                        <div className="space-y-1">
-                          <p className="text-sm font-bold text-white max-w-xs truncate">{selectedFile.name}</p>
-                          <p className="text-[10px] text-white/40 font-mono">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB • READY FOR COGNITIVE EXTRACTION</p>
+                        <div>
+                          <p className="max-w-xs truncate text-[13.5px] font-medium text-white">{selectedFile.name}</p>
+                          <p className="mt-1 text-[11.5px] text-[var(--sf-text-subtle)]">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB &middot; ready to use</p>
                         </div>
-                        <button 
+                        <button
+                          type="button"
                           onClick={removeSelectedFile}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/40 rounded-lg text-xs text-red-400 font-bold transition-all"
+                          className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-[var(--sf-border)] px-3 text-[12px] text-[var(--sf-text-muted)] transition-colors hover:border-[var(--sf-danger)]/40 hover:text-rose-200"
                         >
-                          <Trash2 size={12} />
-                          Remove File
+                          <Trash2 size={13} aria-hidden="true" />
+                          Remove file
                         </button>
                       </div>
                     ) : (
                       <>
-                        <div className="p-3 bg-white/5 rounded-xl text-white/50 mb-3 group-hover:text-forge-accent transition-colors">
-                          <Upload size={24} />
+                        <div className="mb-3 grid h-11 w-11 shrink-0 place-items-center rounded-[11px] bg-white/[0.04] text-[var(--sf-text-subtle)]">
+                          <Upload size={20} aria-hidden="true" />
                         </div>
-                        <p className="text-xs font-black uppercase tracking-wider text-white">Upload Study Source</p>
-                        <p className="text-[10px] text-white/40 mt-1 max-w-xs leading-relaxed">Drag and drop documents, lectures, or textbook chapters here, or click to browse</p>
-                        <p className="text-[8px] text-white/20 mt-3 font-mono">SUPPORTED: PDF, DOCX, TXT, PPTX, PAGES, RTF</p>
+                        <p className="text-[13.5px] font-medium text-white">Upload a study source</p>
+                        <p className="mt-1 max-w-xs text-[12px] leading-5 text-[var(--sf-text-subtle)]">Drag and drop documents or lectures here, or click to browse.</p>
+                        <p className="mt-3 text-[11px] text-[var(--sf-text-disabled)]">PDF, DOCX, TXT, PPTX, PAGES, RTF</p>
                       </>
                     )}
                   </div>
 
                   {/* Text Input Prompt */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-white/50">
-                      <span>{selectedFile ? "OPTIONAL CUSTOM INSTRUCTIONS" : "PASTE NOTES OR ENTER STUDY TOPIC"}</span>
-                      <span>{pastedText.length} CHARS</span>
+                  <div>
+                    <div className="mb-1.5 flex items-center justify-between gap-3">
+                      <label htmlFor="study-session-source" className="text-[12px] font-medium text-[var(--sf-text-muted)]">
+                        {selectedFile ? 'Optional instructions' : 'Paste notes or enter a study topic'}
+                      </label>
+                      <span className="text-[11px] text-[var(--sf-text-disabled)]">{pastedText.length} characters</span>
                     </div>
-                    <div className="relative bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden focus-within:border-white/10 transition-colors">
-                      <textarea 
-                        value={pastedText} 
-                        onChange={e => { setPastedText(e.target.value); if (error) setError(null); }} 
-                        placeholder={
-                          selectedFile 
-                            ? "Optional: Give specific instruction to the AI (e.g. 'focus on Chapter 3 rules', 'explain using easy analogies', etc.)" 
-                            : "Enter a subject (e.g. 'Quantum Physics principles', 'WW2 European Theater outline'), paste reference text, or list specific terms to forge a study guide..."
-                        }
-                        className="w-full h-36 sm:h-44 bg-transparent p-4 text-white text-sm placeholder:text-white/20 focus:outline-none resize-none leading-relaxed" 
-                      />
-                    </div>
+                    <textarea
+                      id="study-session-source"
+                      value={pastedText}
+                      onChange={e => { setPastedText(e.target.value); if (error) setError(null); }}
+                      placeholder={
+                        selectedFile
+                          ? "Optional: tell the tutor what to focus on, for example “explain with easy analogies”."
+                          : "Enter a subject, paste reference text, or list the terms you need to learn..."
+                      }
+                      className="sf-input sf-textarea min-h-[132px]"
+                    />
                   </div>
 
                   {/* Error display */}
                   {error && (
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, y: -5 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-3 text-red-400"
+                      className="flex items-start gap-2.5 rounded-[10px] border border-[var(--sf-danger)]/25 bg-[var(--sf-danger-soft)] p-3.5 text-[12.5px] text-rose-100"
+                      role="alert"
                     >
-                      <AlertCircle className="shrink-0 mt-0.5" size={16} />
-                      <div className="text-xs leading-relaxed font-semibold">{error}</div>
+                      <AlertCircle className="mt-0.5 shrink-0" size={16} aria-hidden="true" />
+                      <div className="leading-relaxed">{error}</div>
                     </motion.div>
                   )}
 
                   {/* Forge button */}
-                  <div className="pt-2 shrink-0">
-                    <button 
-                      disabled={isGenerating || (!selectedFile && pastedText.trim().length < 20)} 
-                      onClick={() => { generateLessonMaterial(); soundService.playClick(); }} 
-                      className={cn(
-                        "w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2.5 transition-all shadow-lg min-h-[48px]",
-                        (!selectedFile && pastedText.trim().length < 20)
-                          ? "bg-white/5 text-white/30 cursor-not-allowed border border-white/5"
-                          : "bg-[var(--sf-orange-500)] hover:bg-[var(--sf-orange-400)] text-black shadow-[0_0_28px_var(--sf-orange-glow)]"
-                      )}
+                  <div className="shrink-0">
+                    <button
+                      disabled={isGenerating || (!selectedFile && pastedText.trim().length < 20)}
+                      onClick={() => { generateLessonMaterial(); soundService.playClick(); }}
+                      className="sf-btn sf-btn-primary w-full"
                     >
                       <Sparkles size={16} aria-hidden="true" />
                       Create study session
                     </button>
-                    <p className="text-center text-xs text-white/40 mt-3">AI availability depends on configuration and plan limits. Saved materials remain accessible.</p>
+                    <p className="mt-3 text-center text-[11.5px] text-[var(--sf-text-disabled)]">AI availability depends on configuration and plan limits. Saved materials remain accessible.</p>
                   </div>
                 </div>
               )}

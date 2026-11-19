@@ -148,109 +148,91 @@ export function AboutMePopup() {
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    const openMission = () => setIsOpen(true);
+    window.addEventListener('studyforge:open-mission', openMission);
+    return () => window.removeEventListener('studyforge:open-mission', openMission);
+  }, []);
+
   return (
     <>
-      <motion.button
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        whileHover={{ scale: 1.1, rotate: 5 }}
-        whileTap={{ scale: 0.9 }}
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-10 right-6 w-16 h-16 bg-stone-900 text-white rounded-full shadow-[0_0_40px_rgba(0,0,0,0.4)] flex items-center justify-center z-[10000] border-4 border-white group"
-      >
-        <HelpCircle size={28} className="group-hover:scale-110 transition-transform" />
-        <div className="absolute -top-1 -right-1 flex items-center justify-center">
-            <motion.div 
-              animate={{ scale: [1, 1.4, 1], opacity: [0.5, 0.2, 0.5] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="absolute w-6 h-6 bg-forge-accent rounded-full blur-sm" 
-            />
-            <div className="relative w-4 h-4 bg-forge-accent rounded-full border-2 border-white flex items-center justify-center">
-               <div className="w-1 h-1 bg-white rounded-full animate-ping" />
-            </div>
-        </div>
-        
-        {/* Tooltip on hover */}
-        <div className="absolute right-full mr-4 px-3 py-1 bg-stone-900 text-white text-[8px] font-black uppercase tracking-[0.2em] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-white/10">
-          The Mission
-        </div>
-      </motion.button>
-
       <AnimatePresence>
         {isOpen && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-stone-950/60 backdrop-blur-md">
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6 bg-black/70 backdrop-blur-md">
             <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              initial={{ scale: 0.96, opacity: 0, y: 16 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="w-full max-w-2xl max-h-[85vh] bg-white rounded-[3rem] overflow-hidden shadow-2xl relative flex flex-col"
+              exit={{ scale: 0.96, opacity: 0, y: 16 }}
+              className="sf-card relative flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="mission-title"
             >
               <button 
                 onClick={() => setIsOpen(false)}
-                className="absolute top-6 right-6 w-10 h-10 bg-stone-100 hover:bg-stone-200 rounded-2xl flex items-center justify-center text-stone-500 transition-colors z-20"
+                className="absolute right-4 top-4 z-20 grid h-9 w-9 place-items-center rounded-lg text-[var(--sf-text-subtle)] transition-colors hover:bg-white/[0.06] hover:text-white"
+                aria-label="Close mission"
               >
-                <X size={20} />
+                <X size={18} />
               </button>
 
-              <div className="flex-1 overflow-y-auto metallic-scrollbar p-8 md:p-12">
-                <div className="flex items-center gap-4 mb-8">
-                  <div className="p-4 bg-stone-900 text-white rounded-3xl">
-                     <Sparkles size={24} />
+              <div className="flex-1 overflow-y-auto metallic-scrollbar p-6 sm:p-9">
+                <div className="mb-7 flex items-center gap-3.5">
+                  <div className="grid h-11 w-11 place-items-center rounded-[12px] bg-[var(--sf-orange-500)]/12 text-[var(--sf-orange-300)]">
+                     <Sparkles size={20} />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-display font-black uppercase italic tracking-tighter text-stone-900 leading-none">My Story</h2>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-stone-400 mt-1">Official Project Mission</p>
+                    <h2 id="mission-title" className="text-[22px] font-semibold text-white" style={{ fontFamily: 'var(--sf-font-display)' }}>My Story</h2>
+                    <p className="sf-eyebrow mt-1">Official project mission</p>
                   </div>
                 </div>
 
-                <div className="space-y-8">
-                  <div className="prose prose-stone max-w-none">
-                    <div className="text-lg md:text-xl text-stone-700 leading-relaxed font-serif italic whitespace-pre-line">
-                      {data?.message || `Hi, I’m Wana, I’m a 16 year-old student currently in 10th-grade. While studying for tests I realized that the tools we use to study are either too expensive or just don't work the way we actually learn.
+                <div className="space-y-6">
+                  <p className="whitespace-pre-line text-[14.5px] leading-7 text-[var(--sf-text-muted)]">
+                    {data?.message || `Hi, I’m Wana, a 16 year-old student in 10th grade. While studying for tests I realized that the tools we use to study are either too expensive or just don't work the way we actually learn.
 
 The Mission: Why Study Forge?
 
-I built Study Forge because I was tired of hitting paywalls for basic study features. I wanted to create a 'Student OS' (operating system) that focuses on actual understanding, not just memorization.
+I built Study Forge because I was tired of hitting paywalls for basic study features. I wanted to create a 'Student OS' that focuses on actual understanding, not just memorization.
 
-Using Google AI Studio, I developed the Academic Assistant to act as a tutor guiding you through concepts in Chemistry or Geometry rather than just handing over the answers. My goal is to help us all maintain high grades and understanding essential concepts while actually having time for a life outside of school.
+Using Google AI Studio, I developed the Academic Assistant to act as a tutor guiding you through concepts in Chemistry or Geometry rather than just handing over the answers. My goal is to help us all keep high grades and understand essential concepts while still having time for a life outside of school.
 
-Please keep in mind that Study Forge is currently in its <span className="font-black text-emerald-500">Update 2.0</span> stage. As a student developer, I’m constantly shipping updates, fixing bugs, and adding new features like the Embers Shop and Community Vault.
+Study Forge is currently in its Update 2.0 stage. As a student developer, I’m constantly shipping updates, fixing bugs, and adding new features like the Embers Shop and Community Vault.
 
-By using the app now, you are a "Founding Member." Your feedback directly shapes how this tool grows. If you find a bug or have a feature request, let me know—I’m building this for us.`}
-                    </div>
-                  </div>
+By using the app now, you are a founding member. Your feedback directly shapes how this tool grows.`}
+                  </p>
                   
                   {data?.images && data.images.length > 0 && (
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-3">
                       {data.images.map((url, idx) => (
-                        <div key={idx} className="aspect-square rounded-3xl overflow-hidden border-4 border-stone-50 group">
-                           <img src={url} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                        <div key={idx} className="aspect-square overflow-hidden rounded-[14px] border border-[var(--sf-border)] group">
+                           <img src={url} alt="" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
                         </div>
                       ))}
                     </div>
                   )}
 
-                  <div className="bg-stone-50 rounded-[2rem] p-6 border border-stone-100">
-                    <div className="flex items-center gap-3 mb-4">
-                      <Heart size={16} className="text-red-500 fill-red-500" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-stone-900">Student Developer Mission</span>
+                  <div className="rounded-[14px] border border-[var(--sf-border)] bg-white/[0.025] p-5">
+                    <div className="mb-2.5 flex items-center gap-2">
+                      <Heart size={15} className="text-[var(--sf-orange-400)]" />
+                      <span className="sf-eyebrow">Student developer mission</span>
                     </div>
-                    <p className="text-xs text-stone-500 leading-relaxed">
-                      Study Forge is a living project. We are constantly shipping updates and fixing bugs together. Your presence as a founding member is invaluable.
+                    <p className="text-[13px] leading-6 text-[var(--sf-text-subtle)]">
+                      Study Forge is a living project. Updates and fixes ship continuously, and your presence as a founding member is invaluable.
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="p-6 bg-stone-50 border-t border-stone-100 flex items-center justify-between">
-                <div className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">
-                  Alpha v0.8.2 // Protocol Active
+              <div className="flex items-center justify-between gap-3 border-t border-[var(--sf-border)] bg-white/[0.02] px-6 py-4">
+                <div className="text-[11px] text-[var(--sf-text-disabled)]">
+                  Built by a student, for students.
                 </div>
                 <button 
                   onClick={() => setIsOpen(false)}
-                  className="px-6 py-2 bg-stone-900 text-white rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all"
+                  className="sf-btn sf-btn-primary min-h-9 px-4 text-[12.5px]"
                 >
-                  Close Archive
+                  Close
                 </button>
               </div>
             </motion.div>

@@ -1,5 +1,6 @@
-﻿import { LogOut, Settings, UserRound } from 'lucide-react';
-import { PyraMascot } from '../components/PyraMascot';
+﻿import { Flame, LogOut, Settings, UserRound } from 'lucide-react';
+import { PageHeader } from '../components/layout/PageHeader';
+import { FeedbackSection } from '../components/FeedbackSystem';
 import { AppState } from '../types';
 
 interface ProfilePageProps {
@@ -12,51 +13,51 @@ interface ProfilePageProps {
 
 export function ProfilePage({ state, learnerName, isGuest, onOpenSettings, onLogout }: ProfilePageProps) {
   const { stats } = state;
+
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-white/10 bg-[var(--sf-surface)] p-6 sm:p-8">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <PyraMascot expression="happy" className="w-16 h-16" />
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--sf-orange-300)]">Profile</p>
-              <h1 className="mt-1 text-2xl sm:text-3xl font-semibold tracking-tight text-white">{learnerName}</h1>
-              <p className="mt-2 text-[var(--sf-text-muted)]">{isGuest ? 'Guest mode — sign in to save progress across devices.' : 'Manage your account and study preferences.'}</p>
-            </div>
-          </div>
-          <span className="inline-flex items-center gap-2 rounded-full bg-white/[0.05] border border-white/10 px-4 py-2 text-sm text-[var(--sf-text-muted)]">
-            <UserRound aria-hidden="true" size={16} /> Level {stats.level || 1}
+      <PageHeader
+        title={learnerName}
+        description={isGuest ? 'Guest mode. Sign in to keep your progress across devices.' : 'Your account, preferences, and study settings.'}
+        action={
+          <span className="sf-chip px-3 py-1.5 text-[13px]">
+            <UserRound aria-hidden="true" size={14} /> Level {stats.level || 1}
           </span>
-        </div>
-      </section>
+        }
+      />
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-white/10 bg-[var(--sf-surface)] p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--sf-text-subtle)]">XP</p>
-          <p className="mt-2 text-2xl font-semibold text-white">{stats.xp || 0}</p>
-        </div>
-        <div className="rounded-2xl border border-white/10 bg-[var(--sf-surface)] p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--sf-text-subtle)]">Streak</p>
-          <p className="mt-2 text-2xl font-semibold text-white">{stats.streak || 0} days</p>
-        </div>
-        <div className="rounded-2xl border border-white/10 bg-[var(--sf-surface)] p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--sf-text-subtle)]">Embers</p>
-          <p className="mt-2 text-2xl font-semibold text-white">{stats.embers || 0}</p>
-        </div>
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: 'XP', value: stats.xp || 0 },
+          { label: 'Streak', value: `${stats.streak || 0} days` },
+          { label: 'Embers', value: stats.embers || 0 },
+        ].map(({ label, value }) => (
+          <div key={label} className="sf-card p-4 sm:p-5">
+            <p className="sf-eyebrow">{label}</p>
+            <p className="sf-stat-value mt-2.5 text-[22px] sm:text-[26px]">{value}</p>
+          </div>
+        ))}
       </div>
 
-      <section className="rounded-3xl border border-white/10 bg-[var(--sf-surface)] p-6">
-        <h2 className="text-lg font-semibold text-white">Account & settings</h2>
-        <p className="mt-2 text-sm text-[var(--sf-text-muted)]">Update your profile, preferences, and session options.</p>
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-          <button type="button" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[var(--sf-orange-500)] px-5 font-semibold text-black hover:bg-[var(--sf-orange-400)]" onClick={onOpenSettings}>
-            <Settings aria-hidden="true" size={17} /> Open settings
+      <section className="sf-card p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="sf-card-title">Account &amp; settings</h2>
+            <p className="mt-1 text-[13px] text-[var(--sf-text-muted)]">Update your profile, preferences, and session options.</p>
+          </div>
+          <span className="grid h-9 w-9 place-items-center rounded-[10px] bg-[var(--sf-orange-500)]/12 text-[var(--sf-orange-300)]"><Flame size={16} aria-hidden="true" /></span>
+        </div>
+        <div className="mt-5 flex flex-col gap-2.5 sm:flex-row">
+          <button type="button" className="sf-btn sf-btn-primary" onClick={onOpenSettings}>
+            <Settings aria-hidden="true" size={16} /> Open settings
           </button>
-          <button type="button" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/10 px-5 text-sm text-white hover:bg-white/[0.07]" onClick={onLogout}>
-            <LogOut aria-hidden="true" size={17} /> {isGuest ? 'Exit guest mode' : 'Sign out'}
+          <button type="button" className="sf-btn sf-btn-secondary" onClick={onLogout}>
+            <LogOut aria-hidden="true" size={16} /> {isGuest ? 'Exit guest mode' : 'Sign out'}
           </button>
         </div>
       </section>
+
+      <FeedbackSection />
     </div>
   );
 }

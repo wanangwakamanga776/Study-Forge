@@ -6,11 +6,12 @@ import { generateId } from "../lib/utils";
 // ─────────────────────────────────────────────────────────────────
 
 export const CONFIG = {
-  API_KEY: process.env.GEMINI_API_KEY || (import.meta.env.VITE_GEMINI_API_KEY as string) || '',
+  // Study Forge 2.0: keys live server-side only (edge function). Empty here by design.
+  API_KEY: '',
 
   MODELS: {
     flash: 'gemini-3.5-flash',
-    pro:   'gemini-3.5-flash', 
+    pro:   'gemini-3.5-flash',
   },
 
   // How long generated content lives in cache (milliseconds)

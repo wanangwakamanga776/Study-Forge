@@ -69,6 +69,12 @@ export function ForgeChat({ onNavigate, onOpenForge, onSaveData, onEditData, onA
   const [messages, setMessages] = useState<Message[]>([]);
 
   useEffect(() => {
+    const openChat = () => setIsOpen(true);
+    window.addEventListener('studyforge:open-chat', openChat);
+    return () => window.removeEventListener('studyforge:open-chat', openChat);
+  }, []);
+
+  useEffect(() => {
     let isMounted = true;
     getGenericLocalDB('forge_chat_history').then(saved => {
       if (isMounted) {
@@ -163,7 +169,7 @@ export function ForgeChat({ onNavigate, onOpenForge, onSaveData, onEditData, onA
   const handleSend = async () => {
     if (!input.trim() && !fileContent) return;
     if (!isAIConfigured) {
-      alert("AI Configuration needed. Please set your API Key in the settings to activate Pyra.");
+      alert("AI is not available in this build. Study Forge 2.0 routes all model calls through the Supabase edge function (supabase/functions/generate). Configure PRIMARY_API_KEY on the server, then use the gateway client (src/lib/gateway-client.ts).");
       return;
     }
 
@@ -367,22 +373,6 @@ export function ForgeChat({ onNavigate, onOpenForge, onSaveData, onEditData, onA
 
   return (
     <>
-      {/* Trigger Button */}
-      <button
-        onClick={() => {
-          setIsOpen(true);
-          soundService.playClick();
-        }}
-        className="fixed bottom-32 right-6 w-16 h-16 bg-forge-accent text-forge-dark rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(251,146,60,0.4)] hover:scale-110 active:scale-95 transition-all z-[10000] group"
-      >
-        <MessageSquare size={28} className="group-hover:rotate-12 transition-transform" />
-        <motion.div 
-            animate={{ scale: [1, 1.2, 1], opacity: [0, 0.3, 0] }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className="absolute inset-0 bg-forge-accent rounded-full -z-10"
-        />
-      </button>
-
       {/* Chat Sidebar */}
       <AnimatePresence>
         {isOpen && (

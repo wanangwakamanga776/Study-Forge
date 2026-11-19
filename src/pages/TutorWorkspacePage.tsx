@@ -5,8 +5,7 @@ import { SourceRail, SourceItem } from '../components/tutor/SourceRail';
 import { TutorMessage } from '../components/tutor/TutorMessage';
 import { TutorLoading } from '../components/tutor/TutorLoading';
 import { TutorUnavailable } from '../components/tutor/TutorUnavailable';
-import { PyraMascot } from '../components/PyraMascot';
-import { cn } from '../lib/utils';
+import { PageHeader } from '../components/layout/PageHeader';
 import { AppState } from '../types';
 
 interface TutorWorkspacePageProps {
@@ -72,22 +71,17 @@ export function TutorWorkspacePage({ state, onOpenForge, onNavigate }: TutorWork
 
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-white/10 bg-[var(--sf-surface)] p-5 sm:p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <PyraMascot expression="happy" className="w-14 h-14" />
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-white">Tutor workspace</h1>
-              <p className="text-sm text-[var(--sf-text-muted)] mt-1">Ask questions, use your materials, and practice what you learn.</p>
-            </div>
-          </div>
-          <button type="button" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--sf-orange-500)] px-4 font-semibold text-black hover:bg-[var(--sf-orange-400)]" onClick={() => onNavigate('review')}>
+      <PageHeader
+        title="Learn it properly, one question at a time"
+        description="Ask anything, ground answers in your own material, then turn the topic into practice."
+        action={
+          <button type="button" className="sf-btn sf-btn-secondary" onClick={() => onNavigate('review')}>
             <BookOpen aria-hidden="true" size={16} /> Open review
           </button>
-        </div>
-      </section>
+        }
+      />
 
-      <div className="grid gap-6 xl:grid-cols-[220px_minmax(0,1fr)_280px]">
+      <div className="grid gap-5 xl:grid-cols-[210px_minmax(0,1fr)_270px]">
         <div className="hidden xl:block">
           <SourceRail
             sources={sources}
@@ -96,17 +90,26 @@ export function TutorWorkspacePage({ state, onOpenForge, onNavigate }: TutorWork
           />
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-5">
           <AskTutorComposer onSubmit={handleSubmit} disabled={status === 'loading'} />
 
           <div aria-live="polite" aria-atomic="false" className="space-y-4">
             {status === 'loading' && <TutorLoading />}
             {status === 'error' && <TutorUnavailable onRetry={() => setStatus('idle')} onReview={() => onNavigate('review')} />}
+
+            {status === 'idle' && thread.length === 0 && (
+              <div className="sf-card border-dashed px-6 py-10 text-center">
+                <Sparkles className="mx-auto mb-3 text-[var(--sf-orange-400)]" aria-hidden="true" />
+                <p className="text-sm font-medium text-white">Start with a question or topic.</p>
+                <p className="mt-1.5 text-[13px] text-[var(--sf-text-subtle)]">Ask for an explanation, a comparison, an example, or a quick quiz.</p>
+              </div>
+            )}
+
             {thread.map((item) => (
               <div key={item.id} className="space-y-3">
-                <div className="ml-auto max-w-2xl rounded-3xl border border-white/10 bg-white/[0.03] p-4 text-sm leading-7 text-[var(--sf-text-muted)]">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--sf-text-subtle)] mb-2">You asked ({item.mode})</p>
-                  <p className="whitespace-pre-wrap text-white/90">{item.question}</p>
+                <div className="ml-auto max-w-2xl rounded-[16px] border border-[var(--sf-border)] bg-white/[0.035] p-4">
+                  <p className="sf-eyebrow mb-2">You asked ({item.mode})</p>
+                  <p className="whitespace-pre-wrap text-[14px] leading-6 text-white/90">{item.question}</p>
                 </div>
                 <TutorMessage
                   answer={item.answer}
@@ -117,28 +120,21 @@ export function TutorWorkspacePage({ state, onOpenForge, onNavigate }: TutorWork
                 />
               </div>
             ))}
-            {status === 'idle' && thread.length === 0 && (
-              <div className="rounded-3xl border border-dashed border-white/10 bg-white/[0.02] p-8 text-center">
-                <Sparkles className="mx-auto text-[var(--sf-orange-400)] mb-3" aria-hidden="true" />
-                <p className="text-white font-medium">Start with a question or topic.</p>
-                <p className="mt-2 text-sm text-[var(--sf-text-subtle)]">I can explain, compare ideas, show examples, or quiz you.</p>
-              </div>
-            )}
           </div>
         </div>
 
         <aside className="space-y-4">
-          <section className="rounded-3xl border border-white/10 bg-[var(--sf-surface)] p-5">
-            <div className="flex items-center gap-2 text-sm font-semibold text-white mb-3"><Layers aria-hidden="true" size={16} className="text-[var(--sf-orange-400)]" /> Practice</div>
-            <p className="text-sm text-[var(--sf-text-muted)] leading-6">Turn this topic into a short retrieval session to strengthen memory.</p>
-            <button type="button" className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--sf-orange-500)] px-4 text-sm font-semibold text-black hover:bg-[var(--sf-orange-400)]" onClick={() => onNavigate('review')}>
+          <section className="sf-card p-5">
+            <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-white"><Layers aria-hidden="true" size={15} className="text-[var(--sf-orange-400)]" /> Practice</div>
+            <p className="text-[13px] leading-6 text-[var(--sf-text-muted)]">Turn this topic into a short retrieval session to strengthen memory.</p>
+            <button type="button" className="sf-btn sf-btn-primary mt-4 w-full" onClick={() => onNavigate('review')}>
               <Plus aria-hidden="true" size={16} /> Start practice
             </button>
           </section>
-          <section className="rounded-3xl border border-white/10 bg-[var(--sf-surface)] p-5 xl:hidden">
-            <div className="flex items-center gap-2 text-sm font-semibold text-white mb-3"><Search aria-hidden="true" size={16} className="text-[var(--sf-orange-400)]" /> Sources</div>
-            <p className="text-sm text-[var(--sf-text-muted)]">Use the Learn workspace on desktop to pin sources, or add material to ground answers.</p>
-            <button type="button" className="mt-4 min-h-11 rounded-xl border border-white/10 px-4 text-sm text-white hover:bg-white/[0.07]" onClick={() => onOpenForge()}>Add material</button>
+          <section className="sf-card p-5 xl:hidden">
+            <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-white"><Search aria-hidden="true" size={15} className="text-[var(--sf-orange-400)]" /> Sources</div>
+            <p className="text-[13px] leading-6 text-[var(--sf-text-muted)]">Add material to ground answers in your own notes and documents.</p>
+            <button type="button" className="sf-btn sf-btn-secondary mt-4 w-full" onClick={() => onOpenForge()}>Add material</button>
           </section>
         </aside>
       </div>

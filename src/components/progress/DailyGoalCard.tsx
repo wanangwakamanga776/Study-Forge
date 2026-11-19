@@ -12,29 +12,33 @@ export function DailyGoalCard({ minutesCompleted, minutesGoal, streak }: DailyGo
   const done = percentage >= 100;
 
   return (
-    <section className="rounded-3xl border border-white/10 bg-[var(--sf-surface)] p-6 h-full">
+    <section className="sf-card h-full p-6">
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--sf-text-subtle)]">Today’s goal</p>
-          <h2 className="mt-2 text-xl font-semibold text-white">Keep your learning streak alive</h2>
-        </div>
-        <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[var(--sf-orange-500)]/15 text-[var(--sf-orange-300)]">
-          <Flame aria-hidden="true" size={20} />
+        <p className="sf-eyebrow">Today&rsquo;s goal</p>
+        <span className="grid h-9 w-9 place-items-center rounded-[10px] bg-[var(--sf-orange-500)]/12 text-[var(--sf-orange-300)]">
+          <Flame aria-hidden="true" size={18} />
         </span>
       </div>
-      <div className="mt-6 flex items-end justify-between gap-4">
-        <p className="text-3xl font-semibold text-white">
-          <CountUp from={0} to={minutesCompleted} duration={0.8} /> <span className="text-base font-normal text-[var(--sf-text-subtle)]">/ {minutesGoal} min</span>
-        </p>
-        <p className="text-sm text-[var(--sf-text-muted)]">{streak} day streak</p>
+
+      <p className="mt-5 flex items-baseline gap-1.5">
+        <span className="sf-stat-value"><CountUp from={0} to={minutesCompleted} duration={0.8} /></span>
+        <span className="text-sm text-[var(--sf-text-subtle)]">/ {minutesGoal} min</span>
+      </p>
+
+      <div className="sf-progress mt-4" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percentage} aria-label="Daily study goal">
+        <span style={{ width: `${percentage}%` }} />
       </div>
-      <div className="mt-4 h-3 overflow-hidden rounded-full bg-white/[0.08]" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percentage} aria-label="Daily study goal">
-        <div className="h-full rounded-full bg-[var(--sf-orange-500)] transition-[width] duration-700" style={{ width: `${percentage}%` }} />
-      </div>
-      <p className="mt-3 flex items-center gap-2 text-sm text-[var(--sf-text-muted)]">
-        {done ? <Check className="text-[var(--sf-success)]" aria-hidden="true" size={16} /> : <Clock3 aria-hidden="true" size={16} />}
+
+      <p className="mt-4 flex items-start gap-2 text-[13px] leading-5 text-[var(--sf-text-muted)]">
+        {done ? <Check className="mt-0.5 shrink-0 text-[var(--sf-success)]" aria-hidden="true" size={15} /> : <Clock3 className="mt-0.5 shrink-0" aria-hidden="true" size={15} />}
         {done ? 'Daily goal complete. Nice work.' : `${Math.max(minutesGoal - minutesCompleted, 0)} minutes left today.`}
       </p>
+
+      <div className="mt-5 border-t border-[var(--sf-border)] pt-4">
+        <p className="text-[13px] text-[var(--sf-text-subtle)]">
+          <span className="font-semibold text-white">{streak} day{streak === 1 ? '' : 's'}</span> in your streak
+        </p>
+      </div>
     </section>
   );
 }

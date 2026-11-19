@@ -20,12 +20,15 @@
 @layer base {
   html, body, #root { min-height: 100%; }
   body {
-    background: radial-gradient(1200px 600px at 10% -10%, rgba(249,115,22,0.10), transparent 50%), radial-gradient(900px 500px at 100% 0%, rgba(251,191,36,0.06), transparent 45%), var(--sf-bg, #09090b);
+    background: radial-gradient(1100px 520px at 12% -12%, rgba(249,115,22,0.085), transparent 60%), var(--sf-bg, #0b0a09);
     color: var(--sf-text, #fffaf4);
     font-family: var(--sf-font-body, "Inter", system-ui, sans-serif);
+    font-size: 15.5px;
+    line-height: 1.6;
     @apply antialiased selection:bg-orange-500/30 selection:text-white;
   }
-  h1, h2, h3, h4, .font-display { font-family: var(--sf-font-display, "Fraunces", serif); letter-spacing: -0.03em; }
+  h1, h2, h3, h4, .font-display { font-family: var(--sf-font-display, "Fraunces", serif); letter-spacing: -0.03em; line-height: 1.08; }
+  h1, h2, h3, h4 { color: var(--sf-text); }
   :focus-visible { outline: 2px solid var(--sf-orange-300, #fdba74); outline-offset: 2px; }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
@@ -53,4 +56,294 @@
   input[type='range'].forge-slider { appearance: none; background: transparent; cursor: pointer; width: 100%; }
   input[type='range'].forge-slider::-webkit-slider-runnable-track { height: 4px; background: rgba(255,255,255,0.12); border-radius: 999px; }
   input[type='range'].forge-slider::-webkit-slider-thumb { appearance: none; height: 18px; width: 18px; border-radius: 999px; background: #f97316; margin-top: -7px; border: 3px solid #09090b; }
+
+  /* ---------------------------------------------------------------
+     Study Forge design system
+     Surfaces, type, controls and layout primitives shared by every
+     screen. Keep new UI on these classes instead of ad-hoc values.
+     --------------------------------------------------------------- */
+
+  .sf-eyebrow {
+    font-family: var(--sf-font-body);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--sf-text-subtle);
+  }
+
+  .sf-display {
+    font-family: var(--sf-font-display);
+    font-weight: 600;
+    letter-spacing: -0.035em;
+    line-height: 1.04;
+    color: var(--sf-text);
+  }
+
+  .sf-page-title {
+    font-family: var(--sf-font-display);
+    font-size: clamp(26px, 2.6vw, 36px);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    color: var(--sf-text);
+  }
+
+  .sf-subtitle {
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--sf-text-muted);
+    max-width: 62ch;
+  }
+
+  .sf-card {
+    position: relative;
+    border-radius: var(--sf-radius-lg);
+    border: 1px solid var(--sf-border);
+    background: var(--sf-surface);
+    box-shadow: var(--sf-shadow-card);
+  }
+
+  .sf-card-quiet {
+    border-radius: var(--sf-radius-md);
+    border: 1px solid var(--sf-border);
+    background: rgba(255, 244, 230, 0.025);
+  }
+
+  .sf-card-interactive {
+    transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+  }
+
+  .sf-card-interactive:hover {
+    border-color: var(--sf-border-strong);
+    background: var(--sf-surface-raised);
+    transform: translateY(-1px);
+  }
+
+  .sf-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    padding: 0 18px;
+    border: 1px solid transparent;
+    border-radius: var(--sf-radius-sm);
+    font-family: var(--sf-font-body);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+  }
+
+  .sf-btn:active:not(:disabled) { transform: translateY(1px); }
+  .sf-btn:disabled { cursor: not-allowed; opacity: 0.5; }
+
+  .sf-btn-primary {
+    background: var(--sf-orange-500);
+    color: #1a1209;
+  }
+  .sf-btn-primary:hover:not(:disabled) { background: var(--sf-orange-400); }
+  .sf-btn-primary:disabled {
+    border-color: var(--sf-border);
+    background: rgba(255, 244, 230, 0.05);
+    color: var(--sf-text-disabled);
+    opacity: 1;
+  }
+
+  .sf-btn-secondary {
+    border-color: var(--sf-border-strong);
+    background: transparent;
+    color: var(--sf-text);
+  }
+  .sf-btn-secondary:hover:not(:disabled) { background: rgba(255, 244, 230, 0.06); }
+
+  .sf-btn-ghost {
+    padding: 0 12px;
+    background: transparent;
+    color: var(--sf-text-muted);
+  }
+  .sf-btn-ghost:hover:not(:disabled) { background: rgba(255, 244, 230, 0.05); color: var(--sf-text); }
+
+  .sf-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    flex: none;
+    border: 1px solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+    background: transparent;
+    color: var(--sf-text-muted);
+    transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+    cursor: pointer;
+  }
+  .sf-icon-btn:hover { background: rgba(255, 244, 230, 0.06); color: var(--sf-text); border-color: var(--sf-border-strong); }
+
+  .sf-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 28px;
+    padding: 0 10px;
+    border: 1px solid var(--sf-border);
+    border-radius: var(--sf-radius-pill);
+    background: rgba(255, 244, 230, 0.03);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--sf-text-muted);
+    white-space: nowrap;
+  }
+
+  .sf-chip-accent {
+    border-color: rgba(249, 115, 22, 0.32);
+    background: rgba(249, 115, 22, 0.12);
+    color: var(--sf-orange-300);
+  }
+
+  .sf-input {
+    width: 100%;
+    min-height: 48px;
+    padding: 0 14px;
+    border: 1px solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+    background: rgba(0, 0, 0, 0.28);
+    color: var(--sf-text);
+    font-family: var(--sf-font-body);
+    font-size: 15px;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  }
+  .sf-input::placeholder { color: var(--sf-text-disabled); }
+  .sf-input:focus {
+    outline: none;
+    border-color: rgba(249, 115, 22, 0.55);
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.14);
+  }
+
+  .sf-textarea {
+    min-height: 116px;
+    padding: 14px;
+    line-height: 1.65;
+    resize: vertical;
+  }
+
+  .sf-progress {
+    height: 8px;
+    overflow: hidden;
+    border-radius: var(--sf-radius-pill);
+    background: rgba(255, 244, 230, 0.08);
+  }
+  .sf-progress > span {
+    display: block;
+    height: 100%;
+    border-radius: var(--sf-radius-pill);
+    background: var(--sf-orange-500);
+    transition: width 0.6s ease;
+  }
+
+  .sf-stat-value {
+    font-family: var(--sf-font-display);
+    font-size: 30px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--sf-text);
+  }
+
+  .sf-card-title {
+    font-family: var(--sf-font-body);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.35;
+    color: var(--sf-text);
+  }
+
+  .sf-divider {
+    height: 1px;
+    width: 100%;
+    background: var(--sf-border);
+  }
+
+  .sf-link {
+    color: var(--sf-orange-300);
+    text-underline-offset: 3px;
+  }
+  .sf-link:hover { color: var(--sf-orange-100); text-decoration: underline; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sf-card-interactive:hover { transform: none; }
+    .sf-btn:active:not(:disabled) { transform: none; }
+  }
+}
+/* ============================================================
+   Animated component library primitives (Magic UI / React Bits)
+   Source-owned implementations live in src/components/animated
+   ============================================================ */
+@layer utilities {
+  @keyframes sf-marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(calc(-100% - var(--gap))); }
+  }
+  @keyframes sf-marquee-vertical {
+    from { transform: translateY(0); }
+    to { transform: translateY(calc(-100% - var(--gap))); }
+  }
+  @keyframes sf-shimmer-slide {
+    to { transform: translate(calc(100cqw - 100%), 0); }
+  }
+  @keyframes sf-spin-around {
+    0% { transform: translateZ(0) rotate(0); }
+    15%, 35% { transform: translateZ(0) rotate(90deg); }
+    65%, 85% { transform: translateZ(0) rotate(270deg); }
+    100% { transform: translateZ(0) rotate(360deg); }
+  }
+  @keyframes sf-border-beam {
+    to { transform: rotate(360deg); }
+  }
+  @keyframes sf-plasma {
+    0%, 100% { transform: translate3d(-3%, -2%, 0) scale(1); }
+    50% { transform: translate3d(3%, 2%, 0) scale(1.1); }
+  }
+  @keyframes sf-spin-slow {
+    to { transform: rotate(360deg); }
+  }
+
+  .animate-marquee {
+    animation: sf-marquee var(--duration, 40s) linear infinite;
+  }
+  .animate-marquee-vertical {
+    animation: sf-marquee-vertical var(--duration, 40s) linear infinite;
+  }
+  .animate-shimmer-slide {
+    animation: sf-shimmer-slide var(--speed, 3s) ease-in-out infinite alternate;
+  }
+  .animate-spin-around {
+    animation: sf-spin-around calc(var(--speed, 3s) * 2) infinite linear;
+  }
+  .animate-border-beam {
+    animation: sf-border-beam var(--duration, 15s) linear infinite;
+  }
+  .animate-plasma {
+    animation: sf-plasma var(--duration, 16s) ease-in-out infinite;
+  }
+  .animate-spin-slow {
+    animation: sf-spin-slow var(--duration, 12s) linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-marquee,
+    .animate-marquee-vertical,
+    .animate-shimmer-slide,
+    .animate-spin-around,
+    .animate-border-beam,
+    .animate-plasma,
+    .animate-spin-slow {
+      animation: none;
+    }
+  }
 }

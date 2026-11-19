@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react';
 import { AppState } from '../types';
 import { PracticeSession, PracticeQuestion } from '../components/practice/PracticeSession';
-import { PyraMascot } from '../components/PyraMascot';
+import { PageHeader } from '../components/layout/PageHeader';
 
 interface ReviewPageProps {
   state: AppState;
@@ -69,49 +69,58 @@ export function ReviewPage({ state, onNavigate, onAward }: ReviewPageProps) {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-white/10 bg-[var(--sf-surface)] p-6 sm:p-8">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <PyraMascot expression="happy" className="w-14 h-14" />
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--sf-orange-300)]">Review</p>
-              <h1 className="mt-1 text-2xl sm:text-3xl font-semibold tracking-tight text-white">Strengthen what you know</h1>
-              <p className="mt-2 text-[var(--sf-text-muted)]">Short retrieval sessions help you remember longer.</p>
-            </div>
-          </div>
-          <button type="button" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[var(--sf-orange-500)] px-5 font-semibold text-black hover:bg-[var(--sf-orange-400)]" onClick={() => setActive(true)}>
-            <Play aria-hidden="true" size={18} /> Start quick review
+      <PageHeader
+        title="Strengthen what you know"
+        description="Short retrieval sessions help you remember longer than rereading ever will."
+        action={
+          <button type="button" className="sf-btn sf-btn-primary" onClick={() => setActive(true)}>
+            <Play aria-hidden="true" size={16} /> Start quick review
           </button>
-        </div>
-      </section>
+        }
+      />
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-white/10 bg-[var(--sf-surface)] p-5">
-          <div className="flex items-center gap-2 text-[var(--sf-orange-300)]"><Brain aria-hidden="true" size={18} /><span className="text-sm font-medium">Due now</span></div>
-          <p className="mt-3 text-2xl font-semibold text-white">{dueCount}</p>
-          <p className="text-sm text-[var(--sf-text-subtle)]">items ready to review</p>
-        </div>
-        <div className="rounded-2xl border border-white/10 bg-[var(--sf-surface)] p-5">
-          <div className="flex items-center gap-2 text-[var(--sf-orange-300)]"><Clock3 aria-hidden="true" size={18} /><span className="text-sm font-medium">Time</span></div>
-          <p className="mt-3 text-2xl font-semibold text-white">~{Math.max(3, Math.ceil(dueCount * 1.2))} min</p>
-          <p className="text-sm text-[var(--sf-text-subtle)]">estimated session</p>
-        </div>
-        <div className="rounded-2xl border border-white/10 bg-[var(--sf-surface)] p-5">
-          <div className="flex items-center gap-2 text-[var(--sf-orange-300)]"><CheckCircle2 aria-hidden="true" size={18} /><span className="text-sm font-medium">Focus</span></div>
-          <p className="mt-3 text-2xl font-semibold text-white">Learn</p>
-          <p className="text-sm text-[var(--sf-text-subtle)]">by retrieval, not rereading</p>
-        </div>
+      <div className="grid gap-3 sm:grid-cols-3">
+        {[
+          { icon: Brain, label: 'Due now', value: dueCount, hint: 'items ready to review' },
+          { icon: Clock3, label: 'Time', value: `~${Math.max(3, Math.ceil(dueCount * 1.2))} min`, hint: 'estimated session' },
+          { icon: CheckCircle2, label: 'Focus', value: 'Recall', hint: 'not rereading' },
+        ].map(({ icon: Icon, label, value, hint }) => (
+          <div key={label} className="sf-card p-5">
+            <div className="flex items-center gap-2 text-[var(--sf-orange-300)]"><Icon aria-hidden="true" size={16} /><span className="text-[12.5px] font-medium">{label}</span></div>
+            <p className="sf-stat-value mt-3 text-[26px]">{value}</p>
+            <p className="mt-1 text-[12.5px] text-[var(--sf-text-subtle)]">{hint}</p>
+          </div>
+        ))}
       </div>
 
-      <section className="rounded-3xl border border-white/10 bg-[var(--sf-surface)] p-6">
-        <h2 className="text-lg font-semibold text-white">Review tips</h2>
-        <ul className="mt-4 space-y-3 text-sm text-[var(--sf-text-muted)]">
-          <li className="flex gap-3"><RotateCcw className="mt-0.5 text-[var(--sf-orange-400)]" aria-hidden="true" size={16} /> Review mistakes soon to correct misunderstandings.</li>
-          <li className="flex gap-3"><RotateCcw className="mt-0.5 text-[var(--sf-orange-400)]" aria-hidden="true" size={16} /> Keep sessions short and consistent for better retention.</li>
-          <li className="flex gap-3"><RotateCcw className="mt-0.5 text-[var(--sf-orange-400)]" aria-hidden="true" size={16} /> Explain answers in your own words after each check.</li>
-        </ul>
-        <button type="button" className="mt-6 min-h-11 rounded-xl border border-white/10 px-4 text-sm text-white hover:bg-white/[0.07]" onClick={() => onNavigate('learn')}>Ask tutor for help</button>
-      </section>
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(280px,0.75fr)]">
+        <section className="sf-card p-6">
+          <h2 className="sf-card-title">How this session works</h2>
+          <ol className="mt-4 space-y-3 text-[13.5px] leading-6 text-[var(--sf-text-muted)]">
+            {[
+              'Answer one question at a time, without notes.',
+              'See immediately whether you were right.',
+              'Read the explanation and connect it to the concept.',
+              'Missed items come back sooner in your next review.',
+            ].map((step, index) => (
+              <li key={step} className="flex gap-3">
+                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-[var(--sf-border)] text-[11px] font-semibold text-[var(--sf-orange-300)]">{index + 1}</span>
+                <span>{step}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        <section className="sf-card p-6">
+          <h2 className="sf-card-title">Review tips</h2>
+          <ul className="mt-4 space-y-3 text-[13px] leading-6 text-[var(--sf-text-muted)]">
+            <li className="flex gap-2.5"><RotateCcw className="mt-1 shrink-0 text-[var(--sf-orange-400)]" aria-hidden="true" size={14} /> Review mistakes soon to correct misunderstandings.</li>
+            <li className="flex gap-2.5"><RotateCcw className="mt-1 shrink-0 text-[var(--sf-orange-400)]" aria-hidden="true" size={14} /> Keep sessions short and consistent for better retention.</li>
+            <li className="flex gap-2.5"><RotateCcw className="mt-1 shrink-0 text-[var(--sf-orange-400)]" aria-hidden="true" size={14} /> Explain answers in your own words after each check.</li>
+          </ul>
+          <button type="button" className="sf-btn sf-btn-secondary mt-5 w-full" onClick={() => onNavigate('learn')}>Ask the tutor for help</button>
+        </section>
+      </div>
     </div>
   );
 }

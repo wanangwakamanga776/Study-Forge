@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { Flame, Shield, Loader2, Mail, Lock, ArrowRight, AlertCircle, Sparkles } from 'lucide-react';
+import { Flame, Shield, Loader2, Mail, Lock, ArrowRight, AlertCircle, Sparkles, Check } from 'lucide-react';
 import { signInWithGoogle, loginWithEmail, signUpWithEmail, resetPassword } from '../services/authService';
 import { saveUserStats } from '../services/dataService';
 import { soundService } from '../services/soundService';
-import { PyraMascot } from './PyraMascot';
+import { ShimmerButton } from './animated';
 
 interface LoginPageProps {
   onGuestAccess: (isAdmin?: boolean) => void;
@@ -88,107 +87,120 @@ export function LoginPage({ onGuestAccess }: LoginPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--sf-bg)] text-[var(--sf-text)] relative overflow-hidden">
-      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-        <div className="absolute -top-32 -left-24 h-[420px] w-[420px] rounded-full bg-[var(--sf-orange-500)]/15 blur-[120px]" />
-        <div className="absolute top-1/3 -right-20 h-[360px] w-[360px] rounded-full bg-amber-300/10 blur-[120px]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),transparent_45%)]" />
+    <div className="relative min-h-screen overflow-hidden bg-[var(--sf-bg)] text-[var(--sf-text)]">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+        <div className="absolute -left-40 -top-40 h-[420px] w-[420px] rounded-full bg-[var(--sf-orange-500)]/10 blur-[110px]" />
+        <div className="absolute bottom-0 right-0 h-[320px] w-[320px] rounded-full bg-[var(--sf-copper)]/10 blur-[120px]" />
       </div>
 
-      <div className="relative mx-auto grid min-h-screen w-full max-w-7xl items-center gap-10 px-6 py-10 lg:grid-cols-[1.05fr_0.95fr] lg:px-10">
-        <motion.section initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="max-w-xl">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--sf-orange-400)]/25 bg-[var(--sf-orange-500)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--sf-orange-300)]">
-            <Sparkles size={14} aria-hidden="true" /> Study Forge
+      <div className="relative mx-auto grid min-h-screen w-full max-w-6xl items-center gap-12 px-5 py-12 sm:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:px-10">
+        <section className="max-w-lg">
+          <div className="flex items-center gap-2.5">
+            <span className="grid h-10 w-10 place-items-center rounded-[11px] bg-[var(--sf-orange-500)] text-[#1a1209]">
+              <Flame aria-hidden="true" size={20} />
+            </span>
+            <span className="text-[15px] font-semibold tracking-tight">Study Forge</span>
           </div>
-          <div className="mb-6 flex items-center gap-4">
-            <div className="scale-90 origin-left"><PyraMascot expression="happy" className="w-20 h-20" /></div>
-            <span className="grid h-14 w-14 place-items-center rounded-2xl bg-[var(--sf-orange-500)] text-black shadow-[0_0_40px_var(--sf-orange-glow)]"><Flame size={26} aria-hidden="true" /></span>
-          </div>
-          <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-6xl" style={{ fontFamily: 'var(--sf-font-display)' }}>
+
+          <h1 className="sf-display mt-8 text-[clamp(34px,5vw,54px)] text-balance">
             Learn anything, <span className="text-[var(--sf-orange-300)]">one clear step</span> at a time.
           </h1>
-          <p className="mt-5 max-w-lg text-base leading-7 text-[var(--sf-text-muted)] sm:text-lg">
+
+          <p className="sf-subtitle mt-5 text-[15px]">
             Ask questions, turn notes into practice, and come back to a study space that always shows what to do next.
           </p>
-          <ul className="mt-8 space-y-3 text-sm text-[var(--sf-text-muted)]">
-            <li className="flex items-center gap-3"><span className="h-1.5 w-1.5 rounded-full bg-[var(--sf-orange-400)]" /> Guided tutor sessions with clear explanations</li>
-            <li className="flex items-center gap-3"><span className="h-1.5 w-1.5 rounded-full bg-[var(--sf-orange-400)]" /> Practice, review, and progress in one workspace</li>
-            <li className="flex items-center gap-3"><span className="h-1.5 w-1.5 rounded-full bg-[var(--sf-orange-400)]" /> Calm, focused design that keeps learning first</li>
-          </ul>
-        </motion.section>
 
-        <motion.section initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.05 }} className="w-full max-w-md justify-self-center lg:justify-self-end">
-          <div className="rounded-[32px] border border-white/10 bg-[var(--sf-surface)]/90 p-6 shadow-[var(--sf-shadow-card)] backdrop-blur-xl sm:p-8">
-            <div className="mb-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--sf-text-subtle)]">Welcome back</p>
-              <h2 className="mt-2 text-2xl font-semibold text-white" style={{ fontFamily: 'var(--sf-font-display)' }}>
-                {authMode === 'login' ? 'Sign in to continue' : 'Create your account'}
-              </h2>
-            </div>
+          <ul className="mt-8 space-y-3.5">
+            {[
+              'Guided tutor sessions with clear explanations',
+              'Practice, review, and progress in one workspace',
+              'Calm, focused design that keeps learning first',
+            ].map((item) => (
+              <li key={item} className="flex items-start gap-3 text-[13.5px] text-[var(--sf-text-muted)]">
+                <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[var(--sf-orange-500)]/12 text-[var(--sf-orange-300)]">
+                  <Check aria-hidden="true" size={12} />
+                </span>
+                {item}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="w-full max-w-md justify-self-center lg:justify-self-end">
+          <div className="sf-card p-6 sm:p-8">
+            <p className="sf-eyebrow">Welcome back</p>
+            <h2 className="mt-2 text-[24px] font-semibold text-white" style={{ fontFamily: 'var(--sf-font-display)' }}>
+              {authMode === 'login' ? 'Sign in to continue' : 'Create your account'}
+            </h2>
 
             {errorMsg && (
-              <div role="alert" className="mb-4 flex items-start gap-3 rounded-2xl border border-[var(--sf-danger)]/25 bg-[var(--sf-danger-soft)] p-4 text-sm text-rose-100">
-                <AlertCircle size={18} className="mt-0.5 shrink-0" aria-hidden="true" /> <span>{errorMsg}</span>
+              <div role="alert" className="mt-4 flex items-start gap-2.5 rounded-[10px] border border-[var(--sf-danger)]/25 bg-[var(--sf-danger-soft)] p-3.5 text-[13px] text-rose-100">
+                <AlertCircle size={17} className="mt-0.5 shrink-0" aria-hidden="true" /> <span>{errorMsg}</span>
               </div>
             )}
             {successMsg && (
-              <div className="mb-4 flex items-start gap-3 rounded-2xl border border-[var(--sf-success)]/25 bg-[var(--sf-success-soft)] p-4 text-sm text-emerald-100">
-                <Shield size={18} className="mt-0.5 shrink-0" aria-hidden="true" /> <span>{successMsg}</span>
+              <div role="status" className="mt-4 flex items-start gap-2.5 rounded-[10px] border border-[var(--sf-success)]/25 bg-[var(--sf-success-soft)] p-3.5 text-[13px] text-emerald-100">
+                <Shield size={17} className="mt-0.5 shrink-0" aria-hidden="true" /> <span>{successMsg}</span>
               </div>
             )}
             {isApk && (
-              <div className="mb-4 rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4 text-sm text-amber-100">
+              <div className="mt-4 rounded-[10px] border border-amber-400/20 bg-amber-500/10 p-3.5 text-[13px] text-amber-100">
                 On Android app builds, use email and password for the most reliable sign-in.
               </div>
             )}
 
-            <form onSubmit={handleEmailAuth} className="space-y-4">
+            <form onSubmit={handleEmailAuth} className="mt-5 space-y-3.5">
               <div>
-                <label htmlFor="auth-email" className="mb-2 block text-sm font-medium text-[var(--sf-text-muted)]">Email</label>
+                <label htmlFor="auth-email" className="mb-1.5 block text-[12.5px] font-medium text-[var(--sf-text-muted)]">Email</label>
                 <div className="relative">
-                  <Mail className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--sf-text-subtle)]" size={18} aria-hidden="true" />
+                  <Mail className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--sf-text-subtle)]" size={17} aria-hidden="true" />
                   <input id="auth-email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)}
-                    className="h-12 w-full rounded-xl border border-white/10 bg-black/20 pl-11 pr-4 text-white placeholder:text-[var(--sf-text-disabled)] focus:border-[var(--sf-orange-400)] focus:outline-none" placeholder="you@example.com" />
+                    className="sf-input pl-10" placeholder="you@example.com" />
                 </div>
               </div>
               <div>
-                <label htmlFor="auth-password" className="mb-2 block text-sm font-medium text-[var(--sf-text-muted)]">Password</label>
+                <label htmlFor="auth-password" className="mb-1.5 block text-[12.5px] font-medium text-[var(--sf-text-muted)]">Password</label>
                 <div className="relative">
-                  <Lock className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--sf-text-subtle)]" size={18} aria-hidden="true" />
+                  <Lock className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--sf-text-subtle)]" size={17} aria-hidden="true" />
                   <input id="auth-password" type="password" autoComplete={authMode === 'login' ? 'current-password' : 'new-password'} required value={password} onChange={(e) => setPassword(e.target.value)}
-                    className="h-12 w-full rounded-xl border border-white/10 bg-black/20 pl-11 pr-4 text-white placeholder:text-[var(--sf-text-disabled)] focus:border-[var(--sf-orange-400)] focus:outline-none" placeholder="Password" />
+                    className="sf-input pl-10" placeholder="Password" />
                 </div>
               </div>
 
               {authMode === 'login' && (
                 <div className="flex justify-end">
-                  <button type="button" onClick={handleResetPassword} className="text-sm text-[var(--sf-text-subtle)] hover:text-white">Forgot password?</button>
+                  <button type="button" onClick={handleResetPassword} className="text-[12.5px] text-[var(--sf-text-subtle)] hover:text-white">Forgot password?</button>
                 </div>
               )}
 
-              <button type="submit" disabled={isAuthenticating} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--sf-orange-500)] px-4 font-semibold text-black transition hover:bg-[var(--sf-orange-400)] disabled:opacity-50">
-                {isAuthenticating ? <Loader2 className="animate-spin" size={20} aria-hidden="true" /> : <>{authMode === 'login' ? 'Sign in' : 'Create account'} <ArrowRight size={18} aria-hidden="true" /></>}
-              </button>
+              <ShimmerButton type="submit" disabled={isAuthenticating} shimmerColor="#fff7ed" className="w-full">
+                {isAuthenticating ? <Loader2 className="animate-spin" size={18} aria-hidden="true" /> : <>{authMode === 'login' ? 'Sign in' : 'Create account'} <ArrowRight size={16} aria-hidden="true" /></>}
+              </ShimmerButton>
             </form>
 
-            <div className="my-5 flex items-center gap-3 text-xs text-[var(--sf-text-disabled)]">
-              <div className="h-px flex-1 bg-white/10" /> or <div className="h-px flex-1 bg-white/10" />
+            <div className="my-4 flex items-center gap-3 text-[11px] text-[var(--sf-text-disabled)]">
+              <div className="h-px flex-1 bg-[var(--sf-border)]" /> or <div className="h-px flex-1 bg-[var(--sf-border)]" />
             </div>
 
-            <button type="button" onClick={handleGoogleSignIn} disabled={isAuthenticating} className="inline-flex min-h-12 w-full items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 font-medium text-white hover:bg-white/[0.07] disabled:opacity-50">
+            <button type="button" onClick={handleGoogleSignIn} disabled={isAuthenticating} className="sf-btn sf-btn-secondary w-full">
               <img src="https://www.google.com/favicon.ico" alt="" className="h-4 w-4" aria-hidden="true" /> Continue with Google
             </button>
 
-            <div className="mt-5 flex flex-col gap-3 text-sm">
+            <div className="mt-5 flex flex-col gap-2.5 text-center text-[12.5px]">
               <button type="button" onClick={() => { setAuthMode(authMode === 'login' ? 'register' : 'login'); setErrorMsg(null); setSuccessMsg(null); soundService.playClick(); }} className="text-[var(--sf-text-muted)] hover:text-white">
                 {authMode === 'login' ? 'New here? Create an account' : 'Already have an account? Sign in'}
               </button>
-              <button type="button" onClick={() => { soundService.playClick(); onGuestAccess(); }} className="text-[var(--sf-text-subtle)] hover:text-white">
-                Continue as guest (progress stays on this device)
+              <button type="button" onClick={() => { soundService.playClick(); onGuestAccess(); }} className="sf-btn sf-btn-ghost min-h-9 text-[12.5px]">
+                Continue as guest
               </button>
+              <p className="text-[11px] text-[var(--sf-text-disabled)]">Guest progress stays on this device.</p>
             </div>
           </div>
-        </motion.section>
+
+          <p className="mt-4 flex items-center justify-center gap-1.5 text-[11px] text-[var(--sf-text-disabled)]">
+            <Sparkles size={12} aria-hidden="true" /> Built for students, by a student.
+          </p>
+        </section>
       </div>
     </div>
   );

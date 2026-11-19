@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
 import { Send, Bug, Sparkles, MessageSquare, Laptop, CheckCircle2, ChevronRight, X, Zap } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { soundService } from '../services/soundService';
@@ -7,11 +6,11 @@ import { submitFeedback } from '../services/dataService';
 import { useAuthContext } from '../contexts/AuthContext';
 
 const FEEDBACK_CATEGORIES = [
-  { id: 'Bug Report', icon: <Bug size={14} />, color: 'text-red-500' },
-  { id: 'Feature Request', icon: <Sparkles size={14} />, color: 'text-forge-accent' },
-  { id: 'UI Suggestion', icon: <Laptop size={14} />, color: 'text-blue-500' },
-  { id: 'Performance Issue', icon: <Zap size={14} />, color: 'text-yellow-500' },
-  { id: 'General Feedback', icon: <MessageSquare size={14} />, color: 'text-emerald-500' },
+  { id: 'Bug Report', icon: <Bug size={13} /> },
+  { id: 'Feature Request', icon: <Sparkles size={13} /> },
+  { id: 'UI Suggestion', icon: <Laptop size={13} /> },
+  { id: 'Performance Issue', icon: <Zap size={13} /> },
+  { id: 'General Feedback', icon: <MessageSquare size={13} /> },
 ];
 
 export const FeedbackSection: React.FC = () => {
@@ -19,7 +18,8 @@ export const FeedbackSection: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  
+  const [error, setError] = useState<string | null>(null);
+
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
   const [category, setCategory] = useState(FEEDBACK_CATEGORIES[4].id);
@@ -29,6 +29,7 @@ export const FeedbackSection: React.FC = () => {
     if (!title.trim() || !message.trim()) return;
 
     setIsSubmitting(true);
+    setError(null);
     soundService.playClick();
 
     try {
@@ -39,7 +40,7 @@ export const FeedbackSection: React.FC = () => {
         message,
         category: category as any,
         status: 'pending',
-        createdAt: Date.now()
+        createdAt: Date.now(),
       });
 
       setIsSuccess(true);
@@ -51,171 +52,108 @@ export const FeedbackSection: React.FC = () => {
         setIsSuccess(false);
         setIsOpen(false);
       }, 3000);
-    } catch (error) {
-      console.error('Feedback submission error:', error);
-      try {
-        const errorInfo = JSON.parse(error instanceof Error ? error.message : String(error));
-        console.error('Firestore Error Details:', errorInfo);
-      } catch (e) {
-        console.error('Could not parse error JSON');
-      }
-      soundService.playError();
+    } catch (err) {
+      console.error('Feedback submission error:', err);
+      setError('Could not send your feedback right now. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <section className="w-full">
-      <div className="flex flex-col items-center justify-center text-center space-y-6 mb-12">
-        <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-white/20">
-          <MessageSquare size={28} />
-        </div>
+    <section className="sf-card p-6">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-display font-black uppercase italic tracking-tighter text-white">Feedback</h2>
-          <p className="text-white/50 text-xs font-bold uppercase tracking-[0.3em] mt-3">Help improve Study Forge</p>
+          <p className="sf-eyebrow">Feedback</p>
+          <h2 className="sf-card-title mt-2">Help improve Study Forge</h2>
+          <p className="mt-1 text-[13px] text-[var(--sf-text-muted)]">Report a problem or suggest what to build next.</p>
         </div>
+        <span className="grid h-9 w-9 place-items-center rounded-[10px] bg-[var(--sf-orange-500)]/12 text-[var(--sf-orange-300)]"><MessageSquare size={16} aria-hidden="true" /></span>
       </div>
 
-      <div className="max-w-4xl mx-auto px-6">
-        <motion.div 
-          onClick={() => !isOpen && setIsOpen(true)}
-          className={cn(
-            "p-8 md:p-12 glass-panel rounded-[3rem] border border-white/5 cinematic-shadow relative overflow-hidden transition-all duration-500",
-            !isOpen ? "cursor-pointer hover:border-forge-accent/30 group" : "bg-white/[0.03]"
-          )}
+      {!isOpen ? (
+        <button
+          type="button"
+          onClick={() => { setIsOpen(true); soundService.playClick(); }}
+          className="mt-5 flex w-full items-center justify-between gap-4 rounded-[12px] border border-[var(--sf-border)] bg-white/[0.02] px-4 py-3.5 text-left transition hover:border-[var(--sf-border-strong)] hover:bg-white/[0.04]"
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-forge-accent/5 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
-          
-          <AnimatePresence mode="wait">
-            {!isOpen ? (
-              <motion.div 
-                key="closed"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="flex items-center justify-between"
-              >
-                <div className="flex items-center gap-8">
-                   <div className="hidden md:flex -space-x-4">
-                      {FEEDBACK_CATEGORIES.map((cat, i) => (
-                        <div key={i} className={cn("w-12 h-12 rounded-full border-4 border-forge-dark bg-white/5 flex items-center justify-center", cat.color)}>
-                          {cat.icon}
-                        </div>
-                      ))}
-                   </div>
-                   <div>
-                      <p className="text-xl font-display font-black text-white italic truncate">Open a communication channel with the Archivist.</p>
-                      <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mt-1">Initiating feedback protocol v1.0</p>
-                   </div>
-                </div>
-                <div className="w-12 h-12 bg-forge-accent text-forge-dark rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <ChevronRight size={24} />
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div 
-                key="open"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="space-y-10"
-              >
-                <div className="flex items-center justify-between border-b border-white/10 pb-6">
-                   <div className="flex items-center gap-4">
-                      <div className="p-3 bg-white/5 text-forge-accent rounded-xl">
-                        <Send size={20} />
-                      </div>
-                      <h3 className="text-xl font-display font-black uppercase italic tracking-tighter text-white">Send Feedback</h3>
-                   </div>
-                   <button 
-                    onClick={(e) => { e.stopPropagation(); setIsOpen(false); }}
-                    className="p-2 text-white/20 hover:text-white transition-colors"
-                  >
-                    <X size={20} />
-                  </button>
-                </div>
+          <span>
+            <span className="block text-[13.5px] font-medium text-white">Send feedback</span>
+            <span className="mt-0.5 block text-[12px] text-[var(--sf-text-subtle)]">Takes about a minute</span>
+          </span>
+          <ChevronRight aria-hidden="true" size={18} className="shrink-0 text-[var(--sf-text-subtle)]" />
+        </button>
+      ) : (
+        <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-[13.5px] font-medium text-white">New report</p>
+            <button type="button" aria-label="Close feedback form" onClick={() => setIsOpen(false)} className="grid h-8 w-8 place-items-center rounded-lg text-[var(--sf-text-subtle)] hover:bg-white/[0.06] hover:text-white">
+              <X size={16} />
+            </button>
+          </div>
 
-                <form onSubmit={handleSubmit} className="space-y-8">
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      <div className="space-y-3">
-                         <label className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20 ml-4">Title</label>
-                         <input 
-                            required
-                            type="text"
-                            placeholder="Briefly identify the report..."
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold outline-none focus:border-forge-accent/50 transition-all placeholder:text-white/10"
-                         />
-                      </div>
-                      <div className="space-y-3">
-                         <label className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20 ml-4">Type</label>
-                         <div className="flex flex-wrap gap-2">
-                            {FEEDBACK_CATEGORIES.map(cat => (
-                              <button
-                                key={cat.id}
-                                type="button"
-                                onClick={() => setCategory(cat.id)}
-                                className={cn(
-                                  "px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border",
-                                  category === cat.id 
-                                    ? "bg-forge-accent text-forge-dark border-forge-accent" 
-                                    : "bg-white/5 text-white/30 border-white/5 hover:border-white/10"
-                                )}
-                              >
-                                {cat.id}
-                              </button>
-                            ))}
-                         </div>
-                      </div>
-                   </div>
+          {error && (
+            <p role="alert" className="rounded-[10px] border border-[var(--sf-danger)]/30 bg-[var(--sf-danger-soft)] px-3.5 py-2.5 text-[12.5px] text-rose-100">{error}</p>
+          )}
 
-                   <div className="space-y-3">
-                      <label className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20 ml-4">Your Message</label>
-                      <textarea 
-                         required
-                         placeholder="Describe the desired expansion or identified anomaly..."
-                         value={message}
-                         onChange={(e) => setMessage(e.target.value)}
-                         className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-3xl text-white font-medium outline-none focus:border-forge-accent/50 transition-all placeholder:text-white/10 resize-none h-24 md:h-32"
-                      />
-                   </div>
+          <div>
+            <label htmlFor="feedback-title" className="mb-1.5 block text-[12px] font-medium text-[var(--sf-text-muted)]">Title</label>
+            <input
+              id="feedback-title"
+              required
+              type="text"
+              placeholder="Briefly describe the issue"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="sf-input"
+            />
+          </div>
 
-                   <div className="flex items-center justify-between pt-4">
-                      <div className="flex items-center gap-3">
-                        <p className="text-[9px] font-bold text-white/10 uppercase tracking-widest italic">User Identifier: {user?.uid ? `${user.uid.slice(0, 8)}...` : 'SYNERGY-GUEST'}</p>
-                      </div>
-                      <button
-                        disabled={isSubmitting || isSuccess}
-                        type="submit"
-                        className={cn(
-                          "px-6 py-3 md:px-12 md:py-4 rounded-2xl font-display font-black uppercase italic tracking-tighter transition-all flex items-center gap-3",
-                          isSuccess 
-                            ? "bg-emerald-500 text-white" 
-                            : "bg-white text-forge-dark hover:shadow-[0_10px_30px_rgba(255,255,255,0.1)]"
-                        )}
-                      >
-                        {isSubmitting ? (
-                          <div className="w-4 h-4 border-2 border-forge-dark/30 border-t-forge-dark rounded-full animate-spin" />
-                        ) : isSuccess ? (
-                          <>
-                            <CheckCircle2 size={18} />
-                            Sent successfully
-                          </>
-                        ) : (
-                          <>
-                            Synthesize & Send
-                            <ChevronRight size={18} />
-                          </>
-                        )}
-                      </button>
-                   </div>
-                </form>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
-      </div>
+          <fieldset>
+            <legend className="mb-1.5 block text-[12px] font-medium text-[var(--sf-text-muted)]">Type</legend>
+            <div className="flex flex-wrap gap-1.5">
+              {FEEDBACK_CATEGORIES.map(cat => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  aria-pressed={category === cat.id}
+                  onClick={() => setCategory(cat.id)}
+                  className={cn(
+                    'inline-flex min-h-8 items-center gap-1.5 rounded-full border px-3 text-[11.5px] font-medium transition',
+                    category === cat.id
+                      ? 'border-[var(--sf-orange-400)]/45 bg-[var(--sf-orange-500)]/12 text-[var(--sf-orange-300)]'
+                      : 'border-[var(--sf-border)] text-[var(--sf-text-subtle)] hover:bg-white/[0.05] hover:text-white',
+                  )}
+                >
+                  {cat.icon}
+                  {cat.id}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+
+          <div>
+            <label htmlFor="feedback-message" className="mb-1.5 block text-[12px] font-medium text-[var(--sf-text-muted)]">Message</label>
+            <textarea
+              id="feedback-message"
+              required
+              placeholder="What happened, or what would you like to see?"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              className="sf-input sf-textarea min-h-28"
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-[11px] text-[var(--sf-text-disabled)]">
+              {user?.uid ? `Sending as ${user.uid.slice(0, 8)}...` : 'Sending as guest'}
+            </p>
+            <button type="submit" disabled={isSubmitting || isSuccess} className={cn('sf-btn', isSuccess ? 'bg-emerald-500 text-emerald-950' : 'sf-btn-primary')}>
+              {isSuccess ? <><CheckCircle2 size={16} aria-hidden="true" /> Sent</> : isSubmitting ? 'Sending...' : <><Send size={15} aria-hidden="true" /> Send feedback</>}
+            </button>
+          </div>
+        </form>
+      )}
     </section>
   );
 };
